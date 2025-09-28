@@ -1,0 +1,22 @@
+# inpayos 配置文件
+debug: true
+env: dev
+
+server:
+  api:
+    port: "8080"
+    host: "0.0.0.0"
+
+database:
+  dsn: "root:password@tcp(localhost:3306)/inpayos?charset=utf8mb4&parseTime=True&loc=Local"
+  max_idle_conns: 10
+  max_open_conns: 100
+  conn_max_lifetime: 300s
+  conn_max_idle_time: 600s
+  debug: true
+
+redis:
+  dsn: "redis://localhost:6379/0"
+
+log:
+  level: "info"
