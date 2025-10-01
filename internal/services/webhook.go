@@ -29,7 +29,7 @@ func GetWebhookService() *WebhookService {
 // CreateWebhook 创建Webhook记录
 func (s *WebhookService) CreateWebhook(req *protocol.CreateWebhookRequest) (*models.Webhook, error) {
 	webhook := &models.Webhook{
-		WebhookID: utils.GenerateID("WH"),
+		WebhookID: utils.GenerateWebhookID(),
 	}
 	webhook.WebhookValues = &models.WebhookValues{}
 	webhook.WebhookValues.SetUserID(req.UserID).

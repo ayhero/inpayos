@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"inpayos/internal/models"
+	"time"
 
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
@@ -69,7 +70,7 @@ func (s *ConfigService) SaveMerchantConfig(merchantID, trxType string, config *m
 		if err := record.SetConfig(config); err != nil {
 			return fmt.Errorf("failed to set config: %w", err)
 		}
-		record.UpdatedAt = getCurrentTimeMillis()
+		record.UpdatedAt = time.Now().UnixMilli()
 		return tx.Save(&record).Error
 	})
 }

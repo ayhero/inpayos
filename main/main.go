@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/gin-gonic/gin"
-
 	"inpayos/internal/config"
 	"inpayos/internal/handlers"
 	"inpayos/internal/i18n"
 	"inpayos/internal/models"
 	"inpayos/internal/services"
+
+	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
 )
 
 func InitialConfig() error {
@@ -30,11 +31,12 @@ func InitialConfig() error {
 	// 初始化国际化系统
 	i18n.InitI18n("internal/locales")
 
-	// 初始化服务
-	services.SetupService()
-
 	return nil
 }
+
+var (
+	g errgroup.Group
+)
 
 func main() {
 	err := config.LoadConfig()
@@ -56,11 +58,74 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// 启动三层架构服务
-	router := handlers.SetupRouter()
+	// 初始化服务单例
+	err = services.InitializeServices()
+	if err != nil {
+		log.Fatalf("Failed to initialize services: %v", err)
+	}
 
-	log.Printf("Starting inpayos server on port :8080...")
-	if err := router.Run(":8080"); err != nil {
-		log.Fatal("Failed to start server:", err)
+	// 启动OpenAPI服务
+	g.Go(func() error {
+		openApiService := handlers.NewOpenApi()
+		if openApiService == nil {
+			log.Fatal("Failed to create OpenAPI service - configuration may be invalid")
+			return fmt.Errorf("failed to create OpenAPI service")
+		}
+		server := openApiService.ToServer()
+		server.Handler = openApiService.SetupRouter()
+
+		log.Printf("Starting OpenAPI Service on port %s", openApiService.Port)
+		err := server.ListenAndServe()
+		if err != nil {
+			log.Printf("OpenAPI Service error: %v", err)
+		} else {
+			log.Println("OpenAPI Service started successfully")
+		}
+		return err
+	})
+
+	// 启动Merchant服务
+	g.Go(func() error {
+		merchantService := handlers.NewMerchant()
+		if merchantService == nil {
+			log.Fatal("Failed to create Merchant service - configuration may be invalid")
+			return fmt.Errorf("failed to create Merchant service")
+		}
+		server := merchantService.ToServer()
+		server.Handler = merchantService.SetupRouter()
+
+		log.Printf("Starting Merchant Service on port %s", merchantService.Port)
+		err := server.ListenAndServe()
+		if err != nil {
+			log.Printf("Merchant Service error: %v", err)
+		} else {
+			log.Println("Merchant Service started successfully")
+		}
+		return err
+	})
+
+	// 启动Admin服务
+	g.Go(func() error {
+		adminService := handlers.NewAdmin()
+		if adminService == nil {
+			log.Fatal("Failed to create Admin service - configuration may be invalid")
+			return fmt.Errorf("failed to create Admin service")
+		}
+		server := adminService.ToServer()
+		server.Handler = adminService.SetupRouter()
+
+		log.Printf("Starting Admin Service on port %s", adminService.Port)
+		err := server.ListenAndServe()
+		if err != nil {
+			log.Printf("Admin Service error: %v", err)
+		} else {
+			log.Println("Admin Service started successfully")
+		}
+		return err
+	})
+
+	// 等待所有服务
+	if err := g.Wait(); err != nil {
+		panic(err)
 	}
 }

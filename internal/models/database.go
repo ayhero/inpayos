@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"inpayos/internal/config"
 
-	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -27,7 +27,7 @@ func InitDB(cfg *config.Config) error {
 		logLevel = logger.Warn
 	}
 
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger:                                   logger.Default.LogMode(logLevel),
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
@@ -66,6 +66,11 @@ func AutoMigrate() error {
 		&Cashier{},
 		&MerchantConfig{},
 		&MerchantSecret{},
+		// 新增的核心业务表
+		&FeeConfig{},
+		&CheckoutSession{},
+		&APIConfig{},
+		&TrxRouter{},
 	)
 }
 

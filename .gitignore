@@ -33,6 +33,15 @@ Thumbs.db
 bin/
 ./data
 
+# Docker volumes (if using local docker-compose override)
+docker-compose.override.yml
+.env
+.env.local
+
+# Database
+*.sql.bak
+dump.sql
+
 # Develop tools
 .vscode/
 **/__debug*

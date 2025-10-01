@@ -5,22 +5,32 @@ import (
 	"inpayos/internal/models"
 	"inpayos/internal/protocol"
 	"inpayos/internal/utils"
+	"sync"
 	"time"
 
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
-var accountServiceInstance *AccountService
+var (
+	accountServiceInstance *AccountService
+	accountServiceOnce     sync.Once
+)
 
 type AccountService struct{}
 
 // GetAccountService 获取账户服务单例
 func GetAccountService() *AccountService {
 	if accountServiceInstance == nil {
-		accountServiceInstance = &AccountService{}
+		SetupAccountService()
 	}
 	return accountServiceInstance
+}
+
+func SetupAccountService() {
+	accountServiceOnce.Do(func() {
+		accountServiceInstance = &AccountService{}
+	})
 }
 
 // CreateAccount 创建账户
@@ -33,7 +43,7 @@ func (s *AccountService) CreateAccount(req *protocol.CreateAccountRequest) (*mod
 
 	// 创建新账户
 	account := models.NewAccount()
-	account.AccountID = utils.GenerateID("ACC")
+	account.AccountID = utils.GenerateAccountID()
 	account.AccountValues.SetUserID(req.UserID).
 		SetUserType(req.UserType).
 		SetCurrency(req.Currency).
@@ -60,6 +70,10 @@ func (s *AccountService) CreateAccount(req *protocol.CreateAccountRequest) (*mod
 	}
 
 	return account, nil
+}
+
+func (s AccountService) GetMerchantAccountBalance(merchantID string) (balance *protocol.Balance, code protocol.ErrorCode) {
+	return &protocol.Balance{}, protocol.Success
 }
 
 // GetBalance 获取账户余额
@@ -168,7 +182,7 @@ func (s *AccountService) UpdateBalance(req *protocol.UpdateBalanceRequest) error
 
 		// 创建资金流水记录
 		fundFlow := models.NewFundFlow()
-		fundFlow.FlowID = utils.GenerateID("FLOW")
+		fundFlow.FlowID = utils.GenerateFlowID()
 		fundFlow.FundFlowValues.SetUserID(req.UserID).
 			SetUserType(req.UserType).
 			SetAccountID(account.AccountID).

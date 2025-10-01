@@ -6,7 +6,8 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// Transaction 交易记录表
+// Transaction 通用交易记录表（作为所有业务交易的抽象层）
+// 每个具体业务表（Payment, Receipt, Refund等）通过 ToTransaction() 方法转换为此通用模型
 type Transaction struct {
 	ID            uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	TransactionID string `json:"transaction_id" gorm:"column:transaction_id;type:varchar(64);uniqueIndex"`
@@ -344,4 +345,109 @@ func GetTransactionForUpdate(tx *gorm.DB, transactionID string) (*Transaction, e
 		return nil, err
 	}
 	return &transaction, nil
+}
+
+// IsPayment 判断是否为代付交易
+func (t *Transaction) IsPayment() bool {
+	return t.GetType() == "payment"
+}
+
+// IsReceipt 判断是否为代收交易
+func (t *Transaction) IsReceipt() bool {
+	return t.GetType() == "receipt"
+}
+
+// IsRefund 判断是否为退款交易
+func (t *Transaction) IsRefund() bool {
+	return t.GetType() == "refund"
+}
+
+// IsDeposit 判断是否为充值交易
+func (t *Transaction) IsDeposit() bool {
+	return t.GetType() == "deposit"
+}
+
+// IsWithdraw 判断是否为提现交易
+func (t *Transaction) IsWithdraw() bool {
+	return t.GetType() == "withdraw"
+}
+
+// IsPending 判断是否为待处理状态
+func (t *Transaction) IsPending() bool {
+	return t.GetStatus() == "pending"
+}
+
+// IsProcessing 判断是否为处理中状态
+func (t *Transaction) IsProcessing() bool {
+	return t.GetStatus() == "processing"
+}
+
+// IsSuccess 判断是否为成功状态
+func (t *Transaction) IsSuccess() bool {
+	return t.GetStatus() == "success"
+}
+
+// IsFailed 判断是否为失败状态
+func (t *Transaction) IsFailed() bool {
+	return t.GetStatus() == "failed"
+}
+
+// GetTransactionsByType 根据类型查询交易记录
+func GetTransactionsByType(txType string, limit, offset int) ([]*Transaction, error) {
+	var transactions []*Transaction
+	err := DB.Where("type = ?", txType).
+		Order("created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&transactions).Error
+	if err != nil {
+		return nil, err
+	}
+	return transactions, nil
+}
+
+// GetTransactionsByStatus 根据状态查询交易记录
+func GetTransactionsByStatus(status string, limit, offset int) ([]*Transaction, error) {
+	var transactions []*Transaction
+	err := DB.Where("status = ?", status).
+		Order("created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&transactions).Error
+	if err != nil {
+		return nil, err
+	}
+	return transactions, nil
+}
+
+// GetAllTransactions 查询所有交易记录（可按业务类型过滤）
+func GetAllTransactions(filters map[string]interface{}, limit, offset int) ([]*Transaction, int64, error) {
+	var transactions []*Transaction
+	var total int64
+
+	query := DB.Model(&Transaction{})
+
+	// 应用过滤条件
+	for key, value := range filters {
+		if value != nil && value != "" {
+			query = query.Where(key+" = ?", value)
+		}
+	}
+
+	// 获取总数
+	err := query.Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// 获取分页数据
+	err = query.Order("created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&transactions).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return transactions, total, nil
 }

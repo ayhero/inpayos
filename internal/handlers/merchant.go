@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"inpayos/internal/config"
+	"inpayos/internal/middleware"
 	"inpayos/internal/protocol"
 	"inpayos/internal/services"
 	"net/http"
@@ -11,11 +13,97 @@ import (
 // Merchant 第二层：商户后台接口处理器
 // 面向商户用户，需要 JWT + Session 认证
 type Merchant struct {
+	*config.ServiceConfig
 }
 
 // NewMerchant 创建 Merchant 处理器
 func NewMerchant() *Merchant {
-	return &Merchant{}
+	cfg := config.Get()
+	if cfg == nil || cfg.Server.Merchant == nil {
+		return nil
+	}
+
+	return &Merchant{
+		ServiceConfig: cfg.Server.Merchant,
+	}
+}
+
+// ToServer 创建 HTTP服务器
+func (m *Merchant) ToServer() *http.Server {
+	return &http.Server{
+		Addr: ":" + m.Port,
+	}
+}
+
+// SetupRouter 设置路由
+func (m *Merchant) SetupRouter() *gin.Engine {
+	// 设置Gin模式
+	cfg := config.Get()
+	if cfg.Env == "prod" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	router := gin.New()
+
+	// 添加中间件
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
+	router.Use(middleware.CORS())
+	router.Use(middleware.LanguageMiddleware())
+
+	// 健康检查
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok", "service": "merchant"})
+	})
+
+	// 商户认证相关（无前缀）
+	router.POST("/login", m.Login)
+
+	// 需要JWT认证的端点
+	merchantAPI := router.Group("/")
+	merchantAPI.Use(middleware.JWTAuth())
+	{
+		merchantAPI.POST("/logout", m.Logout)
+		merchantAPI.POST("/register", m.Register)
+		merchantAPI.POST("/verify", m.Verify)
+		merchantAPI.POST("/reset-password", m.ResetPassword)
+		merchantAPI.POST("/change-password", m.ChangePassword)
+
+		// 账户信息管理
+		account := merchantAPI.Group("/account")
+		{
+			account.GET("/info", m.GetAccountInfo)
+			account.PUT("/info", m.UpdateAccountInfo)
+			account.GET("/balance", m.GetAccountBalance)
+			account.GET("/history", m.GetAccountHistory)
+		}
+
+		// API配置管理
+		api := merchantAPI.Group("/api")
+		{
+			api.POST("/public-key", m.SubmitPublicKey)
+			api.POST("/webhook", m.SubmitWebhook)
+			api.POST("/whitelist", m.SubmitWhitelist)
+		}
+
+		// 交易管理
+		transactions := merchantAPI.Group("/transactions")
+		{
+			transactions.GET("", m.ListTransactions)
+			transactions.GET("/:id", m.GetTransactionDetail)
+			transactions.GET("/export", m.ExportTransactions)
+			transactions.POST("/refund", m.CreateRefund)
+		}
+
+		// 收银台管理
+		checkouts := merchantAPI.Group("/checkouts")
+		{
+			checkouts.GET("", m.ListCheckouts)
+			checkouts.GET("/services", m.GetCheckoutServices)
+		}
+	}
+
+	return router
 }
 
 // =============================================================================

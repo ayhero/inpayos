@@ -15,22 +15,50 @@
 ### 环境要求
 
 - Go 1.21+
-- MySQL 8.0+
+- PostgreSQL 13+
+- Redis 6+ (可选)
 
-### 安装依赖
+### 快速启动（推荐）
+
+使用Docker Compose一键启动所有依赖服务：
 
 ```bash
+# 启动PostgreSQL和Redis
+docker-compose up -d
+
+# 等待数据库就绪
+sleep 10
+
+# 安装Go依赖
 go mod tidy
+
+# 运行应用
+go run main/main.go
 ```
 
-### 配置数据库
+### 手动配置数据库
 
-1. 创建数据库：
+如果不使用Docker，请手动安装PostgreSQL：
+
+1. 安装PostgreSQL并创建数据库：
 ```sql
-CREATE DATABASE inpayos CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER inpayos WITH PASSWORD 'password';
+CREATE DATABASE inpayos OWNER inpayos;
+CREATE DATABASE inpayos_dev OWNER inpayos;
+GRANT ALL PRIVILEGES ON DATABASE inpayos TO inpayos;
+GRANT ALL PRIVILEGES ON DATABASE inpayos_dev TO inpayos;
+
+-- 创建扩展
+\c inpayos;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+\c inpayos_dev;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 ```
 
-2. 修改配置文件 `config.yaml` 中的数据库连接信息
+2. 修改配置文件 `config.yaml` 中的数据库连接信息（如果需要）
 
 ### 运行应用
 

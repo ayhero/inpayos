@@ -1,9 +1,16 @@
 debug: true
 server:
-  host: "0.0.0.0"
-  port: "8081"
+  api:
+    port: "8080"
+    host: "0.0.0.0"
+  merchant:
+    port: "8081"
+    host: "0.0.0.0"
+  admin:
+    port: "8082"
+    host: "0.0.0.0"
 database:
-  dsn: "root:password@tcp(localhost:3306)/inpayos_dev?charset=utf8mb4&parseTime=True&loc=Local"
+  dsn: "host=localhost user=inpayos password=password dbname=inpayos_dev port=5432 sslmode=disable TimeZone=Asia/Shanghai"
   max_idle_conns: 5
   max_open_conns: 50
   conn_max_lifetime: "30m"
