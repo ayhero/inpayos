@@ -86,7 +86,7 @@ func main() {
 
 	// 启动Merchant服务
 	g.Go(func() error {
-		merchantService := handlers.NewMerchant()
+		merchantService := handlers.NewMerchantAdmin()
 		if merchantService == nil {
 			log.Fatal("Failed to create Merchant service - configuration may be invalid")
 			return fmt.Errorf("failed to create Merchant service")

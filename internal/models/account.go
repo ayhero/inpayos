@@ -162,7 +162,7 @@ func (a *AccountValues) SetLastActiveAt(lastActiveAt int64) *AccountValues {
 // 查询方法
 func GetAccountByID(id uint64) (*Account, error) {
 	var account Account
-	err := DB.Where("id = ?", id).First(&account).Error
+	err := WriteDB.Where("id = ?", id).First(&account).Error
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func GetAccountByID(id uint64) (*Account, error) {
 
 func GetAccountByAccountID(accountID string) (*Account, error) {
 	var account Account
-	err := DB.Where("account_id = ?", accountID).First(&account).Error
+	err := WriteDB.Where("account_id = ?", accountID).First(&account).Error
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +180,7 @@ func GetAccountByAccountID(accountID string) (*Account, error) {
 
 func GetAccountByUserIDAndCurrency(userID, userType, currency string) (*Account, error) {
 	var account Account
-	err := DB.Where("user_id = ? AND user_type = ? AND currency = ?", userID, userType, currency).First(&account).Error
+	err := WriteDB.Where("user_id = ? AND user_type = ? AND currency = ?", userID, userType, currency).First(&account).Error
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +200,7 @@ func GetAccountForUpdate(tx *gorm.DB, userID, userType, currency string) (*Accou
 
 func GetAccountsByUserID(userID, userType string) ([]*Account, error) {
 	var accounts []*Account
-	err := DB.Where("user_id = ? AND user_type = ?", userID, userType).Find(&accounts).Error
+	err := WriteDB.Where("user_id = ? AND user_type = ?", userID, userType).Find(&accounts).Error
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +209,7 @@ func GetAccountsByUserID(userID, userType string) ([]*Account, error) {
 
 func GetAccountsByIDs(ids []uint64) ([]*Account, error) {
 	var accounts []*Account
-	err := DB.Where("id IN ?", ids).Find(&accounts).Error
+	err := WriteDB.Where("id IN ?", ids).Find(&accounts).Error
 	if err != nil {
 		return nil, err
 	}

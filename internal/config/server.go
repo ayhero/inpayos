@@ -23,19 +23,27 @@ var (
 )
 
 type Config struct {
-	Debug    bool            `mapstructure:"debug"`
-	Env      string          `mapstructure:"env"`
-	Server   *ServerConfig   `mapstructure:"server"`
-	Database *DatabaseConfig `mapstructure:"database"`
-	Redis    *RedisConfig    `mapstructure:"redis"`
-	Log      *LogConfig      `mapstructure:"log"`
-	JWT      *JWTConfig      `mapstructure:"jwt"`
+	Debug      bool              `mapstructure:"debug"`
+	Env        string            `mapstructure:"env"`
+	Server     *ServerConfig     `mapstructure:"server"`
+	Database   *DatabaseConfig   `mapstructure:"database"`
+	WriteDB    *DatabaseConfig   `mapstructure:"write_db"`
+	ReadDB     *DatabaseConfig   `mapstructure:"read_db"`
+	Redis      *RedisConfig      `mapstructure:"redis"`
+	Log        *LogConfig        `mapstructure:"log"`
+	JWT        *JWTConfig        `mapstructure:"jwt"`
+	Email      *EmailConfig      `mapstructure:"email"`       // 邮件服务配置
+	SMS        *SMSConfig        `mapstructure:"sms"`         // SMS服务配置
+	VerifyCode *VerifyCodeConfig `mapstructure:"verify_code"` // 验证码配置
+	Task       *TaskConfig       `mapstructure:"task"`        // 任务调度配置
 }
 
 type ServerConfig struct {
-	OpenAPI  *ServiceConfig `mapstructure:"openapi"`
-	Merchant *ServiceConfig `mapstructure:"merchant"`
-	Admin    *ServiceConfig `mapstructure:"admin"`
+	OpenAPI      *ServiceConfig `mapstructure:"openapi"`
+	Merchant     *ServiceConfig `mapstructure:"merchant"`
+	Admin        *ServiceConfig `mapstructure:"admin"`
+	CashierAPI   *ServiceConfig `mapstructure:"cashier_api"`
+	CashierAdmin *ServiceConfig `mapstructure:"cashier_admin"`
 }
 
 // Validate 验证并设置服务配置默认值
@@ -48,6 +56,12 @@ func (c *ServerConfig) Validate() {
 	}
 	if c.Admin != nil {
 		c.Admin.Validate()
+	}
+	if c.CashierAPI != nil {
+		c.CashierAPI.Validate()
+	}
+	if c.CashierAdmin != nil {
+		c.CashierAdmin.Validate()
 	}
 }
 

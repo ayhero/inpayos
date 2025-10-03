@@ -11,18 +11,34 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"math/rand"
+	"math/big"
+
+	"crypto/rand"
 	"os"
 	"regexp"
 	"strings"
-	"time"
 
-	"github.com/oklog/ulid/v2"
 	"github.com/shopspring/decimal"
 	"github.com/spf13/cast"
 )
 
 var NUM_PATTERN = regexp.MustCompile(`^\d+.?(\d+)$`)
+
+// GenerateRandomPassword 生成随机密码
+func GenerateRandomPassword(length int) (string, error) {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
+	password := make([]byte, length)
+
+	for i := range password {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			return "", err
+		}
+		password[i] = charset[num.Int64()]
+	}
+
+	return string(password), nil
+}
 
 func SignMD5(sign_str, secret string, lower bool) string {
 	sign_str = fmt.Sprintf("%v&key=%v", sign_str, secret)
@@ -145,14 +161,6 @@ func GetEnv(key, defaultValue string) string {
 		return defaultValue
 	}
 	return value
-}
-
-func NewULID() string {
-	now := time.Now()
-	entropy := rand.New(rand.NewSource(now.UnixNano()))
-	ms := ulid.Timestamp(now)
-	id := ulid.MustNew(ms, entropy)
-	return id.String()
 }
 
 // 计算以给定经纬度为中心，半径为radius公里的坐标范围

@@ -16,7 +16,9 @@ type RedisConfig struct {
 }
 
 type LogConfig struct {
-	Level string `mapstructure:"level"`
+	Path     string                `mapstructure:"path"`     // 日志路径
+	Level    string                `mapstructure:"level"`    // 日志级别
+	Services map[string]*LogConfig `mapstructure:"services"` // 服务日志配置
 }
 
 type JWTConfig struct {

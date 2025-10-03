@@ -10,14 +10,33 @@ import (
 )
 
 var (
-	DB *gorm.DB
+	WriteDB *gorm.DB
+	ReadDB  *gorm.DB
 )
+
+// GetDB 获取数据库实例
+func GetDB() *gorm.DB {
+	return WriteDB
+}
 
 // InitDB 初始化数据库连接
 func InitDB(cfg *config.Config) error {
-	dsn := cfg.Database.DSN
-	if dsn == "" {
-		return fmt.Errorf("database DSN is empty")
+	if db, err := initDBByConfig(cfg.WriteDB); err != nil {
+		return err
+	} else {
+		WriteDB = db
+	}
+	if db, err := initDBByConfig(cfg.ReadDB); err != nil {
+		return err
+	} else {
+		ReadDB = db
+	}
+	return nil
+}
+
+func initDBByConfig(cfg *config.DatabaseConfig) (*gorm.DB, error) {
+	if cfg.DSN == "" {
+		return nil, fmt.Errorf("database DSN is empty")
 	}
 
 	var logLevel logger.LogLevel
@@ -27,40 +46,37 @@ func InitDB(cfg *config.Config) error {
 		logLevel = logger.Warn
 	}
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+	db, err := gorm.Open(postgres.Open(cfg.DSN), &gorm.Config{
 		Logger:                                   logger.Default.LogMode(logLevel),
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to connect to database: %w", err)
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	// 配置连接池
 	sqlDB, err := db.DB()
 	if err != nil {
-		return fmt.Errorf("failed to get underlying sql.DB: %w", err)
+		return nil, fmt.Errorf("failed to get underlying sql.DB: %w", err)
 	}
 
-	sqlDB.SetMaxIdleConns(cfg.Database.MaxIdleConns)
-	sqlDB.SetMaxOpenConns(cfg.Database.MaxOpenConns)
-	sqlDB.SetConnMaxLifetime(cfg.Database.ConnMaxLifetime)
-	sqlDB.SetConnMaxIdleTime(cfg.Database.ConnMaxIdleTime)
+	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
+	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
+	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
+	sqlDB.SetConnMaxIdleTime(cfg.ConnMaxIdleTime)
 
-	DB = db
-	return nil
+	return db, nil
 }
 
 // AutoMigrate runs database migrations
 func AutoMigrate() error {
-	return DB.AutoMigrate(
+	return WriteDB.AutoMigrate(
 		&Account{},
 		&Asset{},
 		&FundFlow{},
-		&Receipt{},
-		&Payment{},
-		&Deposit{},
+		&Payin{},
+		&Payout{},
 		&Withdraw{},
-		&Refund{},
 		&Webhook{},
 		&Channel{},
 		&Cashier{},
@@ -68,13 +84,8 @@ func AutoMigrate() error {
 		&MerchantSecret{},
 		// 新增的核心业务表
 		&FeeConfig{},
-		&CheckoutSession{},
+		&Checkout{},
 		&APIConfig{},
 		&TrxRouter{},
 	)
-}
-
-// GetDB 获取数据库实例
-func GetDB() *gorm.DB {
-	return DB
 }

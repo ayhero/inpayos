@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -18,6 +19,11 @@ const (
 	BearerPrefix = "Bearer "
 	// TokenKey 请求参数中的token键名
 	TokenKey = "token"
+)
+
+const (
+	MerchantKey = "merchant"
+	MIDKey      = "mid"
 )
 
 // JWTClaims JWT载荷
@@ -152,11 +158,9 @@ func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 		}
 
 		roleStr := role.(string)
-		for _, allowedRole := range allowedRoles {
-			if roleStr == allowedRole {
-				c.Next()
-				return
-			}
+		if slices.Contains(allowedRoles, roleStr) {
+			c.Next()
+			return
 		}
 
 		c.JSON(http.StatusForbidden, protocol.NewBusinessErrorResult("Insufficient permissions"))

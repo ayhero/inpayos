@@ -22,7 +22,6 @@ const DefaultLanguage = LanguageEnglish
 // ProjectSupportedLanguages 项目实际支持的语言列表
 var ProjectSupportedLanguages = []string{
 	LanguageEnglish, // en - 英语
-	LanguageChinese, // zh - 中文
 	LanguageHindi,   // hi - 印度语
 }
 

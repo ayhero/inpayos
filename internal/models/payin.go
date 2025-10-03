@@ -1,0 +1,36 @@
+package models
+
+import (
+	"github.com/shopspring/decimal"
+)
+
+// Payin 代收记录表
+type Payin struct {
+	ID    uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	TrxID string `json:"transaction_id" gorm:"column:transaction_id;type:varchar(64);uniqueIndex"`
+	Salt  string `json:"salt" gorm:"column:salt;type:varchar(256)"`
+	*PayinValues
+	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
+}
+
+type PayinValues struct {
+	UserID        *string          `json:"user_id" gorm:"column:user_id;type:varchar(32);index"`
+	ReqID         *string          `json:"req_id" gorm:"column:req_id;type:varchar(64);index"`
+	Status        *string          `json:"status" gorm:"column:status;type:varchar(16);index;default:'pending'"`
+	Country       *string          `json:"country" gorm:"column:country;type:varchar(8)"`
+	Ccy           *string          `json:"ccy" gorm:"column:ccy;type:varchar(16)"`
+	Amount        *decimal.Decimal `json:"amount" gorm:"column:amount;type:decimal(36,18)"`
+	Fee           *decimal.Decimal `json:"fee" gorm:"column:fee;type:decimal(36,18);default:0"`
+	ChannelCode   *string          `json:"channel_code" gorm:"column:channel_code;type:varchar(32)"`
+	PaymentMethod *string          `json:"payment_method" gorm:"column:payment_method;type:varchar(32)"`
+	NotifyURL     *string          `json:"notify_url" gorm:"column:notify_url;type:varchar(512)"`
+	ReturnURL     *string          `json:"return_url" gorm:"column:return_url;type:varchar(512)"`
+	ExpiredAt     *int64           `json:"expired_at" gorm:"column:expired_at"`
+	ConfirmedAt   *int64           `json:"confirmed_at" gorm:"column:confirmed_at"`
+	CanceledAt    *int64           `json:"canceled_at" gorm:"column:canceled_at"`
+	UpdatedAt     int64            `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
+}
+
+func (Payin) TableName() string {
+	return "t_payins"
+}

@@ -64,7 +64,7 @@ func (s *AccountService) CreateAccount(req *protocol.CreateAccountRequest) (*mod
 	account.AccountValues.SetAsset(asset)
 
 	// 保存到数据库
-	err = models.DB.Create(account).Error
+	err = models.WriteDB.Create(account).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to create account: %w", err)
 	}
@@ -108,7 +108,7 @@ func (s *AccountService) GetBalance(userID, userType, currency string) (*protoco
 
 // UpdateBalance 更新账户余额
 func (s *AccountService) UpdateBalance(req *protocol.UpdateBalanceRequest) error {
-	return models.DB.Transaction(func(tx *gorm.DB) error {
+	return models.WriteDB.Transaction(func(tx *gorm.DB) error {
 		// 锁定账户
 		account, err := models.GetAccountForUpdate(tx, req.UserID, req.UserType, req.Currency)
 		if err != nil {
@@ -129,7 +129,7 @@ func (s *AccountService) UpdateBalance(req *protocol.UpdateBalanceRequest) error
 		}
 
 		// 记录操作前余额
-		beforeBalance := account.Asset.Balance
+		//beforeBalance := account.Asset.Balance
 
 		// 执行余额操作
 		switch req.Operation {
@@ -181,22 +181,23 @@ func (s *AccountService) UpdateBalance(req *protocol.UpdateBalanceRequest) error
 		}
 
 		// 创建资金流水记录
-		fundFlow := models.NewFundFlow()
-		fundFlow.FlowID = utils.GenerateFlowID()
-		fundFlow.FundFlowValues.SetUserID(req.UserID).
-			SetUserType(req.UserType).
-			SetAccountID(account.AccountID).
-			SetTransactionID(req.TransactionID).
-			SetBillID(req.BillID).
-			SetFlowType(req.Operation).
-			SetAmount(req.Amount).
-			SetCurrency(req.Currency).
-			SetBeforeBalance(beforeBalance).
-			SetAfterBalance(account.Asset.Balance).
-			SetBusinessType(req.BusinessType).
-			SetDescription(req.Description).
-			SetFlowAt(time.Now().UnixMilli())
-
+		fundFlow := &models.FundFlow{}
+		fundFlow.FlowNo = utils.GenerateFlowID()
+		/*
+			fundFlow.SetUserID(req.UserID).
+				SetUserType(req.UserType).
+				SetAccountID(account.AccountID).
+				SetTransactionID(req.TransactionID).
+				SetBillID(req.BillID).
+				SetFlowType(req.Operation).
+				SetAmount(req.Amount).
+				SetCurrency(req.Currency).
+				SetBeforeBalance(beforeBalance).
+				SetAfterBalance(account.Asset.Balance).
+				SetBusinessType(req.BusinessType).
+				SetDescription(req.Description).
+				SetFlowAt(time.Now().UnixMilli())
+		*/
 		if err := tx.Create(fundFlow).Error; err != nil {
 			return fmt.Errorf("failed to create fund flow: %w", err)
 		}

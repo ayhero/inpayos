@@ -91,7 +91,7 @@ func (ac *APIConfig) ToResponse() *APIConfigResponse {
 // GetAPIConfigByMerchantAndAPI 根据商户ID和API名称获取配置
 func GetAPIConfigByMerchantAndAPI(merchantID, apiName string) (*APIConfig, error) {
 	var config APIConfig
-	err := DB.Where("merchant_id = ? AND api_name = ?", merchantID, apiName).First(&config).Error
+	err := WriteDB.Where("merchant_id = ? AND api_name = ?", merchantID, apiName).First(&config).Error
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func GetAPIConfigByMerchantAndAPI(merchantID, apiName string) (*APIConfig, error
 // GetAPIConfigsByMerchant 获取商户的所有API配置
 func GetAPIConfigsByMerchant(merchantID string) ([]*APIConfig, error) {
 	var configs []*APIConfig
-	err := DB.Where("merchant_id = ?", merchantID).Find(&configs).Error
+	err := WriteDB.Where("merchant_id = ?", merchantID).Find(&configs).Error
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func GetAPIConfigsByMerchant(merchantID string) ([]*APIConfig, error) {
 // UpdateAPIConfig 更新API配置
 func (ac *APIConfig) UpdateConfig(updates map[string]interface{}) error {
 	updates["updated_at"] = getCurrentTimeMillis()
-	return DB.Model(ac).Updates(updates).Error
+	return WriteDB.Model(ac).Updates(updates).Error
 }
 
 // EnableAPI 启用API

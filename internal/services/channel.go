@@ -76,7 +76,7 @@ func (s *ChannelService) CreateChannel(req *protocol.CreateChannelRequest) (*mod
 		channel.ChannelValues.SetRemark(req.Remark)
 	}
 
-	if err := models.DB.Create(channel).Error; err != nil {
+	if err := models.WriteDB.Create(channel).Error; err != nil {
 		return nil, fmt.Errorf("创建渠道失败: %v", err)
 	}
 
@@ -86,7 +86,7 @@ func (s *ChannelService) CreateChannel(req *protocol.CreateChannelRequest) (*mod
 // GetChannel 获取渠道
 func (s *ChannelService) GetChannel(channelID string) (*models.Channel, error) {
 	var channel models.Channel
-	if err := models.DB.Where("channel_id = ?", channelID).First(&channel).Error; err != nil {
+	if err := models.WriteDB.Where("channel_id = ?", channelID).First(&channel).Error; err != nil {
 		return nil, fmt.Errorf("渠道不存在")
 	}
 	return &channel, nil
@@ -95,7 +95,7 @@ func (s *ChannelService) GetChannel(channelID string) (*models.Channel, error) {
 // GetChannelByCode 根据代码获取渠道
 func (s *ChannelService) GetChannelByCode(code string) (*models.Channel, error) {
 	var channel models.Channel
-	if err := models.DB.Where("code = ?", code).First(&channel).Error; err != nil {
+	if err := models.WriteDB.Where("code = ?", code).First(&channel).Error; err != nil {
 		return nil, fmt.Errorf("渠道不存在")
 	}
 	return &channel, nil
@@ -103,7 +103,7 @@ func (s *ChannelService) GetChannelByCode(code string) (*models.Channel, error) 
 
 // ListChannels 列出渠道
 func (s *ChannelService) ListChannels(req *protocol.ListChannelsRequest) ([]*models.Channel, int64, error) {
-	db := models.DB.Model(&models.Channel{})
+	db := models.WriteDB.Model(&models.Channel{})
 
 	// 过滤条件
 	if req.Code != "" {
@@ -196,7 +196,7 @@ func (s *ChannelService) UpdateChannel(channelID string, req *protocol.UpdateCha
 		channel.ChannelValues.SetRemark(*req.Remark)
 	}
 
-	if err := models.DB.Save(channel).Error; err != nil {
+	if err := models.WriteDB.Save(channel).Error; err != nil {
 		return nil, fmt.Errorf("更新渠道失败: %v", err)
 	}
 
@@ -205,7 +205,7 @@ func (s *ChannelService) UpdateChannel(channelID string, req *protocol.UpdateCha
 
 // DeleteChannel 删除渠道
 func (s *ChannelService) DeleteChannel(channelID string) error {
-	if err := models.DB.Where("channel_id = ?", channelID).Delete(&models.Channel{}).Error; err != nil {
+	if err := models.WriteDB.Where("channel_id = ?", channelID).Delete(&models.Channel{}).Error; err != nil {
 		return fmt.Errorf("删除渠道失败: %v", err)
 	}
 	return nil
@@ -213,7 +213,7 @@ func (s *ChannelService) DeleteChannel(channelID string) error {
 
 // GetAvailableChannels 获取可用渠道
 func (s *ChannelService) GetAvailableChannels(txType, currency, payMethod string, amount decimal.Decimal) ([]*models.Channel, error) {
-	db := models.DB.Model(&models.Channel{}).Where("status = ?", "active")
+	db := models.WriteDB.Model(&models.Channel{}).Where("status = ?", "active")
 
 	// 过滤条件
 	if txType != "" {
@@ -272,22 +272,22 @@ func (s *ChannelService) GetChannelStats() (*protocol.ChannelStatsResponse, erro
 	var totalChannels, activeChannels, disabledChannels, maintainChannels int64
 
 	// 总渠道数
-	if err := models.DB.Model(&models.Channel{}).Count(&totalChannels).Error; err != nil {
+	if err := models.WriteDB.Model(&models.Channel{}).Count(&totalChannels).Error; err != nil {
 		return nil, fmt.Errorf("查询总渠道数失败: %v", err)
 	}
 
 	// 活跃渠道数
-	if err := models.DB.Model(&models.Channel{}).Where("status = ?", "active").Count(&activeChannels).Error; err != nil {
+	if err := models.WriteDB.Model(&models.Channel{}).Where("status = ?", "active").Count(&activeChannels).Error; err != nil {
 		return nil, fmt.Errorf("查询活跃渠道数失败: %v", err)
 	}
 
 	// 禁用渠道数
-	if err := models.DB.Model(&models.Channel{}).Where("status = ?", "inactive").Count(&disabledChannels).Error; err != nil {
+	if err := models.WriteDB.Model(&models.Channel{}).Where("status = ?", "inactive").Count(&disabledChannels).Error; err != nil {
 		return nil, fmt.Errorf("查询禁用渠道数失败: %v", err)
 	}
 
 	// 维护中渠道数
-	if err := models.DB.Model(&models.Channel{}).Where("status = ?", "maintain").Count(&maintainChannels).Error; err != nil {
+	if err := models.WriteDB.Model(&models.Channel{}).Where("status = ?", "maintain").Count(&maintainChannels).Error; err != nil {
 		return nil, fmt.Errorf("查询维护中渠道数失败: %v", err)
 	}
 
@@ -334,7 +334,7 @@ func (s *ChannelService) getDailyUsedAmount(channelCode string) decimal.Decimal 
 	tomorrow := today + 24*60*60*1000
 
 	var amount decimal.Decimal
-	models.DB.Raw(`
+	models.WriteDB.Raw(`
 		SELECT COALESCE(SUM(amount), 0) FROM (
 			SELECT amount FROM t_receipts WHERE channel_code = ? AND status = 'success' AND created_at >= ? AND created_at < ?
 			UNION ALL
@@ -352,7 +352,7 @@ func (s *ChannelService) getMonthlyUsedAmount(channelCode string) decimal.Decima
 	nextMonth := firstDay + int64(now.AddDate(0, 1, -now.Day()+1).Sub(now).Milliseconds())
 
 	var amount decimal.Decimal
-	models.DB.Raw(`
+	models.WriteDB.Raw(`
 		SELECT COALESCE(SUM(amount), 0) FROM (
 			SELECT amount FROM t_receipts WHERE channel_code = ? AND status = 'success' AND created_at >= ? AND created_at < ?
 			UNION ALL

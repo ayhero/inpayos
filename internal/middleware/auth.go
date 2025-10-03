@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"inpayos/internal/models"
 	"inpayos/internal/protocol"
 	"net/http"
 	"strings"
@@ -61,6 +62,15 @@ func GetMidFromContext(c *gin.Context) string {
 		}
 	}
 	return ""
+}
+
+func GetMerchantFromContext(c *gin.Context) *models.Merchant {
+	if _v, exists := c.Get("merchant"); exists {
+		if v, ok := _v.(*models.Merchant); ok {
+			return v
+		}
+	}
+	return nil
 }
 
 // WebhookSignatureVerification Webhook签名验证中间件

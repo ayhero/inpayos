@@ -1,9 +1,8 @@
 package models
 
 import (
+	"inpayos/internal/protocol"
 	"time"
-
-	"github.com/shopspring/decimal"
 )
 
 // Cashier 出纳员/收银员表（区分公户和私户）
@@ -33,13 +32,12 @@ type CashierValues struct {
 	City        *string `json:"city" gorm:"column:city;type:varchar(64)"`                // 城市
 
 	// 业务配置
-	Currency     *string          `json:"currency" gorm:"column:currency;type:varchar(8);index;default:'CNY'"`    // 币种
-	Usage        *int32           `json:"usage" gorm:"column:usage;default:0"`                                    // 用途权限位授权：1-收款，2-付款，4-储存
-	Status       *string          `json:"status" gorm:"column:status;type:varchar(16);default:'active'"`          // active, inactive, frozen, suspended
-	DailyLimit   *decimal.Decimal `json:"daily_limit" gorm:"column:daily_limit;type:decimal(20,8);default:0"`     // 每日限额
-	MonthlyLimit *decimal.Decimal `json:"monthly_limit" gorm:"column:monthly_limit;type:decimal(20,8);default:0"` // 每月限额
-	DailyUsed    *decimal.Decimal `json:"daily_used" gorm:"column:daily_used;type:decimal(20,8);default:0"`       // 每日已使用
-	MonthlyUsed  *decimal.Decimal `json:"monthly_used" gorm:"column:monthly_used;type:decimal(20,8);default:0"`   // 每月已使用
+	Ccy          *string           `json:"ccy" gorm:"column:ccy;type:varchar(8);index;default:'CNY'"`                   // 币种
+	PayinStatus  *string           `json:"payin_status" gorm:"column:payin_status;type:varchar(16);default:'active'"`   // 收款状态：active, inactive, frozen, suspended
+	PayinConfig  *protocol.MapData `json:"payin_config" gorm:"column:payin_config;type:text"`                           // 收款配置
+	PayoutStatus *string           `json:"payout_status" gorm:"column:payout_status;type:varchar(16);default:'active'"` // 付款状态：active, inactive, frozen, suspended
+	PayoutConfig *protocol.MapData `json:"payout_config" gorm:"column:payout_config;type:text"`                         // 付款配置
+	Status       *string           `json:"status" gorm:"column:status;type:varchar(16);default:'active'"`               // active, inactive, frozen, suspended
 
 	// 其他信息
 	ExpireAt *int64  `json:"expire_at" gorm:"column:expire_at"`             // 过期时间
@@ -109,12 +107,7 @@ func (v *CashierValues) SetCity(city string) *CashierValues {
 }
 
 func (v *CashierValues) SetCurrency(currency string) *CashierValues {
-	v.Currency = &currency
-	return v
-}
-
-func (v *CashierValues) SetUsage(usage int32) *CashierValues {
-	v.Usage = &usage
+	v.Ccy = &currency
 	return v
 }
 
@@ -122,27 +115,6 @@ func (v *CashierValues) SetStatus(status string) *CashierValues {
 	v.Status = &status
 	return v
 }
-
-func (v *CashierValues) SetDailyLimit(limit decimal.Decimal) *CashierValues {
-	v.DailyLimit = &limit
-	return v
-}
-
-func (v *CashierValues) SetMonthlyLimit(limit decimal.Decimal) *CashierValues {
-	v.MonthlyLimit = &limit
-	return v
-}
-
-func (v *CashierValues) SetDailyUsed(used decimal.Decimal) *CashierValues {
-	v.DailyUsed = &used
-	return v
-}
-
-func (v *CashierValues) SetMonthlyUsed(used decimal.Decimal) *CashierValues {
-	v.MonthlyUsed = &used
-	return v
-}
-
 func (v *CashierValues) SetExpireAt(time int64) *CashierValues {
 	v.ExpireAt = &time
 	return v
@@ -237,52 +209,17 @@ func (v *CashierValues) GetCity() string {
 }
 
 func (v *CashierValues) GetCurrency() string {
-	if v.Currency == nil {
-		return "CNY"
+	if v.Ccy == nil {
+		return ""
 	}
-	return *v.Currency
-}
-
-func (v *CashierValues) GetUsage() int32 {
-	if v.Usage == nil {
-		return 0
-	}
-	return *v.Usage
+	return *v.Ccy
 }
 
 func (v *CashierValues) GetStatus() string {
 	if v.Status == nil {
-		return "active"
+		return ""
 	}
 	return *v.Status
-}
-
-func (v *CashierValues) GetDailyLimit() decimal.Decimal {
-	if v.DailyLimit == nil {
-		return decimal.Zero
-	}
-	return *v.DailyLimit
-}
-
-func (v *CashierValues) GetMonthlyLimit() decimal.Decimal {
-	if v.MonthlyLimit == nil {
-		return decimal.Zero
-	}
-	return *v.MonthlyLimit
-}
-
-func (v *CashierValues) GetDailyUsed() decimal.Decimal {
-	if v.DailyUsed == nil {
-		return decimal.Zero
-	}
-	return *v.DailyUsed
-}
-
-func (v *CashierValues) GetMonthlyUsed() decimal.Decimal {
-	if v.MonthlyUsed == nil {
-		return decimal.Zero
-	}
-	return *v.MonthlyUsed
 }
 
 func (v *CashierValues) GetExpireAt() int64 {
@@ -320,22 +257,7 @@ func (v *CashierValues) IsCorporate() bool {
 
 // IsActive 检查是否为活跃状态
 func (v *CashierValues) IsActive() bool {
-	return v.GetStatus() == "active"
-}
-
-// CanReceive 检查是否可以收款
-func (v *CashierValues) CanReceive() bool {
-	return (v.GetUsage() & 1) != 0
-}
-
-// CanPay 检查是否可以付款
-func (v *CashierValues) CanPay() bool {
-	return (v.GetUsage() & 2) != 0
-}
-
-// CanStorage 检查是否可以储存
-func (v *CashierValues) CanStorage() bool {
-	return (v.GetUsage() & 4) != 0
+	return v.GetStatus() == protocol.StatusActive
 }
 
 // IsExpired 检查是否已过期
@@ -345,52 +267,4 @@ func (v *CashierValues) IsExpired() bool {
 	}
 	now := time.Now().UnixMilli()
 	return now > v.GetExpireAt()
-}
-
-// CanUseToday 检查今日是否还可以使用（未超过每日限额）
-func (v *CashierValues) CanUseToday(amount decimal.Decimal) bool {
-	dailyLimit := v.GetDailyLimit()
-	if dailyLimit.IsZero() {
-		return true // 无限额
-	}
-
-	dailyUsed := v.GetDailyUsed()
-	return dailyUsed.Add(amount).LessThanOrEqual(dailyLimit)
-}
-
-// CanUseThisMonth 检查本月是否还可以使用（未超过每月限额）
-func (v *CashierValues) CanUseThisMonth(amount decimal.Decimal) bool {
-	monthlyLimit := v.GetMonthlyLimit()
-	if monthlyLimit.IsZero() {
-		return true // 无限额
-	}
-
-	monthlyUsed := v.GetMonthlyUsed()
-	return monthlyUsed.Add(amount).LessThanOrEqual(monthlyLimit)
-}
-
-// AddDailyUsage 增加每日使用量
-func (v *CashierValues) AddDailyUsage(amount decimal.Decimal) *CashierValues {
-	current := v.GetDailyUsed()
-	v.SetDailyUsed(current.Add(amount))
-	return v
-}
-
-// AddMonthlyUsage 增加每月使用量
-func (v *CashierValues) AddMonthlyUsage(amount decimal.Decimal) *CashierValues {
-	current := v.GetMonthlyUsed()
-	v.SetMonthlyUsed(current.Add(amount))
-	return v
-}
-
-// ResetDailyUsage 重置每日使用量
-func (v *CashierValues) ResetDailyUsage() *CashierValues {
-	v.SetDailyUsed(decimal.Zero)
-	return v
-}
-
-// ResetMonthlyUsage 重置每月使用量
-func (v *CashierValues) ResetMonthlyUsage() *CashierValues {
-	v.SetMonthlyUsed(decimal.Zero)
-	return v
 }

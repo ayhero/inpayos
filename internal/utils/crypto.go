@@ -1,13 +1,62 @@
 package utils
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"io"
 
 	"golang.org/x/crypto/bcrypt"
 )
+
+// encrypt encrypts plaintext using the given key with AES.
+func Encrypt(plaintext, key []byte) (string, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
+	iv := ciphertext[:aes.BlockSize]
+
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return "", err
+	}
+
+	stream := cipher.NewCFBEncrypter(block, iv)
+	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintext)
+
+	return base64.StdEncoding.EncodeToString(ciphertext), nil
+}
+
+// decrypt decrypts ciphertext using the given key with AES.
+func Decrypt(ciphertext string, key []byte) (string, error) {
+	ciphertextBytes, err := base64.StdEncoding.DecodeString(ciphertext)
+	if err != nil {
+		return "", err
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	if len(ciphertextBytes) < aes.BlockSize {
+		return "", fmt.Errorf("ciphertext too short")
+	}
+
+	iv := ciphertextBytes[:aes.BlockSize]
+	ciphertextBytes = ciphertextBytes[aes.BlockSize:]
+
+	stream := cipher.NewCFBDecrypter(block, iv)
+	stream.XORKeyStream(ciphertextBytes, ciphertextBytes)
+
+	return string(ciphertextBytes), nil
+}
 
 // HashPassword 使用bcrypt和salt哈希密码
 // 为了避免bcrypt的72字节限制，先使用SHA256预哈希密码+salt

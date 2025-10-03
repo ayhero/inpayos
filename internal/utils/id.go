@@ -24,6 +24,7 @@ const (
 	ID_PREFIX_CHECKOUT    = "CKO"
 	ID_PREFIX_WEBHOOK     = "WH"
 	ID_PREFIX_SANDBOX     = "sandbox_"
+	ID_PREFIX_MESSAGE     = "MSG"
 )
 
 func GenerateID() string {
@@ -39,6 +40,11 @@ func GenerateShortID() string {
 	}
 	return hex.EncodeToString(b)
 }
+
+func GenerateMessageID() string {
+	return fmt.Sprintf("%v%v", ID_PREFIX_MESSAGE, GenerateID())
+}
+
 func GenerateWebhookID() string {
 	return fmt.Sprintf("%v%v", ID_PREFIX_WEBHOOK, GenerateID())
 }

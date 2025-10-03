@@ -22,6 +22,12 @@ type MerchantSecret struct {
 	DeletedAt   int64  `gorm:"column:deleted_at;type:bigint;index" json:"deleted_at,omitempty"`
 }
 
+type MerchantSecretValues struct {
+	Permissions string  `gorm:"column:permissions;type:text" json:"permissions"`                        // JSON 格式存储权限列表
+	Status      *string `gorm:"column:status;type:varchar(20);not null;default:'active'" json:"status"` // active, inactive, suspended
+	ExpiresAt   *int64  `gorm:"column:expires_at;type:bigint" json:"expires_at"`                        // 过期时间戳
+}
+
 // TableName 返回表名
 func (MerchantSecret) TableName() string {
 	return "t_merchant_secrets"
@@ -93,7 +99,7 @@ func GetBySecretKey(secretKey string) *MerchantSecret {
 
 	var secret MerchantSecret
 	now := time.Now().UnixMilli()
-	err := DB.Where("secret_key = ? AND status = ? AND (expires_at = 0 OR expires_at > ?)", secretKey, "active", now).First(&secret).Error
+	err := WriteDB.Where("secret_key = ? AND status = ? AND (expires_at = 0 OR expires_at > ?)", secretKey, "active", now).First(&secret).Error
 	if err != nil {
 		return nil
 	}
@@ -109,7 +115,7 @@ func GetByAppIDAndSecret(appID, secretKey string) *MerchantSecret {
 
 	var secret MerchantSecret
 	now := time.Now().UnixMilli()
-	err := DB.Where("app_id = ? AND secret_key = ? AND status = ? AND (expires_at = 0 OR expires_at > ?)", appID, secretKey, "active", now).First(&secret).Error
+	err := WriteDB.Where("app_id = ? AND secret_key = ? AND status = ? AND (expires_at = 0 OR expires_at > ?)", appID, secretKey, "active", now).First(&secret).Error
 	if err != nil {
 		return nil
 	}
