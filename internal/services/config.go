@@ -55,8 +55,8 @@ func (s *ConfigService) SaveMerchantConfig(merchantID, trxType string, config *m
 		if err == gorm.ErrRecordNotFound {
 			// 新建记录
 			record = models.MerchantConfig{
-				MerchantID: merchantID,
-				Type:       trxType,
+				Mid:  merchantID,
+				Type: trxType,
 			}
 			if err := record.SetConfig(config); err != nil {
 				return fmt.Errorf("failed to set config: %w", err)

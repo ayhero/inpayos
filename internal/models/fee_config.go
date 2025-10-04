@@ -4,11 +4,12 @@ package models
 
 // FeeConfig 费率配置表
 type FeeConfig struct {
-	ID        uint64 `gorm:"primaryKey;autoIncrement" json:"id"`
-	Mid       string `gorm:"column:mid;type:varchar(64);not null;index" json:"mid"`
-	TrxType   string `gorm:"column:trx_type;type:varchar(32);not null" json:"trx_type"` // receipt, payment, deposit, withdraw
-	CreatedAt int64  `gorm:"column:created_at;type:bigint;autoCreateTime:milli" json:"created_at"`
-	UpdatedAt int64  `gorm:"column:updated_at;type:bigint;autoUpdateTime:milli" json:"updated_at"`
+	ID      uint64 `gorm:"primaryKey;autoIncrement" json:"id"`
+	Mid     string `gorm:"column:mid;type:varchar(64);not null;index" json:"mid"`
+	TrxType string `gorm:"column:trx_type;type:varchar(32);not null" json:"trx_type"` // receipt, payment, deposit, withdraw
+	*FeeConfigValues
+	CreatedAt int64 `gorm:"column:created_at;type:bigint;autoCreateTime:milli" json:"created_at"`
+	UpdatedAt int64 `gorm:"column:updated_at;type:bigint;autoUpdateTime:milli" json:"updated_at"`
 }
 type FeeConfigValues struct {
 	Status        *string `gorm:"column:status;type:varchar(32);not null;default:'active'" json:"status"` // active, inactive
@@ -24,4 +25,157 @@ type FeeConfigValues struct {
 // TableName 返回表名
 func (FeeConfig) TableName() string {
 	return "t_fee_configs"
+}
+
+// FeeConfigValues Getter Methods
+// GetStatus returns the Status value
+func (fcv *FeeConfigValues) GetStatus() string {
+	if fcv.Status == nil {
+		return ""
+	}
+	return *fcv.Status
+}
+
+// GetCountry returns the Country value
+func (fcv *FeeConfigValues) GetCountry() string {
+	if fcv.Country == nil {
+		return ""
+	}
+	return *fcv.Country
+}
+
+// GetPaymentMethod returns the PaymentMethod value
+func (fcv *FeeConfigValues) GetPaymentMethod() string {
+	if fcv.PaymentMethod == nil {
+		return ""
+	}
+	return *fcv.PaymentMethod
+}
+
+// GetCcy returns the Ccy value
+func (fcv *FeeConfigValues) GetCcy() string {
+	if fcv.Ccy == nil {
+		return ""
+	}
+	return *fcv.Ccy
+}
+
+// GetPercent returns the Percent value
+func (fcv *FeeConfigValues) GetPercent() string {
+	if fcv.Percent == nil {
+		return ""
+	}
+	return *fcv.Percent
+}
+
+// GetFixed returns the Fixed value
+func (fcv *FeeConfigValues) GetFixed() string {
+	if fcv.Fixed == nil {
+		return ""
+	}
+	return *fcv.Fixed
+}
+
+// GetMinFee returns the MinFee value
+func (fcv *FeeConfigValues) GetMinFee() string {
+	if fcv.MinFee == nil {
+		return ""
+	}
+	return *fcv.MinFee
+}
+
+// GetMaxFee returns the MaxFee value
+func (fcv *FeeConfigValues) GetMaxFee() string {
+	if fcv.MaxFee == nil {
+		return ""
+	}
+	return *fcv.MaxFee
+}
+
+// FeeConfigValues Setter Methods (support method chaining)
+// SetStatus sets the Status value
+func (fcv *FeeConfigValues) SetStatus(value string) *FeeConfigValues {
+	fcv.Status = &value
+	return fcv
+}
+
+// SetCountry sets the Country value
+func (fcv *FeeConfigValues) SetCountry(value string) *FeeConfigValues {
+	fcv.Country = &value
+	return fcv
+}
+
+// SetPaymentMethod sets the PaymentMethod value
+func (fcv *FeeConfigValues) SetPaymentMethod(value string) *FeeConfigValues {
+	fcv.PaymentMethod = &value
+	return fcv
+}
+
+// SetCcy sets the Ccy value
+func (fcv *FeeConfigValues) SetCcy(value string) *FeeConfigValues {
+	fcv.Ccy = &value
+	return fcv
+}
+
+// SetPercent sets the Percent value
+func (fcv *FeeConfigValues) SetPercent(value string) *FeeConfigValues {
+	fcv.Percent = &value
+	return fcv
+}
+
+// SetFixed sets the Fixed value
+func (fcv *FeeConfigValues) SetFixed(value string) *FeeConfigValues {
+	fcv.Fixed = &value
+	return fcv
+}
+
+// SetMinFee sets the MinFee value
+func (fcv *FeeConfigValues) SetMinFee(value string) *FeeConfigValues {
+	fcv.MinFee = &value
+	return fcv
+}
+
+// SetMaxFee sets the MaxFee value
+func (fcv *FeeConfigValues) SetMaxFee(value string) *FeeConfigValues {
+	fcv.MaxFee = &value
+	return fcv
+}
+
+// SetValues sets multiple FeeConfigValues fields at once
+func (fc *FeeConfig) SetValues(values *FeeConfigValues) *FeeConfig {
+	if values == nil {
+		return fc
+	}
+
+	if fc.FeeConfigValues == nil {
+		fc.FeeConfigValues = &FeeConfigValues{}
+	}
+
+	// Set all fields from the provided values
+	if values.Status != nil {
+		fc.FeeConfigValues.SetStatus(*values.Status)
+	}
+	if values.Country != nil {
+		fc.FeeConfigValues.SetCountry(*values.Country)
+	}
+	if values.PaymentMethod != nil {
+		fc.FeeConfigValues.SetPaymentMethod(*values.PaymentMethod)
+	}
+	if values.Ccy != nil {
+		fc.FeeConfigValues.SetCcy(*values.Ccy)
+	}
+	if values.Percent != nil {
+		fc.FeeConfigValues.SetPercent(*values.Percent)
+	}
+	if values.Fixed != nil {
+		fc.FeeConfigValues.SetFixed(*values.Fixed)
+	}
+	if values.MinFee != nil {
+		fc.FeeConfigValues.SetMinFee(*values.MinFee)
+	}
+	if values.MaxFee != nil {
+		fc.FeeConfigValues.SetMaxFee(*values.MaxFee)
+	}
+
+	return fc
 }

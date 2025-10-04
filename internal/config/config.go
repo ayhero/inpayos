@@ -8,6 +8,28 @@ import (
 	"github.com/spf13/viper"
 )
 
+// 全局配置实例
+var (
+	config *Config
+)
+
+type Config struct {
+	Debug      bool              `mapstructure:"debug"`
+	Env        string            `mapstructure:"env"`
+	Server     *ServerConfig     `mapstructure:"server"`
+	Database   *DatabaseConfig   `mapstructure:"database"`
+	WriteDB    *DatabaseConfig   `mapstructure:"write_db"`
+	ReadDB     *DatabaseConfig   `mapstructure:"read_db"`
+	Redis      *RedisConfig      `mapstructure:"redis"`
+	Log        *LogConfig        `mapstructure:"log"`
+	JWT        *JWTConfig        `mapstructure:"jwt"`
+	Email      *EmailConfig      `mapstructure:"email"`       // 邮件服务配置
+	SMS        *SMSConfig        `mapstructure:"sms"`         // SMS服务配置
+	VerifyCode *VerifyCodeConfig `mapstructure:"verify_code"` // 验证码配置
+	Settle     *SettleConfig     `mapstructure:"settle"`      // 结算配置
+	Task       *TaskConfig       `mapstructure:"task"`        // 任务调度配置
+}
+
 // Get 获取配置单例
 func Get() *Config {
 	return config
@@ -37,6 +59,9 @@ func (c *Config) Validate() {
 		c.JWT = &JWTConfig{}
 	}
 	c.JWT.Validate()
+	if c.Settle != nil {
+		c.Settle.Validate()
+	}
 
 	// Validate other configs
 	c.validateDatabaseConfig()

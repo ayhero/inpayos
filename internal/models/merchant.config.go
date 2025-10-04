@@ -2,17 +2,19 @@ package models
 
 import (
 	"encoding/json"
+	"inpayos/internal/protocol"
+
 	"github.com/shopspring/decimal"
 )
 
 // MerchantConfig 商户配置表
 type MerchantConfig struct {
-	ID         uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	MerchantID string `json:"merchant_id" gorm:"column:merchant_id;type:varchar(64);index"`
-	Type       string `json:"type" gorm:"column:type;type:varchar(32);index"` // receipt, payment, deposit, withdraw等
-	ConfigData string `json:"config_data" gorm:"column:config_data;type:text"`
-	CreatedAt  int64  `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
-	UpdatedAt  int64  `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
+	ID         uint64           `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	Mid        string           `json:"mid" gorm:"column:mid;type:varchar(64);index"`
+	Type       string           `json:"type" gorm:"column:type;type:varchar(32);index"` // receipt, payment, deposit, withdraw等
+	ConfigData protocol.MapData `json:"config_data" gorm:"column:config_data;type:text"`
+	CreatedAt  int64            `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
+	UpdatedAt  int64            `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
 }
 
 // TrxConfig 交易配置
@@ -36,16 +38,22 @@ func (MerchantConfig) TableName() string {
 
 // GetConfig 获取配置对象
 func (m *MerchantConfig) GetConfig() (*TrxConfig, error) {
-	if m.ConfigData == "" {
+	if m.ConfigData == nil || len(m.ConfigData) == 0 {
 		return &TrxConfig{}, nil
 	}
-	
+
 	var config TrxConfig
-	err := json.Unmarshal([]byte(m.ConfigData), &config)
+	// 将MapData转换为TrxConfig
+	data, err := json.Marshal(m.ConfigData)
 	if err != nil {
 		return nil, err
 	}
-	
+
+	err = json.Unmarshal(data, &config)
+	if err != nil {
+		return nil, err
+	}
+
 	return &config, nil
 }
 
@@ -55,8 +63,15 @@ func (m *MerchantConfig) SetConfig(config *TrxConfig) error {
 	if err != nil {
 		return err
 	}
-	
-	m.ConfigData = string(data)
+
+	// 将JSON字符串转换为MapData
+	var mapData protocol.MapData
+	err = json.Unmarshal(data, &mapData)
+	if err != nil {
+		return err
+	}
+
+	m.ConfigData = mapData
 	return nil
 }
 
@@ -65,7 +80,7 @@ func (c *TrxConfig) Copy(source *TrxConfig) {
 	if source == nil {
 		return
 	}
-	
+
 	if source.MinAmount != nil {
 		if c.MinAmount == nil {
 			c.MinAmount = make(map[string]string)
@@ -74,7 +89,7 @@ func (c *TrxConfig) Copy(source *TrxConfig) {
 			c.MinAmount[k] = v
 		}
 	}
-	
+
 	if source.MaxAmount != nil {
 		if c.MaxAmount == nil {
 			c.MaxAmount = make(map[string]string)
@@ -83,7 +98,7 @@ func (c *TrxConfig) Copy(source *TrxConfig) {
 			c.MaxAmount[k] = v
 		}
 	}
-	
+
 	if source.DailyLimit != nil {
 		if c.DailyLimit == nil {
 			c.DailyLimit = make(map[string]string)
@@ -92,7 +107,7 @@ func (c *TrxConfig) Copy(source *TrxConfig) {
 			c.DailyLimit[k] = v
 		}
 	}
-	
+
 	if source.MonthlyLimit != nil {
 		if c.MonthlyLimit == nil {
 			c.MonthlyLimit = make(map[string]string)
@@ -101,7 +116,7 @@ func (c *TrxConfig) Copy(source *TrxConfig) {
 			c.MonthlyLimit[k] = v
 		}
 	}
-	
+
 	if source.FeeRate != nil {
 		if c.FeeRate == nil {
 			c.FeeRate = make(map[string]string)
@@ -110,7 +125,7 @@ func (c *TrxConfig) Copy(source *TrxConfig) {
 			c.FeeRate[k] = v
 		}
 	}
-	
+
 	if source.FeeFixed != nil {
 		if c.FeeFixed == nil {
 			c.FeeFixed = make(map[string]string)
@@ -119,19 +134,19 @@ func (c *TrxConfig) Copy(source *TrxConfig) {
 			c.FeeFixed[k] = v
 		}
 	}
-	
+
 	if source.Status != "" {
 		c.Status = source.Status
 	}
-	
+
 	if source.AutoConfirm != "" {
 		c.AutoConfirm = source.AutoConfirm
 	}
-	
+
 	if source.NotifyURL != "" {
 		c.NotifyURL = source.NotifyURL
 	}
-	
+
 	if source.TimeoutMinute > 0 {
 		c.TimeoutMinute = source.TimeoutMinute
 	}
@@ -142,13 +157,13 @@ func (c *TrxConfig) GetMinAmount(currency string) decimal.Decimal {
 	if c.MinAmount == nil {
 		return decimal.Zero
 	}
-	
+
 	if amount, exists := c.MinAmount[currency]; exists {
 		if amt, err := decimal.NewFromString(amount); err == nil {
 			return amt
 		}
 	}
-	
+
 	return decimal.Zero
 }
 
@@ -157,13 +172,13 @@ func (c *TrxConfig) GetMaxAmount(currency string) decimal.Decimal {
 	if c.MaxAmount == nil {
 		return decimal.Zero
 	}
-	
+
 	if amount, exists := c.MaxAmount[currency]; exists {
 		if amt, err := decimal.NewFromString(amount); err == nil {
 			return amt
 		}
 	}
-	
+
 	return decimal.Zero
 }
 
@@ -172,13 +187,13 @@ func (c *TrxConfig) GetFeeRate(currency string) decimal.Decimal {
 	if c.FeeRate == nil {
 		return decimal.Zero
 	}
-	
+
 	if rate, exists := c.FeeRate[currency]; exists {
 		if r, err := decimal.NewFromString(rate); err == nil {
 			return r
 		}
 	}
-	
+
 	return decimal.Zero
 }
 

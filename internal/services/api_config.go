@@ -1,19 +1,35 @@
 package services
 
 import (
+	"encoding/json"
 	"inpayos/internal/models"
 	"inpayos/internal/protocol"
+	"sync"
 	"time"
 
 	"gorm.io/gorm"
 )
 
 type APIConfigService struct {
-	db *gorm.DB
 }
 
-func NewAPIConfigService(db *gorm.DB) *APIConfigService {
-	return &APIConfigService{db: db}
+var (
+	apiConfigService     *APIConfigService
+	apiConfigServiceOnce sync.Once
+)
+
+func SetupAPIConfigService() {
+	apiConfigServiceOnce.Do(func() {
+		apiConfigService = &APIConfigService{}
+	})
+}
+
+// GetAPIConfigService 获取APIConfig服务单例
+func GetAPIConfigService() *APIConfigService {
+	if apiConfigService == nil {
+		SetupAPIConfigService()
+	}
+	return apiConfigService
 }
 
 // CreateAPIConfig 创建API配置
@@ -24,20 +40,31 @@ func (s *APIConfigService) CreateAPIConfig(req *protocol.CreateAPIConfigRequest)
 	}
 
 	// 将protocol字段映射到model字段
-	apiConfig := &models.APIConfig{
-		MerchantID:   req.MerchantID,
-		APIName:      req.ConfigKey, // ConfigKey映射为APIName
-		IsEnabled:    isEnabled,
-		RateLimit:    1000,            // 默认值
-		DailyLimit:   0,               // 默认无限制
-		MonthlyLimit: 0,               // 默认无限制
-		Config:       req.ConfigValue, // ConfigValue映射为Config
-		Description:  req.Description,
-		CreatedAt:    time.Now().Unix(),
-		UpdatedAt:    time.Now().Unix(),
+	// 解析ConfigValue为MapData
+	var configData protocol.MapData
+	if req.ConfigValue != "" {
+		if err := json.Unmarshal([]byte(req.ConfigValue), &configData); err != nil {
+			// 如果解析失败，创建简单的MapData
+			configData = protocol.MapData{"value": req.ConfigValue}
+		}
 	}
 
-	if err := s.db.Create(apiConfig).Error; err != nil {
+	apiConfig := &models.APIConfig{
+		Mid:     req.MerchantID,
+		APIName: req.ConfigKey, // ConfigKey映射为APIName
+		APIConfigValues: &models.APIConfigValues{
+			IsEnabled:    &isEnabled,
+			RateLimit:    &[]int{1000}[0], // 默认值
+			DailyLimit:   &[]int{0}[0],    // 默认无限制
+			MonthlyLimit: &[]int{0}[0],    // 默认无限制
+			Config:       &configData,
+			Description:  &req.Description,
+		},
+		CreatedAt: time.Now().UnixMilli(),
+		UpdatedAt: time.Now().UnixMilli(),
+	}
+
+	if err := models.ReadDB.Create(apiConfig).Error; err != nil {
 		return protocol.InternalError
 	}
 
@@ -60,7 +87,7 @@ func (s *APIConfigService) UpdateAPIConfig(req *protocol.UpdateAPIConfigRequest)
 
 	updates["updated_at"] = time.Now().Unix()
 
-	result := s.db.Model(&models.APIConfig{}).Where("id = ?", req.ID).Updates(updates)
+	result := models.ReadDB.Model(&models.APIConfig{}).Where("id = ?", req.ID).Updates(updates)
 	if result.Error != nil {
 		return protocol.InternalError
 	}
@@ -74,7 +101,7 @@ func (s *APIConfigService) UpdateAPIConfig(req *protocol.UpdateAPIConfigRequest)
 // GetAPIConfig 获取API配置
 func (s *APIConfigService) GetAPIConfig(req *protocol.GetAPIConfigRequest) (*protocol.APIConfigResponse, protocol.ErrorCode) {
 	var apiConfig models.APIConfig
-	query := s.db.Where("merchant_id = ? AND api_name = ?", req.MerchantID, req.ConfigKey)
+	query := models.ReadDB.Where("merchant_id = ? AND api_name = ?", req.MerchantID, req.ConfigKey)
 
 	if err := query.Where("is_enabled = ?", true).First(&apiConfig).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -88,7 +115,7 @@ func (s *APIConfigService) GetAPIConfig(req *protocol.GetAPIConfigRequest) (*pro
 
 // QueryAPIConfigs 查询API配置列表
 func (s *APIConfigService) QueryAPIConfigs(req *protocol.QueryAPIConfigRequest) (*protocol.APIConfigsResponse, protocol.ErrorCode) {
-	query := s.db.Model(&models.APIConfig{})
+	query := models.ReadDB.Model(&models.APIConfig{})
 
 	// 构建查询条件
 	if req.MerchantID != "" {
@@ -131,7 +158,7 @@ func (s *APIConfigService) QueryAPIConfigs(req *protocol.QueryAPIConfigRequest) 
 
 // DeleteAPIConfig 删除API配置
 func (s *APIConfigService) DeleteAPIConfig(req *protocol.DeleteAPIConfigRequest) protocol.ErrorCode {
-	result := s.db.Delete(&models.APIConfig{}, req.ID)
+	result := models.ReadDB.Delete(&models.APIConfig{}, req.ID)
 	if result.Error != nil {
 		return protocol.InternalError
 	}
@@ -144,7 +171,7 @@ func (s *APIConfigService) DeleteAPIConfig(req *protocol.DeleteAPIConfigRequest)
 
 // BatchUpdateAPIConfig 批量更新API配置
 func (s *APIConfigService) BatchUpdateAPIConfig(req *protocol.BatchUpdateAPIConfigRequest) protocol.ErrorCode {
-	tx := s.db.Begin()
+	tx := models.ReadDB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -164,16 +191,17 @@ func (s *APIConfigService) BatchUpdateAPIConfig(req *protocol.BatchUpdateAPIConf
 			}
 
 			newConfig := &models.APIConfig{
-				MerchantID:   req.MerchantID,
-				APIName:      config.ConfigKey,
-				IsEnabled:    isEnabled,
-				RateLimit:    1000,
-				DailyLimit:   0,
-				MonthlyLimit: 0,
-				Config:       config.ConfigValue,
-				Description:  config.Description,
-				CreatedAt:    time.Now().Unix(),
-				UpdatedAt:    time.Now().Unix(),
+				Mid:     req.MerchantID,
+				APIName: config.ConfigKey,
+				APIConfigValues: &models.APIConfigValues{
+					IsEnabled:    &isEnabled,
+					RateLimit:    &[]int{1000}[0],
+					DailyLimit:   &[]int{0}[0],
+					MonthlyLimit: &[]int{0}[0],
+					Description:  &config.Description,
+				},
+				CreatedAt: time.Now().UnixMilli(),
+				UpdatedAt: time.Now().UnixMilli(),
 			}
 
 			if err := tx.Create(newConfig).Error; err != nil {
@@ -213,7 +241,7 @@ func (s *APIConfigService) BatchUpdateAPIConfig(req *protocol.BatchUpdateAPIConf
 
 // BatchDeleteAPIConfig 批量删除API配置
 func (s *APIConfigService) BatchDeleteAPIConfig(req *protocol.BatchDeleteAPIConfigRequest) protocol.ErrorCode {
-	result := s.db.Delete(&models.APIConfig{}, req.IDs)
+	result := models.ReadDB.Delete(&models.APIConfig{}, req.IDs)
 	if result.Error != nil {
 		return protocol.InternalError
 	}
@@ -260,7 +288,7 @@ func (s *APIConfigService) ValidateAPIConfig(req *protocol.ValidateAPIConfigRequ
 
 	// 检查是否已存在相同配置
 	var existingConfig models.APIConfig
-	err := s.db.Where("merchant_id = ? AND api_name = ?",
+	err := models.ReadDB.Where("merchant_id = ? AND api_name = ?",
 		req.MerchantID, req.ConfigKey).First(&existingConfig).Error
 	if err == nil {
 		response.Warnings = append(response.Warnings, "configuration with the same key already exists")
@@ -271,14 +299,22 @@ func (s *APIConfigService) ValidateAPIConfig(req *protocol.ValidateAPIConfigRequ
 
 // convertToResponse 转换为响应格式
 func (s *APIConfigService) convertToResponse(apiConfig *models.APIConfig) *protocol.APIConfigResponse {
+	// 安全获取Config值
+	configValue := ""
+	if apiConfig.GetConfig() != nil {
+		if configBytes, err := json.Marshal(apiConfig.GetConfig()); err == nil {
+			configValue = string(configBytes)
+		}
+	}
+
 	return &protocol.APIConfigResponse{
 		ID:          apiConfig.ID,
-		MerchantID:  apiConfig.MerchantID,
+		MerchantID:  apiConfig.Mid,
 		ConfigKey:   apiConfig.APIName, // APIName映射为ConfigKey
-		ConfigValue: apiConfig.Config,  // Config映射为ConfigValue
+		ConfigValue: configValue,       // Config映射为ConfigValue
 		ConfigType:  "string",          // 默认类型
-		Description: apiConfig.Description,
-		IsEnabled:   apiConfig.IsEnabled,
+		Description: apiConfig.GetDescription(),
+		IsEnabled:   apiConfig.GetIsEnabled(),
 		Environment: "production", // 默认环境
 		ValidFrom:   0,            // 默认值
 		ValidTo:     0,            // 默认值

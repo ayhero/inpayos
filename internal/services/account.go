@@ -36,9 +36,9 @@ func SetupAccountService() {
 // CreateAccount 创建账户
 func (s *AccountService) CreateAccount(req *protocol.CreateAccountRequest) (*models.Account, error) {
 	// 检查账户是否已存在
-	existingAccount, err := models.GetAccountByUserIDAndCurrency(req.UserID, req.UserType, req.Currency)
+	existingAccount, err := models.GetAccountByUserIDAndCurrency(req.UserID, req.UserType, req.Ccy)
 	if err == nil && existingAccount != nil {
-		return nil, fmt.Errorf("account already exists for user %s with type %s and currency %s", req.UserID, req.UserType, req.Currency)
+		return nil, fmt.Errorf("account already exists for user %s with type %s and currency %s", req.UserID, req.UserType, req.Ccy)
 	}
 
 	// 创建新账户
@@ -46,7 +46,7 @@ func (s *AccountService) CreateAccount(req *protocol.CreateAccountRequest) (*mod
 	account.AccountID = utils.GenerateAccountID()
 	account.AccountValues.SetUserID(req.UserID).
 		SetUserType(req.UserType).
-		SetCurrency(req.Currency).
+		SetCcy(req.Ccy).
 		SetStatus(1).
 		SetVersion(1).
 		SetLastActiveAt(time.Now().UnixMilli())
@@ -58,7 +58,7 @@ func (s *AccountService) CreateAccount(req *protocol.CreateAccountRequest) (*mod
 		FrozenBalance:    decimal.Zero,
 		MarginBalance:    decimal.Zero,
 		ReserveBalance:   decimal.Zero,
-		Currency:         req.Currency,
+		Currency:         req.Ccy,
 		UpdatedAt:        time.Now().UnixMilli(),
 	}
 	account.AccountValues.SetAsset(asset)
@@ -110,7 +110,7 @@ func (s *AccountService) GetBalance(userID, userType, currency string) (*protoco
 func (s *AccountService) UpdateBalance(req *protocol.UpdateBalanceRequest) error {
 	return models.WriteDB.Transaction(func(tx *gorm.DB) error {
 		// 锁定账户
-		account, err := models.GetAccountForUpdate(tx, req.UserID, req.UserType, req.Currency)
+		account, err := models.GetAccountForUpdate(tx, req.UserID, req.UserType, req.Ccy)
 		if err != nil {
 			return fmt.Errorf("account not found: %w", err)
 		}
@@ -123,7 +123,7 @@ func (s *AccountService) UpdateBalance(req *protocol.UpdateBalanceRequest) error
 				FrozenBalance:    decimal.Zero,
 				MarginBalance:    decimal.Zero,
 				ReserveBalance:   decimal.Zero,
-				Currency:         req.Currency,
+				Currency:         req.Ccy,
 				UpdatedAt:        time.Now().UnixMilli(),
 			}
 		}

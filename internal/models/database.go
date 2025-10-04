@@ -78,14 +78,12 @@ func AutoMigrate() error {
 		&Payout{},
 		&Withdraw{},
 		&Webhook{},
-		&Channel{},
-		&Cashier{},
+		&CashierUser{},
 		&MerchantConfig{},
 		&MerchantSecret{},
 		// 新增的核心业务表
 		&FeeConfig{},
 		&Checkout{},
 		&APIConfig{},
-		&TrxRouter{},
 	)
 }

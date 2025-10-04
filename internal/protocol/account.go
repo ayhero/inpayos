@@ -2,17 +2,26 @@ package protocol
 
 import "github.com/shopspring/decimal"
 
+// CcyCode 支持的币种
+const (
+	CcyCNY = "CNY" // 人民币
+	CcyUSD = "USD" // 美元
+	CcyEUR = "EUR" // 欧元
+	CcyGBP = "GBP" // 英镑
+	CcyJPY = "JPY" // 日元
+)
+
 // 账户相关请求/响应
 type CreateAccountRequest struct {
 	UserID   string `json:"user_id" binding:"required"`
 	UserType string `json:"user_type" binding:"required,oneof=merchant cashier bank"`
-	Currency string `json:"currency" binding:"required"`
+	Ccy      string `json:"ccy" binding:"required"`
 }
 
 type UpdateBalanceRequest struct {
 	UserID        string          `json:"user_id" binding:"required"`
 	UserType      string          `json:"user_type" binding:"required"`
-	Currency      string          `json:"currency" binding:"required"`
+	Ccy           string          `json:"ccy" binding:"required"`
 	Operation     string          `json:"operation" binding:"required,oneof=add subtract freeze unfreeze margin release_margin"`
 	Amount        decimal.Decimal `json:"amount" binding:"required"`
 	TransactionID string          `json:"transaction_id"`

@@ -25,6 +25,9 @@ const (
 	ID_PREFIX_WEBHOOK     = "WH"
 	ID_PREFIX_SANDBOX     = "sandbox_"
 	ID_PREFIX_MESSAGE     = "MSG"
+	ID_PREFIX_SETTLE      = "ST"
+	ID_PREFIX_SETTLE_LOG  = "SL"
+	ID_PREFIX_ADMIN       = "AD"
 )
 
 func GenerateID() string {
@@ -84,6 +87,17 @@ func GenerateUserID() string {
 // GenerateSandboxChannelPaymentID 生成沙盒渠道支付ID
 func GenerateSandboxChannelPaymentID() string {
 	return fmt.Sprintf("%v%v", ID_PREFIX_SANDBOX, GenerateID())
+}
+
+// GenerateAdminID 生成管理员ID
+func GenerateAdminID() string {
+	return fmt.Sprintf("%v%v", ID_PREFIX_ADMIN, GenerateID())
+}
+func GenerateSettleTrxID() string {
+	return fmt.Sprintf("%v%v", ID_PREFIX_SETTLE, GenerateID())
+}
+func GenerateSettleLogID() string {
+	return fmt.Sprintf("%v%v", ID_PREFIX_SETTLE_LOG, GenerateID())
 }
 
 // GenerateSalt 生成加密盐值

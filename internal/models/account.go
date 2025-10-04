@@ -21,13 +21,12 @@ type Account struct {
 type AccountValues struct {
 	UserID       *string `json:"user_id" gorm:"column:user_id;type:varchar(32);uniqueIndex:uk_userid_usertype_ccy"`
 	UserType     *string `json:"user_type" gorm:"column:user_type;type:varchar(16);uniqueIndex:uk_userid_usertype_ccy"`
-	Currency     *string `json:"currency" gorm:"column:currency;type:varchar(16);uniqueIndex:uk_userid_usertype_ccy"`
+	Ccy          *string `json:"ccy" gorm:"column:ccy;type:varchar(16);uniqueIndex:uk_userid_usertype_ccy"`
 	Asset        *Asset  `json:"asset" gorm:"column:asset;serializer:json;type:json"`
 	Status       *int    `json:"status" gorm:"column:status;type:int;default:1"`
 	Version      *int64  `json:"version" gorm:"column:version;type:bigint;default:1"`
 	LastActiveAt *int64  `json:"last_active_at" gorm:"column:last_active_at;type:bigint"`
-
-	UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
+	UpdatedAt    int64   `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
 }
 
 func (Account) TableName() string {
@@ -63,8 +62,8 @@ func (a *AccountValues) SetValues(values *AccountValues) {
 	if values.UserType != nil {
 		a.UserType = values.UserType
 	}
-	if values.Currency != nil {
-		a.Currency = values.Currency
+	if values.Ccy != nil {
+		a.Ccy = values.Ccy
 	}
 	if values.Asset != nil {
 		a.Asset = values.Asset
@@ -95,11 +94,11 @@ func (a *AccountValues) GetUserType() string {
 	return *a.UserType
 }
 
-func (a *AccountValues) GetCurrency() string {
-	if a.Currency == nil {
+func (a *AccountValues) GetCcy() string {
+	if a.Ccy == nil {
 		return ""
 	}
-	return *a.Currency
+	return *a.Ccy
 }
 
 func (a *AccountValues) GetStatus() int {
@@ -134,8 +133,8 @@ func (a *AccountValues) SetUserType(userType string) *AccountValues {
 	return a
 }
 
-func (a *AccountValues) SetCurrency(currency string) *AccountValues {
-	a.Currency = &currency
+func (a *AccountValues) SetCcy(ccy string) *AccountValues {
+	a.Ccy = &ccy
 	return a
 }
 

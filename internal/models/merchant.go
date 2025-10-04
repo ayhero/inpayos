@@ -30,7 +30,7 @@ type MerchantValues struct {
 }
 
 func (t *Merchant) TableName() string {
-	return "t_merchant"
+	return "t_merchants"
 }
 func (m *MerchantValues) GetPassword() string {
 	if m.Password == nil {
@@ -287,4 +287,58 @@ func CheckMerchantEmail(email string) bool {
 	var count int64
 	ReadDB.Model(&Merchant{}).Where("email = ?", email).Count(&count)
 	return count > 0
+}
+
+// SetValues sets multiple MerchantValues fields at once
+func (m *Merchant) SetValues(values *MerchantValues) *Merchant {
+	if values == nil {
+		return m
+	}
+
+	if m.MerchantValues == nil {
+		m.MerchantValues = &MerchantValues{}
+	}
+
+	// Set all fields from the provided values
+	if values.AuthID != nil {
+		m.MerchantValues.SetAuthID(*values.AuthID)
+	}
+	if values.Name != nil {
+		m.MerchantValues.SetName(*values.Name)
+	}
+	if values.Type != nil {
+		m.MerchantValues.SetType(*values.Type)
+	}
+	if values.Email != nil {
+		m.MerchantValues.SetEmail(*values.Email)
+	}
+	if values.Phone != nil {
+		m.MerchantValues.SetPhone(*values.Phone)
+	}
+	if values.Status != nil {
+		m.MerchantValues.SetStatus(*values.Status)
+	}
+	if values.Password != nil {
+		m.MerchantValues.SetPassword(*values.Password)
+	}
+	if values.Salt != nil {
+		m.MerchantValues.SetSalt(*values.Salt)
+	}
+	if values.Region != nil {
+		m.MerchantValues.SetRegion(*values.Region)
+	}
+	if values.Avatar != nil {
+		m.MerchantValues.SetAvatar(*values.Avatar)
+	}
+	if values.G2FA != nil {
+		m.MerchantValues.SetG2FA(*values.G2FA)
+	}
+	if values.NotifyURL != nil {
+		m.MerchantValues.SetNotifyURL(*values.NotifyURL)
+	}
+	if values.RegIP != nil {
+		m.MerchantValues.SetRegIP(*values.RegIP)
+	}
+
+	return m
 }

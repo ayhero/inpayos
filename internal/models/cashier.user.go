@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// Cashier 出纳员/收银员表（区分公户和私户）
-type Cashier struct {
+// CashierUser 出纳员/收银员表（区分公户和私户）
+type CashierUser struct {
 	ID        uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	CashierID string `json:"cashier_id" gorm:"column:cashier_id;type:varchar(64);uniqueIndex"`
 	AccountID string `json:"account_id" gorm:"column:account_id;type:varchar(64);index"` // 关联的账户ID
@@ -46,7 +46,7 @@ type CashierValues struct {
 }
 
 // 表名
-func (Cashier) TableName() string {
+func (CashierUser) TableName() string {
 	return "t_cashiers"
 }
 
@@ -133,7 +133,7 @@ func (v *CashierValues) SetRemark(remark string) *CashierValues {
 // Chainable getters
 func (v *CashierValues) GetType() string {
 	if v.Type == nil {
-		return "private"
+		return ""
 	}
 	return *v.Type
 }

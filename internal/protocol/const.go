@@ -49,6 +49,10 @@ const (
 	StatusRejected   = "rejected"
 	StatusEnabled    = "enabled"  // 启用
 	StatusDisabled   = "disabled" // 禁用
+	StatusOnline     = "online"
+	StatusOffline    = "offline"
+	StatusBusy       = "busy"
+	StatusLocked     = "locked"
 )
 
 // 流水类型常量
@@ -66,4 +70,37 @@ const (
 	VerifyCodeTypeResetPassword = "reset_password" // 重置密码验证码
 	VerifyCodeTypeResetG2FA     = "reset_g2fa"     // 重置G2FA验证码
 	VerifyCodeTypeReset         = "reset"          // 重置密码验证码
+)
+
+// 订单类型
+const (
+	TrxTypePayin     = "payin"      // 代收订单
+	TrxTypePayout    = "payout"     // 代付订单
+	TrxTypeWithdraw  = "withdraw"   // 提现订单
+	TrxTypeRefund    = "refund"     // 退款订单
+	TrxTypeRecharge  = "recharge"   // 充值订单
+	TrxTypeFreeze    = "freeze"     // 冻结订单
+	TrxTypeUnfreeze  = "unfreeze"   // 解冻订单
+	TrxTypeRfRecover = "rf_recover" // 退款回撤订单
+	TrxTypeWdRecover = "wd_recover" // 提现回撤订单
+)
+
+const (
+	WeightTypePriority = "POT"
+	WeightTypePercent  = "PCT"
+)
+
+// Admin 状态常量
+const (
+	AdminStatusActive    = StatusActive
+	AdminStatusInactive  = StatusInactive
+	AdminStatusSuspended = StatusSuspended
+	AdminStatusLocked    = StatusLocked
+)
+
+// Admin 活跃状态常量
+const (
+	AdminActiveStatusOnline  = StatusOnline
+	AdminActiveStatusOffline = StatusOffline
+	AdminActiveStatusBusy    = StatusBusy
 )
