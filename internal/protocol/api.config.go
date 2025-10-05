@@ -2,7 +2,7 @@ package protocol
 
 // CreateAPIConfigRequest 创建API配置请求
 type CreateAPIConfigRequest struct {
-	MerchantID  string `json:"merchant_id" binding:"required"`
+	Mid         string `json:"mid" binding:"required"`
 	ConfigKey   string `json:"config_key" binding:"required"`
 	ConfigValue string `json:"config_value" binding:"required"`
 	ConfigType  string `json:"config_type"` // json, string, number, boolean
@@ -29,7 +29,7 @@ type UpdateAPIConfigRequest struct {
 
 // QueryAPIConfigRequest 查询API配置请求
 type QueryAPIConfigRequest struct {
-	MerchantID  string `json:"merchant_id" form:"merchant_id"`
+	Mid         string `json:"mid" form:"mid"`
 	ConfigKey   string `json:"config_key" form:"config_key"`
 	ConfigType  string `json:"config_type" form:"config_type"`
 	Environment string `json:"environment" form:"environment"`
@@ -40,7 +40,7 @@ type QueryAPIConfigRequest struct {
 
 // GetAPIConfigRequest 获取单个API配置请求
 type GetAPIConfigRequest struct {
-	MerchantID  string `json:"merchant_id" binding:"required"`
+	Mid         string `json:"mid" binding:"required"`
 	ConfigKey   string `json:"config_key" binding:"required"`
 	Environment string `json:"environment"`
 }
@@ -53,7 +53,7 @@ type DeleteAPIConfigRequest struct {
 // APIConfigResponse API配置响应
 type APIConfigResponse struct {
 	ID          uint64 `json:"id"`
-	MerchantID  string `json:"merchant_id"`
+	Mid         string `json:"mid"`
 	ConfigKey   string `json:"config_key"`
 	ConfigValue string `json:"config_value"`
 	ConfigType  string `json:"config_type"`
@@ -77,7 +77,7 @@ type APIConfigsResponse struct {
 
 // BatchUpdateAPIConfigRequest 批量更新API配置请求
 type BatchUpdateAPIConfigRequest struct {
-	MerchantID string                `json:"merchant_id" binding:"required"`
+	MerchantID string                `json:"mid" binding:"required"`
 	Configs    []APIConfigUpdateItem `json:"configs" binding:"required,min=1"`
 }
 
@@ -101,14 +101,14 @@ type BatchDeleteAPIConfigRequest struct {
 
 // ExportAPIConfigRequest 导出API配置请求
 type ExportAPIConfigRequest struct {
-	MerchantID  string `json:"merchant_id" form:"merchant_id"`
+	Mid         string `json:"mid" form:"mid"`
 	Environment string `json:"environment" form:"environment"`
 	Format      string `json:"format" form:"format"` // json, yaml, env
 }
 
 // ImportAPIConfigRequest 导入API配置请求
 type ImportAPIConfigRequest struct {
-	MerchantID  string `json:"merchant_id" binding:"required"`
+	Mid         string `json:"mid" binding:"required"`
 	Environment string `json:"environment" binding:"required"`
 	Format      string `json:"format" binding:"required"` // json, yaml, env
 	Data        string `json:"data" binding:"required"`   // 配置数据
@@ -117,7 +117,7 @@ type ImportAPIConfigRequest struct {
 
 // ValidateAPIConfigRequest 验证API配置请求
 type ValidateAPIConfigRequest struct {
-	MerchantID  string            `json:"merchant_id" binding:"required"`
+	Mid         string            `json:"mid" binding:"required"`
 	ConfigKey   string            `json:"config_key" binding:"required"`
 	ConfigValue string            `json:"config_value" binding:"required"`
 	ConfigType  string            `json:"config_type" binding:"required"`

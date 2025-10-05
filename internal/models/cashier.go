@@ -5,11 +5,12 @@ import (
 	"time"
 )
 
-// CashierUser 出纳员/收银员表（区分公户和私户）
-type CashierUser struct {
+// Cashier 出纳员/收银员表（区分公户和私户）
+type Cashier struct {
 	ID        uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	CashierID string `json:"cashier_id" gorm:"column:cashier_id;type:varchar(64);uniqueIndex"`
 	AccountID string `json:"account_id" gorm:"column:account_id;type:varchar(64);index"` // 关联的账户ID
+	Salt      string `json:"salt" gorm:"column:salt;type:varchar(256)"`
 	*CashierValues
 	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
 	UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
@@ -46,7 +47,7 @@ type CashierValues struct {
 }
 
 // 表名
-func (CashierUser) TableName() string {
+func (Cashier) TableName() string {
 	return "t_cashiers"
 }
 

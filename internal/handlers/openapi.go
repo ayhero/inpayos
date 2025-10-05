@@ -13,7 +13,7 @@ import (
 // 面向第三方开发者集成，需要 API Key 认证
 type OpenApi struct {
 	*config.ServiceConfig
-	Transaction *services.TransactionService
+	Transaction *services.MerchantTransactionService
 	Checkout    *services.CheckoutService
 }
 
@@ -26,7 +26,7 @@ func NewOpenApi() *OpenApi {
 
 	return &OpenApi{
 		ServiceConfig: cfg.Server.OpenAPI,
-		Transaction:   services.GetTransactionService(),
+		Transaction:   services.GetMerchantTransactionService(),
 		Checkout:      services.GetCheckoutService(),
 	}
 }

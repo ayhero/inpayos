@@ -10,16 +10,16 @@ type FundFlow struct {
 	FlowNo         string           `gorm:"type:varchar(64);uniqueIndex;not null" json:"flow_no"`              // 流水号
 	OriFlowNo      string           `gorm:"type:varchar(64);index" json:"ori_flow_no"`                         // 原始流水号(关联流水记录)
 	UserID         string           `gorm:"type:varchar(32);index;not null" json:"user_id"`                    // 用户ID
-	UserType       string           `gorm:"type:varchar(16);index;not null" json:"user_type"`                  // 用户类型: merchant-商户, cashier-收银台, system-系统
+	UserType       string           `gorm:"type:varchar(16);index;not null" json:"user_type"`                  // 用户类型: merchant-商户, cashier-收款员, system-系统，cashier-team-收款员团队
 	AccountID      string           `gorm:"type:varchar(32);index;not null" json:"account_id"`                 // 账户ID
 	AccountVersion int64            `gorm:"not null" json:"account_version"`                                   // 账户版本号
+	Direction      string           `gorm:"type:varchar(10);not null" json:"direction"`                        // 流水方向：1-进账 2-出账
 	TrxID          string           `gorm:"type:varchar(64);index" json:"trx_id"`                              // 关联业务ID
 	TrxType        string           `gorm:"type:varchar(20);not null" json:"trx_type"`                         // 业务类型：payin-代收,payout-代付，margin-保证金，withdraw-提现，fee-手续费，adjust-调账
 	Ccy            string           `gorm:"type:varchar(16);not null" json:"ccy"`                              // 交易币种
 	Amount         *decimal.Decimal `gorm:"type:decimal(20,8);not null" json:"amount"`                         // 交易金额
 	BeforeAsset    *Asset           `gorm:"column:before_asset;serializer:json;type:json" json:"before_asset"` // 资金信息(包含币种)
 	AfterAsset     *Asset           `gorm:"column:after_asset;serializer:json;type:json" json:"after_asset"`   // 资金信息(包含币种)
-	Direction      string           `gorm:"type:varchar(10);not null" json:"direction"`                        // 流水方向：1-进账 2-出账
 	Remark         string           `gorm:"type:varchar(255)" json:"remark"`                                   // 备注
 	OperatorId     string           `gorm:"type:varchar(32)" json:"operator_id"`                               // 操作人ID
 	CreatedAt      int64            `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`

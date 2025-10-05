@@ -61,7 +61,7 @@ func RegisterMerchant(req *MerchantRegisterRequest) error {
 
 	// 创建商户
 	merchant := &models.Merchant{
-		MID:            utils.GenerateUserID(),
+		Mid:            utils.GenerateUserID(),
 		MerchantValues: &models.MerchantValues{},
 	}
 

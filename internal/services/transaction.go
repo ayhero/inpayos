@@ -5,44 +5,44 @@ import (
 	"sync"
 )
 
-type TransactionService struct {
-	PayinService  *PayinService
-	PayoutService *PayoutService
+type MerchantTransactionService struct {
+	PayinService  *MerchantPayinService
+	PayoutService *MerchantPayoutService
 }
 
 var (
-	transactionService     *TransactionService
+	transactionService     *MerchantTransactionService
 	transactionServiceOnce sync.Once
 )
 
 func SetupTransactionService() {
 	transactionServiceOnce.Do(func() {
-		transactionService = &TransactionService{
-			PayinService:  GetPayinService(),
-			PayoutService: GetPayoutService(),
+		transactionService = &MerchantTransactionService{
+			PayinService:  GetMerchantPayinService(),
+			PayoutService: GetMerchantPayoutService(),
 		}
 	})
 }
 
-// GetTransactionService 获取Transaction服务单例
-func GetTransactionService() *TransactionService {
+// GetMerchantTransactionService 获取Transaction服务单例
+func GetMerchantTransactionService() *MerchantTransactionService {
 	if transactionService == nil {
 		SetupTransactionService()
 	}
 	return transactionService
 }
 
-func (s *TransactionService) CreatePayin(req *protocol.CreateTransactionRequest) (trx *protocol.Transaction, code protocol.ErrorCode) {
+func (s *MerchantTransactionService) CreatePayin(req *protocol.CreateTransactionRequest) (trx *protocol.Transaction, code protocol.ErrorCode) {
 	return &protocol.Transaction{}, protocol.Success
 }
 
-func (s *TransactionService) CreatePayout(req *protocol.CreateTransactionRequest) (trx *protocol.Transaction, code protocol.ErrorCode) {
+func (s *MerchantTransactionService) CreatePayout(req *protocol.CreateTransactionRequest) (trx *protocol.Transaction, code protocol.ErrorCode) {
 	return &protocol.Transaction{}, protocol.Success
 }
 
-func (s *TransactionService) Cancel(req *protocol.CancelTransactionRequest) (trx *protocol.Transaction, code protocol.ErrorCode) {
+func (s *MerchantTransactionService) Cancel(req *protocol.CancelTransactionRequest) (trx *protocol.Transaction, code protocol.ErrorCode) {
 	return &protocol.Transaction{}, protocol.Success
 }
-func (s *TransactionService) Query(req *protocol.QueryTransactionRequest) (trx *protocol.Transaction, code protocol.ErrorCode) {
+func (s *MerchantTransactionService) Query(req *protocol.QueryTransactionRequest) (trx *protocol.Transaction, code protocol.ErrorCode) {
 	return &protocol.Transaction{}, protocol.Success
 }

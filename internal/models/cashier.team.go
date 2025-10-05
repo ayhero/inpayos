@@ -1,8 +1,10 @@
 package models
 
 type CashierTeam struct {
-	ID     int64  `gorm:"primaryKey;autoIncrement" json:"id"`
-	TeamID string `gorm:"type:varchar(64);not null;uniqueIndex" json:"team_id"`
+	ID        int64  `gorm:"primaryKey;autoIncrement" json:"id"`
+	Tid       string `json:"tid" gorm:"column:tid"`
+	Salt      string `json:"salt" gorm:"column:salt;type:varchar(256)"`
+	AccountID string `json:"account_id" gorm:"column:account_id;type:varchar(64);index"` // 关联的账户ID
 	*CashierTeamValues
 	CreatedAt int64 `gorm:"autoCreateTime:milli" json:"created_at"`
 	UpdatedAt int64 `gorm:"autoUpdateTime:milli" json:"updated_at"`

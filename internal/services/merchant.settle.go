@@ -16,34 +16,34 @@ import (
 	"gorm.io/gorm"
 )
 
-// SettleService 结算服务
-type SettleService struct {
+// MerchantSettleService 结算服务
+type MerchantSettleService struct {
 	*config.SettleConfig
 }
 
 var (
-	settleServiceInstance *SettleService
-	settleServiceOnce     sync.Once
+	merchantSettleServiceInstance *MerchantSettleService
+	merchantSettleServiceOnce     sync.Once
 )
 
-// GetSettleService 获取结算服务单例
-func GetSettleService() *SettleService {
-	settleServiceOnce.Do(func() {
+// GetMerchantSettleService 获取结算服务单例
+func GetMerchantSettleService() *MerchantSettleService {
+	merchantSettleServiceOnce.Do(func() {
 		SetupSettleService()
 	})
-	return settleServiceInstance
+	return merchantSettleServiceInstance
 }
 
 // SetupSettleService 设置结算服务
 func SetupSettleService() {
-	settleServiceInstance = &SettleService{
+	merchantSettleServiceInstance = &MerchantSettleService{
 		SettleConfig: config.Get().Settle,
 	}
 }
 
 // GetSettleStrategiesWithPeriodCache 基于结算周期记录使用缓存获取结算策略
 // 这是新的缓存策略，优先从结算周期记录获取策略，实现周期级别的缓存
-func (s *SettleService) GetSettleStrategiesWithPeriodCache(ctx context.Context, settleLog *models.MerchantSettleLog) []*protocol.SettleStrategy {
+func (s *MerchantSettleService) GetSettleStrategiesWithPeriodCache(ctx context.Context, settleLog *models.MerchantSettleLog) []*protocol.SettleStrategy {
 	if settleLog == nil {
 		return nil
 	}
@@ -100,7 +100,7 @@ func (s *SettleService) GetSettleStrategiesWithPeriodCache(ctx context.Context, 
 // GetSettleStrategiesWithCache 使用缓存获取结算策略（保留原有逻辑，兼容旧代码）
 // 根据商户合同和交易时间确定适用的结算策略
 // 注意：此函数已不推荐使用，请使用 GetSettleStrategiesWithPeriodCache
-func (s *SettleService) GetSettleStrategiesWithCache(ctx context.Context, mid string, trxTime int64) []*protocol.SettleStrategy {
+func (s *MerchantSettleService) GetSettleStrategiesWithCache(ctx context.Context, mid string, trxTime int64) []*protocol.SettleStrategy {
 	if mid == "" {
 		return nil
 	}
@@ -159,7 +159,7 @@ type SettleResult struct {
 }
 
 // SettleByTimeRange 时间范围结算
-func (s *SettleService) SettleByTimeRange(ctx context.Context, trx_type string, startAt, endAt int64) *SettleResult {
+func (s *MerchantSettleService) SettleByTimeRange(ctx context.Context, trx_type string, startAt, endAt int64) *SettleResult {
 	result := &SettleResult{
 		StartTime: time.Now(),
 	}
@@ -309,7 +309,7 @@ func (s *SettleService) SettleByTimeRange(ctx context.Context, trx_type string, 
 }
 
 // SettleByCompletedTime 按交易完成时间进行结算
-func (s *SettleService) SettleByCompletedTime(ctx context.Context, trx_type string, startAt, endAt int64) *SettleResult {
+func (s *MerchantSettleService) SettleByCompletedTime(ctx context.Context, trx_type string, startAt, endAt int64) *SettleResult {
 	result := &SettleResult{
 		StartTime: time.Now(),
 	}
@@ -447,7 +447,7 @@ func (s *SettleService) SettleByCompletedTime(ctx context.Context, trx_type stri
 }
 
 // SettleTransaction 结算单个交易并返回是否成功
-func (s *SettleService) SettleTransaction(ctx context.Context, trx *models.Transaction) (isSuccess bool) {
+func (s *MerchantSettleService) SettleTransaction(ctx context.Context, trx *models.Transaction) (isSuccess bool) {
 	isSuccess = false
 	defer func() {
 		if r := recover(); r != nil {
@@ -608,7 +608,7 @@ type SettlementResult struct {
 }
 
 // IsStrategyMatched 检查交易是否匹配指定的结算策略
-func (s *SettleService) IsStrategyMatched(trx *models.Transaction, strategy *protocol.SettleStrategy) bool {
+func (s *MerchantSettleService) IsStrategyMatched(trx *models.Transaction, strategy *protocol.SettleStrategy) bool {
 	if strategy == nil || trx == nil {
 		return false
 	}
@@ -637,7 +637,7 @@ func (s *SettleService) IsStrategyMatched(trx *models.Transaction, strategy *pro
 }
 
 // IsRuleApplicable 检查结算规则是否适用于指定交易
-func (s *SettleService) IsRuleApplicable(trx *models.Transaction, rule *protocol.SettleRule) bool {
+func (s *MerchantSettleService) IsRuleApplicable(trx *models.Transaction, rule *protocol.SettleRule) bool {
 	if rule == nil || trx == nil {
 		return false
 	}
@@ -664,7 +664,7 @@ func (s *SettleService) IsRuleApplicable(trx *models.Transaction, rule *protocol
 }
 
 // CalculateSettlement 计算结算金额和费用
-func (s *SettleService) CalculateSettlement(trx *models.Transaction, rule *protocol.SettleRule) *SettlementResult {
+func (s *MerchantSettleService) CalculateSettlement(trx *models.Transaction, rule *protocol.SettleRule) *SettlementResult {
 	if trx == nil || rule == nil {
 		return nil
 	}
@@ -754,7 +754,7 @@ func NewSettleTransactionRecord(trx *models.Transaction, settleLogID string, str
 }
 
 // GenerateStrategiesFromContract 根据合同配置生成结算策略
-func (s *SettleService) GenerateStrategiesFromContract(contract *models.Contract) []*protocol.SettleStrategy {
+func (s *MerchantSettleService) GenerateStrategiesFromContract(contract *models.Contract) []*protocol.SettleStrategy {
 	if contract == nil {
 		return nil
 	}
@@ -820,7 +820,7 @@ func (s *SettleService) GenerateStrategiesFromContract(contract *models.Contract
 }
 
 // GetSettleStrategiesByCodes 根据策略代码获取结算策略
-func (s *SettleService) GetSettleStrategiesByCodes(strategyCodes []string, trxType string) []*protocol.SettleStrategy {
+func (s *MerchantSettleService) GetSettleStrategiesByCodes(strategyCodes []string, trxType string) []*protocol.SettleStrategy {
 	if len(strategyCodes) == 0 {
 		return nil
 	}
@@ -841,7 +841,7 @@ func (s *SettleService) GetSettleStrategiesByCodes(strategyCodes []string, trxTy
 }
 
 // GetOrCreateTransactionSettleLog 获取或创建交易对应的结算周期记录
-func (s *SettleService) GetOrCreateTransactionSettleLog(trx *models.Transaction) (*models.MerchantSettleLog, error) {
+func (s *MerchantSettleService) GetOrCreateTransactionSettleLog(trx *models.Transaction) (*models.MerchantSettleLog, error) {
 	mid := trx.Mid
 	trxTime := trx.CreatedAt
 
@@ -892,7 +892,7 @@ func (s *SettleService) GetOrCreateTransactionSettleLog(trx *models.Transaction)
 }
 
 // SettleTransactionWithPeriod 使用结算周期记录处理单个交易结算
-func (s *SettleService) SettleTransactionWithPeriod(ctx context.Context, trx *models.Transaction) (isSuccess bool) {
+func (s *MerchantSettleService) SettleTransactionWithPeriod(ctx context.Context, trx *models.Transaction) (isSuccess bool) {
 	isSuccess = false
 	defer func() {
 		if r := recover(); r != nil {

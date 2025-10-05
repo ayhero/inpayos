@@ -9,11 +9,10 @@ import (
 // CashierPayout 代付记录表
 type CashierPayout struct {
 	ID        uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	TeamID    string `json:"team_id" gorm:"column:team_id;type:varchar(32);index"`
+	Tid       string `json:"tid" gorm:"column:tid"`
 	CashierID string `json:"cashier_id" gorm:"column:cashier_id;type:varchar(32);index"`
 	ReqID     string `json:"req_id" gorm:"column:req_id;type:varchar(64);index"`
 	TrxID     string `json:"transaction_id" gorm:"column:transaction_id;type:varchar(64);uniqueIndex"`
-	Salt      string `json:"salt" gorm:"column:salt;type:varchar(256)"`
 	*CashierPayoutValues
 	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
 	UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
@@ -235,7 +234,7 @@ func (p *CashierPayout) ToTransaction() *Transaction {
 
 	transaction := &Transaction{
 		ID:        p.ID,
-		TeamID:    p.TeamID,
+		Tid:       p.Tid,
 		CashierID: p.CashierID,
 		TrxID:     p.TrxID,
 		ReqID:     p.ReqID,

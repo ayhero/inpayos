@@ -94,6 +94,7 @@ func SendEmailVerifyCode(typ, email string) error {
 	// 构造邮件内容
 	msg := &Message{
 		Type: protocol.MsgTypeVerifyCode,
+		To:   email,
 		Params: map[string]any{
 			"to":   email,
 			"code": code,

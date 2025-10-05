@@ -74,16 +74,15 @@ func AutoMigrate() error {
 		&Account{},
 		&Asset{},
 		&FundFlow{},
-		&Payin{},
-		&Payout{},
-		&Withdraw{},
+		&MerchantPayin{},
+		&MerchantPayout{},
 		&Webhook{},
-		&CashierUser{},
+		&Cashier{},
 		&MerchantConfig{},
 		&MerchantSecret{},
 		// 新增的核心业务表
-		&FeeConfig{},
-		&Checkout{},
+		&MerchantFeeConfig{},
+		&MerchantCheckout{},
 		&APIConfig{},
 	)
 }

@@ -14,7 +14,7 @@ import (
 // 面向第三方开发者集成，需要 API Key 认证
 type CashierApi struct {
 	*config.ServiceConfig
-	Transaction *services.TransactionService
+	Transaction *services.MerchantTransactionService
 }
 
 // NewCashierApi 创建 CashierApi 处理器
@@ -26,7 +26,7 @@ func NewCashierApi() *CashierApi {
 
 	return &CashierApi{
 		ServiceConfig: cfg.Server.CashierAPI,
-		Transaction:   services.GetTransactionService(),
+		Transaction:   services.GetMerchantTransactionService(),
 	}
 }
 
@@ -91,7 +91,7 @@ func (a *CashierApi) Payin(c *gin.Context) {
 	}
 
 	// 执行业务逻辑（代收类型）
-	response, code := services.GetTransactionService().CreatePayin(&req)
+	response, code := services.GetMerchantTransactionService().CreatePayin(&req)
 	lang := middleware.GetLanguage(c)
 	result := protocol.HandleServiceResult(code, response, lang)
 	c.JSON(http.StatusOK, result)
@@ -107,7 +107,7 @@ func (a *CashierApi) Cancel(c *gin.Context) {
 	}
 
 	// 执行取消逻辑
-	response, code := services.GetTransactionService().Cancel(&req)
+	response, code := services.GetMerchantTransactionService().Cancel(&req)
 	lang := middleware.GetLanguage(c)
 	result := protocol.HandleServiceResult(code, response, lang)
 	c.JSON(http.StatusOK, result)
@@ -123,7 +123,7 @@ func (a *CashierApi) Payout(c *gin.Context) {
 	}
 
 	// 执行业务逻辑（代付类型）
-	response, code := services.GetTransactionService().CreatePayout(&req)
+	response, code := services.GetMerchantTransactionService().CreatePayout(&req)
 	lang := middleware.GetLanguage(c)
 	result := protocol.HandleServiceResult(code, response, lang)
 	c.JSON(http.StatusOK, result)
@@ -149,7 +149,7 @@ func (a *CashierApi) Query(c *gin.Context) {
 	}
 
 	// 从上下文获取交易服务
-	transactionService := services.GetTransactionService()
+	transactionService := services.GetMerchantTransactionService()
 	if transactionService == nil {
 		lang := middleware.GetLanguage(c)
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.SystemError, lang))

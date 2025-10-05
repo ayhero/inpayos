@@ -11,7 +11,7 @@ import (
 // 每个具体业务表（Payin, Payout等）通过 ToTransaction() 方法转换为此通用模型
 type Transaction struct {
 	ID        uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	TeamID    string `json:"team_id" gorm:"column:team_id;type:varchar(32);index"`
+	Tid       string `json:"tid" gorm:"column:tid;type:varchar(32);index"`
 	CashierID string `json:"cashier_id" gorm:"column:cashier_id;type:varchar(32);index"`
 	Mid       string `json:"mid" gorm:"column:mid;type:varchar(32);index"`
 	UserID    string `json:"user_id" gorm:"column:user_id;type:varchar(32);index"`

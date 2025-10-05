@@ -11,19 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// AuthRequest 认证请求参数
-type AuthRequest struct {
-	Email    string `json:"email" binding:"email" example:"user@example.com"`
-	Password string `json:"password"  example:"password"`
-	Code     string `json:"code"  example:"123456"`
-	Token    string `json:"token"  example:"eyJhbGciOiJIUzI1NiIs..."`
-}
-
-// AuthResponse 认证响应
-type AuthResponse struct {
-	Token string `json:"token" example:"eyJhbGciOiJIUzI1NiIs..."`
-}
-
 // Auth 授权认证
 // @Summary      登陆授权认证
 // @Description  处理登陆认证并返回token
@@ -32,7 +19,7 @@ type AuthResponse struct {
 // @Produce      json
 // @Param        request  body      AuthRequest  true  "认证请求参数"
 // @Router       /auth [post]
-func (s *MerchantAdmin) Auth(c *gin.Context) {
+func (s *CashierAdmin) Auth(c *gin.Context) {
 	lang := middleware.GetLanguage(c)
 	var req AuthRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -105,7 +92,7 @@ func (s *MerchantAdmin) Auth(c *gin.Context) {
 	}))
 }
 
-func (s *MerchantAdmin) Logout(c *gin.Context) {
+func (s *CashierAdmin) Logout(c *gin.Context) {
 	lang := middleware.GetLanguage(c)
 	c.JSON(http.StatusOK, protocol.NewSuccessResultWithLang(nil, lang))
 }

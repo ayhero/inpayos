@@ -2,24 +2,24 @@ package services
 
 import "sync"
 
-type FeeConfigService struct {
+type MerchantFeeConfigService struct {
 }
 
 var (
-	feeConfigService     *FeeConfigService
-	feeConfigServiceOnce sync.Once
+	merchantfeeConfigService     *MerchantFeeConfigService
+	merchantfeeConfigServiceOnce sync.Once
 )
 
-func SetupFeeConfigService() {
-	feeConfigServiceOnce.Do(func() {
-		feeConfigService = &FeeConfigService{}
+func SetupMerchantFeeConfigService() {
+	merchantfeeConfigServiceOnce.Do(func() {
+		merchantfeeConfigService = &MerchantFeeConfigService{}
 	})
 }
 
 // GetFeeConfigService 获取FeeConfig服务单例
-func GetFeeConfigService() *FeeConfigService {
-	if feeConfigService == nil {
-		SetupFeeConfigService()
+func GetFeeConfigService() *MerchantFeeConfigService {
+	if merchantfeeConfigService == nil {
+		SetupMerchantFeeConfigService()
 	}
-	return feeConfigService
+	return merchantfeeConfigService
 }

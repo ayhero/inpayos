@@ -46,6 +46,10 @@ type MerchantSettleLogValues struct {
 	CompletedAt     *int64           `json:"completed_at" gorm:"column:completed_at"`                               // CompletedAt 结算完成时间
 }
 
+func (t MerchantSettleLog) TableName() string {
+	return "t_merchant_settle_log"
+}
+
 // Getters for MerchantSettleLog
 func (t *MerchantSettleLog) GetTrxAmount() decimal.Decimal {
 	if t.TrxAmount == nil {
@@ -250,10 +254,6 @@ func (t *MerchantSettleLog) SetValues(values *MerchantSettleLogValues) {
 	if values.CompletedAt != nil && *values.CompletedAt != 0 {
 		t.CompletedAt = values.CompletedAt
 	}
-}
-
-func (t MerchantSettleLog) TableName() string {
-	return "t_merchant_settle_log"
 }
 
 // GetOrCreateSettleLog 获取或创建结算周期记录

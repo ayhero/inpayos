@@ -4,19 +4,18 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// Withdraw 提现记录表
-type Withdraw struct {
+// MerchantWithdraw 提现记录表
+type MerchantWithdraw struct {
 	ID        uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	Sid       string `json:"sid" gorm:"column:sid;type:varchar(32);index"`
-	SType     string `json:"s_type" gorm:"column:s_type;type:varchar(32);index"` // service类型，如 "merchant", "cashier"
 	TrxID     string `json:"trx_id" gorm:"column:trx_id;type:varchar(64);uniqueIndex"`
+	Mid       string `json:"mid" gorm:"column:mid;type:varchar(32);index"`
 	AccountID string `json:"account_id" gorm:"column:account_id;type:varchar(64);index"`
-	*WithdrawValues
+	*MerchantWithdrawValues
 	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
 	UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
 }
 
-type WithdrawValues struct {
+type MerchantWithdrawValues struct {
 	Status      *string          `json:"status" gorm:"column:status;type:varchar(16);index;default:'pending'"`
 	Ccy         *string          `json:"ccy" gorm:"column:ccy;type:varchar(16)"`
 	Amount      *decimal.Decimal `json:"amount" gorm:"column:amount;type:decimal(36,18)"`
@@ -30,6 +29,6 @@ type WithdrawValues struct {
 	ConfirmedAt *int64           `json:"confirmed_at" gorm:"column:confirmed_at"`
 }
 
-func (Withdraw) TableName() string {
-	return "t_withdraws"
+func (MerchantWithdraw) TableName() string {
+	return "t_merchant_withdraws"
 }

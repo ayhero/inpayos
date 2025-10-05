@@ -61,7 +61,7 @@ func getTargets(targetType string) (map[string]bool, error) {
 			return nil, fmt.Errorf("获取商户列表失败: %v", err)
 		}
 		for _, m := range merchants {
-			targetsMap[m.MID] = true
+			targetsMap[m.Mid] = true
 		}
 	case "channel_account":
 		accounts := models.GetChannelAccounts()

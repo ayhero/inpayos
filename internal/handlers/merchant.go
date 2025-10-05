@@ -62,8 +62,8 @@ func (t *MerchantAdmin) SetupRouter() *gin.Engine {
 	// 交易相关路由
 	transactions := api.Group("/transactions")
 	{
-		transactions.GET("/list", t.ListTransactions) // 交易列表
-		transactions.GET("/detail", t.GetTransaction) // 交易详情
+		transactions.POST("/list", t.ListTransactions)    // 交易列表
+		transactions.POST("/detail", t.TransactionDetail) // 交易详情
 	}
 
 	return router

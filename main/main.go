@@ -59,7 +59,7 @@ func main() {
 	}
 
 	// 初始化服务单例
-	err = services.InitializeServices()
+	err = services.InitializeMerchantServices()
 	if err != nil {
 		log.Fatalf("Failed to initialize services: %v", err)
 	}

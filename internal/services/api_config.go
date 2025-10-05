@@ -50,7 +50,7 @@ func (s *APIConfigService) CreateAPIConfig(req *protocol.CreateAPIConfigRequest)
 	}
 
 	apiConfig := &models.APIConfig{
-		Mid:     req.MerchantID,
+		Sid:     req.Mid,
 		APIName: req.ConfigKey, // ConfigKey映射为APIName
 		APIConfigValues: &models.APIConfigValues{
 			IsEnabled:    &isEnabled,
@@ -101,7 +101,7 @@ func (s *APIConfigService) UpdateAPIConfig(req *protocol.UpdateAPIConfigRequest)
 // GetAPIConfig 获取API配置
 func (s *APIConfigService) GetAPIConfig(req *protocol.GetAPIConfigRequest) (*protocol.APIConfigResponse, protocol.ErrorCode) {
 	var apiConfig models.APIConfig
-	query := models.ReadDB.Where("merchant_id = ? AND api_name = ?", req.MerchantID, req.ConfigKey)
+	query := models.ReadDB.Where("merchant_id = ? AND api_name = ?", req.Mid, req.ConfigKey)
 
 	if err := query.Where("is_enabled = ?", true).First(&apiConfig).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -118,8 +118,8 @@ func (s *APIConfigService) QueryAPIConfigs(req *protocol.QueryAPIConfigRequest) 
 	query := models.ReadDB.Model(&models.APIConfig{})
 
 	// 构建查询条件
-	if req.MerchantID != "" {
-		query = query.Where("merchant_id = ?", req.MerchantID)
+	if req.Mid != "" {
+		query = query.Where("merchant_id = ?", req.Mid)
 	}
 	if req.ConfigKey != "" {
 		query = query.Where("api_name LIKE ?", "%"+req.ConfigKey+"%")
@@ -191,7 +191,7 @@ func (s *APIConfigService) BatchUpdateAPIConfig(req *protocol.BatchUpdateAPIConf
 			}
 
 			newConfig := &models.APIConfig{
-				Mid:     req.MerchantID,
+				Sid:     req.MerchantID,
 				APIName: config.ConfigKey,
 				APIConfigValues: &models.APIConfigValues{
 					IsEnabled:    &isEnabled,
@@ -289,7 +289,7 @@ func (s *APIConfigService) ValidateAPIConfig(req *protocol.ValidateAPIConfigRequ
 	// 检查是否已存在相同配置
 	var existingConfig models.APIConfig
 	err := models.ReadDB.Where("merchant_id = ? AND api_name = ?",
-		req.MerchantID, req.ConfigKey).First(&existingConfig).Error
+		req.Mid, req.ConfigKey).First(&existingConfig).Error
 	if err == nil {
 		response.Warnings = append(response.Warnings, "configuration with the same key already exists")
 	}
@@ -309,7 +309,7 @@ func (s *APIConfigService) convertToResponse(apiConfig *models.APIConfig) *proto
 
 	return &protocol.APIConfigResponse{
 		ID:          apiConfig.ID,
-		MerchantID:  apiConfig.Mid,
+		Mid:         apiConfig.Sid,
 		ConfigKey:   apiConfig.APIName, // APIName映射为ConfigKey
 		ConfigValue: configValue,       // Config映射为ConfigValue
 		ConfigType:  "string",          // 默认类型

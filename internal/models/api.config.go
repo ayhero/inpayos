@@ -1,15 +1,15 @@
 package models
 
 import (
-	"encoding/json"
 	"inpayos/internal/protocol"
 )
 
 // APIConfig API配置表
 type APIConfig struct {
 	ID      uint64 `gorm:"primaryKey;autoIncrement" json:"id"`
-	Mid     string `gorm:"column:mid;type:varchar(64);not null;index" json:"mid"`
-	APIName string `gorm:"column:api_name;type:varchar(100);not null" json:"api_name"` // API名称，如 "create_receipt", "query_balance"
+	Sid     string `gorm:"column:sid;type:varchar(64);not null;index" json:"sid"`
+	SType   string `gorm:"column:s_type;type:varchar(32);not null;default:'api'" json:"s_type"` // 配置类型，默认为 'api'
+	APIName string `gorm:"column:api_name;type:varchar(100);not null" json:"api_name"`          // API名称，如 "create_receipt", "query_balance"
 	*APIConfigValues
 	CreatedAt int64 `gorm:"column:created_at;type:bigint;autoCreateTime:milli" json:"created_at"`
 	UpdatedAt int64 `gorm:"column:updated_at;type:bigint;autoUpdateTime:milli" json:"updated_at"`
@@ -62,54 +62,10 @@ func (ac *APIConfig) CheckMonthlyLimit(currentCount int) bool {
 	return currentCount < monthlyLimit
 }
 
-// APIConfigResponse API配置响应结构
-type APIConfigResponse struct {
-	ID           uint64 `json:"id"`
-	MerchantID   string `json:"merchant_id"`
-	APIName      string `json:"api_name"`
-	IsEnabled    bool   `json:"is_enabled"`
-	RateLimit    int    `json:"rate_limit"`
-	DailyLimit   int    `json:"daily_limit"`
-	MonthlyLimit int    `json:"monthly_limit"`
-	IPWhitelist  string `json:"ip_whitelist,omitempty"`
-	Permissions  string `json:"permissions,omitempty"`
-	Config       string `json:"config,omitempty"`
-	Description  string `json:"description,omitempty"`
-	CreatedAt    int64  `json:"created_at"`
-	UpdatedAt    int64  `json:"updated_at"`
-}
-
-// ToResponse 转换为响应结构
-func (ac *APIConfig) ToResponse() *APIConfigResponse {
-	config := ""
-	if ac.GetConfig() != nil {
-		// 将MapData转换为字符串，这里可能需要根据实际情况调整
-		if configBytes, err := json.Marshal(ac.GetConfig()); err == nil {
-			config = string(configBytes)
-		}
-	}
-
-	return &APIConfigResponse{
-		ID:           ac.ID,
-		MerchantID:   ac.Mid,
-		APIName:      ac.APIName,
-		IsEnabled:    ac.GetIsEnabled(),
-		RateLimit:    ac.GetRateLimit(),
-		DailyLimit:   ac.GetDailyLimit(),
-		MonthlyLimit: ac.GetMonthlyLimit(),
-		IPWhitelist:  ac.GetIPWhitelist(),
-		Permissions:  "", // 这个字段在APIConfigValues中不存在，暂时设为空
-		Config:       config,
-		Description:  ac.GetDescription(),
-		CreatedAt:    ac.CreatedAt,
-		UpdatedAt:    ac.UpdatedAt,
-	}
-}
-
 // GetAPIConfigByMerchantAndAPI 根据商户ID和API名称获取配置
-func GetAPIConfigByMerchantAndAPI(merchantID, apiName string) (*APIConfig, error) {
+func GetAPIConfigByMerchantAndAPI(sid, apiName string) (*APIConfig, error) {
 	var config APIConfig
-	err := WriteDB.Where("merchant_id = ? AND api_name = ?", merchantID, apiName).First(&config).Error
+	err := WriteDB.Where("sid = ? AND api_name = ? and s_type='merchant'", sid, apiName).First(&config).Error
 	if err != nil {
 		return nil, err
 	}
@@ -117,9 +73,9 @@ func GetAPIConfigByMerchantAndAPI(merchantID, apiName string) (*APIConfig, error
 }
 
 // GetAPIConfigsByMerchant 获取商户的所有API配置
-func GetAPIConfigsByMerchant(merchantID string) ([]*APIConfig, error) {
+func GetAPIConfigsByMerchant(sid string) ([]*APIConfig, error) {
 	var configs []*APIConfig
-	err := WriteDB.Where("merchant_id = ?", merchantID).Find(&configs).Error
+	err := WriteDB.Where("sid = ? and s_type='merchant'", sid).Find(&configs).Error
 	if err != nil {
 		return nil, err
 	}

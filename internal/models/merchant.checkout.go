@@ -2,12 +2,14 @@ package models
 
 import "inpayos/internal/protocol"
 
-// Checkout 收银台会话表
-type Checkout struct {
+// MerchantCheckout 收银台会话表
+type MerchantCheckout struct {
 	ID         uint64 `gorm:"primaryKey;autoIncrement" json:"id"`
 	CheckoutID string `gorm:"column:checkout_id;type:varchar(64);uniqueIndex;not null" json:"checkout_id"`
 	Mid        string `gorm:"column:mid;type:varchar(64);not null;index" json:"mid"`
 	ReqID      string `gorm:"column:req_id;type:varchar(64);index" json:"req_id"`
+	TrxID      string `gorm:"column:trx_id;type:varchar(64);index" json:"trx_id"`
+	TrxType    string `gorm:"column:trx_type;type:varchar(32);index" json:"trx_type"` // 交易类型: payin-代收, payout-代付
 	*CheckoutValues
 	CreatedAt int64 `gorm:"column:created_at;type:bigint;autoCreateTime:milli" json:"created_at"`
 	UpdatedAt int64 `gorm:"column:updated_at;type:bigint;autoUpdateTime:milli" json:"updated_at"`
@@ -32,8 +34,8 @@ type CheckoutValues struct {
 }
 
 // TableName 返回表名
-func (Checkout) TableName() string {
-	return "t_checkouts"
+func (MerchantCheckout) TableName() string {
+	return "t_merchant_checkouts"
 }
 
 // CheckoutValues Getter Methods
@@ -246,7 +248,7 @@ func (cv *CheckoutValues) SetCompletedAt(value int64) *CheckoutValues {
 }
 
 // SetValues sets multiple CheckoutValues fields at once
-func (c *Checkout) SetValues(values *CheckoutValues) *Checkout {
+func (c *MerchantCheckout) SetValues(values *CheckoutValues) *MerchantCheckout {
 	if values == nil {
 		return c
 	}

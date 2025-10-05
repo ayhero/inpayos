@@ -19,7 +19,7 @@ import (
 // @Param trx_type query string true "交易类型"
 // @Success 200 {object} protocol.Result{data=protocol.PageResult{list=[]protocol.TransactionInfo}}
 // @Router /transactions [post]
-func (t *MerchantAdmin) ListTransactions(c *gin.Context) {
+func (t *CashierAdmin) ListTransactions(c *gin.Context) {
 
 }
 
@@ -32,5 +32,5 @@ func (t *MerchantAdmin) ListTransactions(c *gin.Context) {
 // @Param trx_id query string true "交易ID"
 // @Success 200 {object} protocol.Result{data=protocol.TransactionInfo}
 // @Router /transactions/detail [post]
-func (t *MerchantAdmin) TransactionDetail(c *gin.Context) {
+func (t *CashierAdmin) TransactionDetail(c *gin.Context) {
 }

@@ -2,8 +2,8 @@ package models
 
 // 移除未使用的import
 
-// FeeConfig 费率配置表
-type FeeConfig struct {
+// MerchantFeeConfig 费率配置表
+type MerchantFeeConfig struct {
 	ID      uint64 `gorm:"primaryKey;autoIncrement" json:"id"`
 	Mid     string `gorm:"column:mid;type:varchar(64);not null;index" json:"mid"`
 	TrxType string `gorm:"column:trx_type;type:varchar(32);not null" json:"trx_type"` // receipt, payment, deposit, withdraw
@@ -23,7 +23,7 @@ type FeeConfigValues struct {
 }
 
 // TableName 返回表名
-func (FeeConfig) TableName() string {
+func (MerchantFeeConfig) TableName() string {
 	return "t_fee_configs"
 }
 
@@ -142,7 +142,7 @@ func (fcv *FeeConfigValues) SetMaxFee(value string) *FeeConfigValues {
 }
 
 // SetValues sets multiple FeeConfigValues fields at once
-func (fc *FeeConfig) SetValues(values *FeeConfigValues) *FeeConfig {
+func (fc *MerchantFeeConfig) SetValues(values *FeeConfigValues) *MerchantFeeConfig {
 	if values == nil {
 		return fc
 	}

@@ -6,8 +6,9 @@ import (
 )
 
 type Merchant struct {
-	ID  int64  `json:"id" gorm:"column:id;primaryKey;AUTO_INCREMENT"`
-	MID string `json:"mid" gorm:"column:mid;type:varchar(64);uniqueIndex"`
+	ID   int64  `json:"id" gorm:"column:id;primaryKey;AUTO_INCREMENT"`
+	Mid  string `json:"mid" gorm:"column:mid;type:varchar(64);uniqueIndex"`
+	Salt string `json:"salt" gorm:"column:salt;type:varchar(256)"`
 	*MerchantValues
 	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
 	UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"` // 更新时间 (毫秒时间戳)
@@ -202,7 +203,7 @@ func (t *Merchant) Protocol() *protocol.Merchant {
 	}
 
 	return &protocol.Merchant{
-		Mid:     t.MID,
+		Mid:     t.Mid,
 		Name:    t.MerchantValues.GetName(),
 		Type:    t.MerchantValues.GetType(),
 		Email:   t.MerchantValues.GetEmail(),

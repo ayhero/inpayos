@@ -58,7 +58,7 @@ func (s *AccountService) CreateAccount(req *protocol.CreateAccountRequest) (*mod
 		FrozenBalance:    decimal.Zero,
 		MarginBalance:    decimal.Zero,
 		ReserveBalance:   decimal.Zero,
-		Currency:         req.Ccy,
+		Ccy:              req.Ccy,
 		UpdatedAt:        time.Now().UnixMilli(),
 	}
 	account.AccountValues.SetAsset(asset)
@@ -101,7 +101,7 @@ func (s *AccountService) GetBalance(userID, userType, currency string) (*protoco
 		FrozenBalance:    account.Asset.FrozenBalance.String(),
 		MarginBalance:    account.Asset.MarginBalance.String(),
 		ReserveBalance:   account.Asset.ReserveBalance.String(),
-		Currency:         account.Asset.Currency,
+		Currency:         account.Asset.Ccy,
 		UpdatedAt:        account.Asset.UpdatedAt,
 	}, nil
 }
@@ -123,7 +123,7 @@ func (s *AccountService) UpdateBalance(req *protocol.UpdateBalanceRequest) error
 				FrozenBalance:    decimal.Zero,
 				MarginBalance:    decimal.Zero,
 				ReserveBalance:   decimal.Zero,
-				Currency:         req.Ccy,
+				Ccy:              req.Ccy,
 				UpdatedAt:        time.Now().UnixMilli(),
 			}
 		}

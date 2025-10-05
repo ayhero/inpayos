@@ -19,7 +19,7 @@ type SettleTaskParams struct {
 
 func init() {
 	// 注册结算任务处理器
-	task.RegisterHandler("settle.process", HandleSettleProcess)
+	task.RegisterHandler("merchant.settle.process", HandleSettleProcess)
 }
 
 // HandleSettleProcess 处理结算任务
@@ -50,7 +50,7 @@ func HandleSettleProcess(ctx context.Context, params protocol.MapData) error {
 	)
 
 	// 执行结算处理，按交易完成时间查询
-	result := GetSettleService().SettleByCompletedTime(
+	result := GetMerchantSettleService().SettleByCompletedTime(
 		ctx,
 		taskParams.TrxType,
 		trxStartTime.UnixMilli(),

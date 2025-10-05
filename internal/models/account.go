@@ -40,7 +40,7 @@ type Asset struct {
 	FrozenBalance    decimal.Decimal `json:"frozen_balance"`    // 冻结余额
 	MarginBalance    decimal.Decimal `json:"margin_balance"`    // 保证金余额
 	ReserveBalance   decimal.Decimal `json:"reserve_balance"`   // 预留余额
-	Currency         string          `json:"currency"`          // 币种
+	Ccy              string          `json:"ccy"`               // 币种
 	UpdatedAt        int64           `json:"updated_at"`        // 更新时间
 }
 

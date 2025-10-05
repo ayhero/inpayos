@@ -11,18 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// BindG2FAReq 绑定G2FA请求参数
-type BindG2FAReq struct {
-	VerifyCode string `json:"verify_code"`             // 邮箱验证码
-	Code       string `json:"code" binding:"required"` // G2FA验证码
-}
-
-// G2FAResponse G2FA相关接口的响应结构体
-type G2FAResponse struct {
-	G2FAKey string `json:"g2fa_key"` // G2FA密钥
-	QRCode  string `json:"qr_code"`  // 二维码内容
-}
-
 // @Summary 商户绑定G2FA
 // @Description 绑定商户的二次验证
 // @Tags 商户API
@@ -31,7 +19,7 @@ type G2FAResponse struct {
 // @Param data body BindG2FAReq true "绑定信息"
 // @Success 200 {object} protocol.Result "返回结果"
 // @Router /merchant/g2fa/bind [post]
-func (t *MerchantAdmin) BindG2FA(c *gin.Context) {
+func (t *CashierAdmin) BindG2FA(c *gin.Context) {
 	lang := middleware.GetLanguage(c)
 	var req BindG2FAReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -83,7 +71,7 @@ func (t *MerchantAdmin) BindG2FA(c *gin.Context) {
 // @Produce json
 // @Success 200 {object} protocol.Result "返回结果"
 // @Router /merchant/g2fa/new [post]
-func (t *MerchantAdmin) NewG2FA(c *gin.Context) {
+func (t *CashierAdmin) NewG2FA(c *gin.Context) {
 	lang := middleware.GetLanguage(c)
 	// 获取当前商户信息
 	merchant := middleware.GetMerchantFromContext(c)

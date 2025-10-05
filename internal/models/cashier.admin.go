@@ -108,11 +108,11 @@ type CashierAdminValues struct {
 }
 
 func (CashierAdmin) TableName() string {
-	return "t_admins"
+	return "t_cashier_admins"
 }
 
 // 创建新的管理员对象
-func NewCashierAdminV2() *CashierAdmin {
+func NewCashierAdmin() *CashierAdmin {
 	return &CashierAdmin{
 		AdminID: utils.GenerateAdminID(),
 		Salt:    utils.GenerateSalt(),
@@ -139,7 +139,7 @@ func NewCashierAdminV2() *CashierAdmin {
 	}
 }
 
-// SetValues 更新CashierAdminV2Values中的非nil值
+// SetValues 更新CashierAdminValues中的非nil值
 func (a *CashierAdminValues) SetValues(values *CashierAdminValues) {
 	if values == nil {
 		return
@@ -564,10 +564,7 @@ func (a *CashierAdminValues) RecordFailedLogin() *CashierAdminValues {
 
 func (a *CashierAdminValues) Logout() *CashierAdminValues {
 	a.CurrentSessionID = nil
-	sessionCount := a.GetSessionCount() - 1
-	if sessionCount < 0 {
-		sessionCount = 0
-	}
+	sessionCount := max(a.GetSessionCount()-1, 0)
 	a.SessionCount = &sessionCount
 	a.SetActiveStatus(protocol.StatusOffline)
 
@@ -699,8 +696,8 @@ func (a *CashierAdminValues) IsIPAllowed(ip string) bool {
 }
 
 // 创建具有指定角色的管理员
-func NewCashierAdminV2WithRole(username, email, role string) *CashierAdmin {
-	admin := NewCashierAdminV2()
+func NewCashierAdminWithRole(username, email, role string) *CashierAdmin {
+	admin := NewCashierAdmin()
 	admin.SetUsername(username).
 		SetEmail(email).
 		SetRole(role)
@@ -719,7 +716,7 @@ func GetCashierAdminByID(adminID string) *CashierAdmin {
 	return &admin
 }
 
-// NewCashierAdminInfoV2FromModel 从模型创建管理员信息
+// NewCashierAdminInfoFromModel 从模型创建管理员信息
 func (admin *CashierAdmin) Protocol() protocol.Admin {
 	if admin == nil {
 		return protocol.Admin{}
