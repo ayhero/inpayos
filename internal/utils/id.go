@@ -15,19 +15,24 @@ const (
 	SALT_KEY = "jK9$mP2#nL5@qR8*"
 
 	// ID前缀常量
-	ID_PREFIX_USER        = "U"
-	ID_PREFIX_ACCOUNT     = "AC"
-	ID_PREFIX_FUNDFLOW    = "FF"
-	ID_PREFIX_TRANSACTION = "TX"
-	ID_PREFIX_PAYIN       = "PI"
-	ID_PREFIX_PAYOUT      = "PO"
-	ID_PREFIX_CHECKOUT    = "CKO"
-	ID_PREFIX_WEBHOOK     = "WH"
-	ID_PREFIX_SANDBOX     = "sandbox_"
-	ID_PREFIX_MESSAGE     = "MSG"
-	ID_PREFIX_SETTLE      = "ST"
-	ID_PREFIX_SETTLE_LOG  = "SL"
-	ID_PREFIX_ADMIN       = "AD"
+	ID_PREFIX_USER         = "U"
+	ID_PREFIX_ACCOUNT      = "AC"
+	ID_PREFIX_FUNDFLOW     = "FF"
+	ID_PREFIX_TRANSACTION  = "TX"
+	ID_PREFIX_PAYIN        = "PI"
+	ID_PREFIX_PAYOUT       = "PO"
+	ID_PREFIX_CHECKOUT     = "CKO"
+	ID_PREFIX_WEBHOOK      = "WH"
+	ID_PREFIX_SANDBOX      = "sandbox_"
+	ID_PREFIX_MESSAGE      = "MSG"
+	ID_PREFIX_SETTLE       = "ST"
+	ID_PREFIX_SETTLE_LOG   = "SL"
+	ID_PREFIX_ADMIN        = "AD"
+	ID_PREFIX_MERCHANT     = "M"
+	ID_PREFIX_CASHIER      = "C"
+	ID_PREFIX_CASHIER_TEAM = "CT"
+	ID_PREFIX_DEPOSIT      = "DP"
+	ID_PREFIX_WITHDRAW     = "WD"
 )
 
 func GenerateID() string {
@@ -98,6 +103,31 @@ func GenerateSettleTrxID() string {
 }
 func GenerateSettleLogID() string {
 	return fmt.Sprintf("%v%v", ID_PREFIX_SETTLE_LOG, GenerateID())
+}
+
+// GenerateMerchantID 生成商户ID
+func GenerateMerchantID() string {
+	return fmt.Sprintf("%v%v", ID_PREFIX_MERCHANT, GenerateID())
+}
+
+// GenerateCashierID 生成出纳员ID
+func GenerateCashierID() string {
+	return fmt.Sprintf("%v%v", ID_PREFIX_CASHIER, GenerateID())
+}
+
+// GenerateCashierTeamID 生成出纳员团队ID
+func GenerateCashierTeamID() string {
+	return fmt.Sprintf("%v%v", ID_PREFIX_CASHIER_TEAM, GenerateID())
+}
+
+// GenerateDepositID 生成充值ID
+func GenerateDepositID() string {
+	return fmt.Sprintf("%v%v", ID_PREFIX_DEPOSIT, GenerateID())
+}
+
+// GenerateWithdrawID 生成提现ID
+func GenerateWithdrawID() string {
+	return fmt.Sprintf("%v%v", ID_PREFIX_WITHDRAW, GenerateID())
 }
 
 // GenerateSalt 生成加密盐值

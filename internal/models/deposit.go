@@ -1,6 +1,10 @@
 package models
 
-import "github.com/shopspring/decimal"
+import (
+	"inpayos/internal/utils"
+
+	"github.com/shopspring/decimal"
+)
 
 // Deposit 充值记录表
 type Deposit struct {
@@ -30,4 +34,12 @@ type DepositValues struct {
 
 func (Deposit) TableName() string {
 	return "t_deposits"
+}
+
+// NewDeposit 创建新的充值记录
+func NewDeposit() *Deposit {
+	return &Deposit{
+		TrxID:         utils.GenerateDepositID(),
+		DepositValues: &DepositValues{},
+	}
 }

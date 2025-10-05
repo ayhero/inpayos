@@ -22,7 +22,6 @@ type MerchantValues struct {
 	Phone     *string `json:"phone" gorm:"column:phone;type:varchar(20)"`
 	Status    *string `json:"status" gorm:"column:status;type:varchar(32)"`
 	Password  *string `json:"password" gorm:"column:password;type:varchar(128);not null"`
-	Salt      *string `json:"salt" gorm:"column:salt;type:varchar(128);not null"`
 	Region    *string `json:"region" gorm:"column:region;type:varchar(32)"`
 	Avatar    *string `json:"avatar" gorm:"column:avatar;type:varchar(255)"`
 	G2FA      *string `json:"g2fa" gorm:"column:g2fa;type:varchar(256)"`
@@ -32,6 +31,15 @@ type MerchantValues struct {
 
 func (t *Merchant) TableName() string {
 	return "t_merchants"
+}
+
+// NewMerchant 创建新的商户
+func NewMerchant() *Merchant {
+	return &Merchant{
+		Mid:            utils.GenerateMerchantID(),
+		Salt:           utils.GenerateSalt(),
+		MerchantValues: &MerchantValues{},
+	}
 }
 func (m *MerchantValues) GetPassword() string {
 	if m.Password == nil {
@@ -43,16 +51,7 @@ func (m *MerchantValues) SetPassword(password string) *MerchantValues {
 	m.Password = &password
 	return m
 }
-func (m *MerchantValues) GetSalt() string {
-	if m.Salt == nil {
-		return ""
-	}
-	return *m.Salt
-}
-func (m *MerchantValues) SetSalt(salt string) *MerchantValues {
-	m.Salt = &salt
-	return m
-}
+
 func (m *MerchantValues) GetRegion() string {
 	if m.Region == nil {
 		return ""
@@ -264,7 +263,7 @@ func GetMerchantsByStatus(status string) ([]*Merchant, error) {
 }
 
 func (u *Merchant) Decrypt() {
-	salt := u.GetSalt()
+	salt := u.Salt
 	pwd, err := utils.Decrypt(u.GetPassword(), []byte(salt))
 	if err == nil {
 		u.SetPassword(pwd)
@@ -272,7 +271,7 @@ func (u *Merchant) Decrypt() {
 }
 
 func (u *Merchant) Encrypt() {
-	salt := u.GetSalt()
+	salt := u.Salt
 	pwd, err := utils.Encrypt([]byte(u.GetPassword()), []byte(salt))
 	if err == nil {
 		u.SetPassword(pwd)
@@ -321,9 +320,6 @@ func (m *Merchant) SetValues(values *MerchantValues) *Merchant {
 	}
 	if values.Password != nil {
 		m.MerchantValues.SetPassword(*values.Password)
-	}
-	if values.Salt != nil {
-		m.MerchantValues.SetSalt(*values.Salt)
 	}
 	if values.Region != nil {
 		m.MerchantValues.SetRegion(*values.Region)

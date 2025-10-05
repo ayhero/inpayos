@@ -32,3 +32,184 @@ type MerchantWithdrawValues struct {
 func (MerchantWithdraw) TableName() string {
 	return "t_merchant_withdraws"
 }
+
+// Getter methods for MerchantWithdrawValues
+func (mwv *MerchantWithdrawValues) GetStatus() string {
+	if mwv.Status == nil {
+		return ""
+	}
+	return *mwv.Status
+}
+
+func (mwv *MerchantWithdrawValues) GetCcy() string {
+	if mwv.Ccy == nil {
+		return ""
+	}
+	return *mwv.Ccy
+}
+
+func (mwv *MerchantWithdrawValues) GetAmount() decimal.Decimal {
+	if mwv.Amount == nil {
+		return decimal.Zero
+	}
+	return *mwv.Amount
+}
+
+func (mwv *MerchantWithdrawValues) GetFee() decimal.Decimal {
+	if mwv.Fee == nil {
+		return decimal.Zero
+	}
+	return *mwv.Fee
+}
+
+func (mwv *MerchantWithdrawValues) GetChannelCode() string {
+	if mwv.ChannelCode == nil {
+		return ""
+	}
+	return *mwv.ChannelCode
+}
+
+func (mwv *MerchantWithdrawValues) GetNotifyURL() string {
+	if mwv.NotifyURL == nil {
+		return ""
+	}
+	return *mwv.NotifyURL
+}
+
+func (mwv *MerchantWithdrawValues) GetCountry() string {
+	if mwv.Country == nil {
+		return ""
+	}
+	return *mwv.Country
+}
+
+func (mwv *MerchantWithdrawValues) GetCanceledAt() int64 {
+	if mwv.CanceledAt == nil {
+		return 0
+	}
+	return *mwv.CanceledAt
+}
+
+func (mwv *MerchantWithdrawValues) GetCompletedAt() int64 {
+	if mwv.CompletedAt == nil {
+		return 0
+	}
+	return *mwv.CompletedAt
+}
+
+func (mwv *MerchantWithdrawValues) GetExpiredAt() int64 {
+	if mwv.ExpiredAt == nil {
+		return 0
+	}
+	return *mwv.ExpiredAt
+}
+
+func (mwv *MerchantWithdrawValues) GetConfirmedAt() int64 {
+	if mwv.ConfirmedAt == nil {
+		return 0
+	}
+	return *mwv.ConfirmedAt
+}
+
+// Setter methods for MerchantWithdrawValues (支持链式调用)
+func (mwv *MerchantWithdrawValues) SetStatus(status string) *MerchantWithdrawValues {
+	mwv.Status = &status
+	return mwv
+}
+
+func (mwv *MerchantWithdrawValues) SetCcy(ccy string) *MerchantWithdrawValues {
+	mwv.Ccy = &ccy
+	return mwv
+}
+
+func (mwv *MerchantWithdrawValues) SetAmount(amount decimal.Decimal) *MerchantWithdrawValues {
+	mwv.Amount = &amount
+	return mwv
+}
+
+func (mwv *MerchantWithdrawValues) SetFee(fee decimal.Decimal) *MerchantWithdrawValues {
+	mwv.Fee = &fee
+	return mwv
+}
+
+func (mwv *MerchantWithdrawValues) SetChannelCode(channelCode string) *MerchantWithdrawValues {
+	mwv.ChannelCode = &channelCode
+	return mwv
+}
+
+func (mwv *MerchantWithdrawValues) SetNotifyURL(notifyURL string) *MerchantWithdrawValues {
+	mwv.NotifyURL = &notifyURL
+	return mwv
+}
+
+func (mwv *MerchantWithdrawValues) SetCountry(country string) *MerchantWithdrawValues {
+	mwv.Country = &country
+	return mwv
+}
+
+func (mwv *MerchantWithdrawValues) SetCanceledAt(canceledAt int64) *MerchantWithdrawValues {
+	mwv.CanceledAt = &canceledAt
+	return mwv
+}
+
+func (mwv *MerchantWithdrawValues) SetCompletedAt(completedAt int64) *MerchantWithdrawValues {
+	mwv.CompletedAt = &completedAt
+	return mwv
+}
+
+func (mwv *MerchantWithdrawValues) SetExpiredAt(expiredAt int64) *MerchantWithdrawValues {
+	mwv.ExpiredAt = &expiredAt
+	return mwv
+}
+
+func (mwv *MerchantWithdrawValues) SetConfirmedAt(confirmedAt int64) *MerchantWithdrawValues {
+	mwv.ConfirmedAt = &confirmedAt
+	return mwv
+}
+
+// SetValues 为MerchantWithdraw设置MerchantWithdrawValues
+func (mw *MerchantWithdraw) SetValues(values *MerchantWithdrawValues) *MerchantWithdraw {
+	if values == nil {
+		return mw
+	}
+
+	if mw.MerchantWithdrawValues == nil {
+		mw.MerchantWithdrawValues = &MerchantWithdrawValues{}
+	}
+
+	if values.Status != nil {
+		mw.MerchantWithdrawValues.SetStatus(*values.Status)
+	}
+	if values.Ccy != nil {
+		mw.MerchantWithdrawValues.SetCcy(*values.Ccy)
+	}
+	if values.Amount != nil {
+		mw.MerchantWithdrawValues.SetAmount(*values.Amount)
+	}
+	if values.Fee != nil {
+		mw.MerchantWithdrawValues.SetFee(*values.Fee)
+	}
+	if values.ChannelCode != nil {
+		mw.MerchantWithdrawValues.SetChannelCode(*values.ChannelCode)
+	}
+	if values.NotifyURL != nil {
+		mw.MerchantWithdrawValues.SetNotifyURL(*values.NotifyURL)
+	}
+	if values.Country != nil {
+		mw.MerchantWithdrawValues.SetCountry(*values.Country)
+	}
+	if values.CanceledAt != nil {
+		mw.MerchantWithdrawValues.SetCanceledAt(*values.CanceledAt)
+	}
+	if values.CompletedAt != nil {
+		mw.MerchantWithdrawValues.SetCompletedAt(*values.CompletedAt)
+	}
+	if values.ExpiredAt != nil {
+		mw.MerchantWithdrawValues.SetExpiredAt(*values.ExpiredAt)
+	}
+	if values.ConfirmedAt != nil {
+		mw.MerchantWithdrawValues.SetConfirmedAt(*values.ConfirmedAt)
+	}
+
+	return mw
+}

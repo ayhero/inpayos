@@ -12,15 +12,15 @@ type Admin struct {
 	Salt    string `json:"salt" gorm:"column:salt;type:varchar(256)"`
 	*AdminValues
 	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
+	UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
 }
 
 type AdminValues struct {
-	Username     *string `json:"username" gorm:"column:username;type:varchar(50);uniqueIndex"`
-	Email        *string `json:"email" gorm:"column:email;type:varchar(255);uniqueIndex"`
-	Role         *string `json:"role" gorm:"column:role;type:varchar(50);index"`
-	Status       *string `json:"status" gorm:"column:status;type:varchar(32);index;default:'active'"`
-	ActiveStatus *string `json:"active_status" gorm:"column:active_status;type:varchar(32);default:'offline'"`
-	UpdatedAt    int64   `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
+	Username *string `json:"username" gorm:"column:username;type:varchar(50);uniqueIndex"`
+	Email    *string `json:"email" gorm:"column:email;type:varchar(255);uniqueIndex"`
+	Role     *string `json:"role" gorm:"column:role;type:varchar(50);index"`
+	Status   *string `json:"status" gorm:"column:status;type:varchar(32);index;default:'active'"`
+	Password *string `json:"password" gorm:"column:password;type:varchar(128);not null"`
 }
 
 func (Admin) TableName() string {
@@ -33,8 +33,7 @@ func NewAdmin() *Admin {
 		AdminID: utils.GenerateAdminID(),
 		Salt:    utils.GenerateSalt(),
 		AdminValues: &AdminValues{
-			Status:       utils.StringPtr(protocol.AdminStatusActive),
-			ActiveStatus: utils.StringPtr(protocol.AdminActiveStatusOffline),
+			Status: utils.StringPtr(protocol.AdminStatusActive),
 		},
 		CreatedAt: utils.TimeNowMilli(),
 	}
@@ -69,13 +68,6 @@ func (av *AdminValues) GetStatus() string {
 	return *av.Status
 }
 
-func (av *AdminValues) GetActiveStatus() string {
-	if av.ActiveStatus == nil {
-		return protocol.AdminActiveStatusOffline
-	}
-	return *av.ActiveStatus
-}
-
 // Setter方法
 func (av *AdminValues) SetUsername(value string) *AdminValues {
 	av.Username = &value
@@ -97,11 +89,6 @@ func (av *AdminValues) SetStatus(value string) *AdminValues {
 	return av
 }
 
-func (av *AdminValues) SetActiveStatus(value string) *AdminValues {
-	av.ActiveStatus = &value
-	return av
-}
-
 // 状态检查方法
 func (a *AdminValues) IsActive() bool {
 	return a.GetStatus() == protocol.AdminStatusActive
@@ -119,30 +106,12 @@ func (a *AdminValues) IsLocked() bool {
 	return a.GetStatus() == protocol.AdminStatusLocked
 }
 
-func (a *AdminValues) IsOnline() bool {
-	return a.GetActiveStatus() == protocol.AdminActiveStatusOnline
-}
-
-func (a *AdminValues) IsOffline() bool {
-	return a.GetActiveStatus() == protocol.AdminActiveStatusOffline
-}
-
-func (a *AdminValues) IsBusy() bool {
-	return a.GetActiveStatus() == protocol.AdminActiveStatusBusy
-}
-
 func (a *AdminValues) IsSuperAdmin() bool {
 	return a.GetRole() == protocol.AdminRoleSuperAdmin
 }
 
 func (a *AdminValues) IsAdmin() bool {
 	return a.GetRole() == protocol.AdminRoleAdmin
-}
-
-// 业务操作方法
-func (a *AdminValues) Logout() *AdminValues {
-	a.SetActiveStatus(protocol.AdminActiveStatusOffline)
-	return a
 }
 
 func (a *AdminValues) Activate(adminID string) *AdminValues {
@@ -215,15 +184,40 @@ func (a *AdminValues) GetPermissionList() []string {
 	}
 }
 
+// SetValues 设置AdminValues
+func (a *Admin) SetValues(values *AdminValues) *Admin {
+	if values == nil {
+		return a
+	}
+
+	if a.AdminValues == nil {
+		a.AdminValues = &AdminValues{}
+	}
+
+	if values.Username != nil {
+		a.AdminValues.SetUsername(*values.Username)
+	}
+	if values.Email != nil {
+		a.AdminValues.SetEmail(*values.Email)
+	}
+	if values.Role != nil {
+		a.AdminValues.SetRole(*values.Role)
+	}
+	if values.Status != nil {
+		a.AdminValues.SetStatus(*values.Status)
+	}
+
+	return a
+}
+
 // 转换方法
 func (a *Admin) ToProtocol() *protocol.Admin {
 	return &protocol.Admin{
-		AdminID:      a.AdminID,
-		Username:     a.GetUsername(),
-		Email:        a.GetEmail(),
-		Role:         a.GetRole(),
-		Status:       a.GetStatus(),
-		ActiveStatus: a.GetActiveStatus(),
-		CreatedAt:    a.CreatedAt,
+		AdminID:   a.AdminID,
+		Username:  a.GetUsername(),
+		Email:     a.GetEmail(),
+		Role:      a.GetRole(),
+		Status:    a.GetStatus(),
+		CreatedAt: a.CreatedAt,
 	}
 }

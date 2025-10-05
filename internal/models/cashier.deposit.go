@@ -30,3 +30,184 @@ type CashierDepositValues struct {
 func (CashierDeposit) TableName() string {
 	return "t_cashier_deposits"
 }
+
+// Getter methods for CashierDepositValues
+func (cdv *CashierDepositValues) GetStatus() string {
+	if cdv.Status == nil {
+		return ""
+	}
+	return *cdv.Status
+}
+
+func (cdv *CashierDepositValues) GetCcy() string {
+	if cdv.Ccy == nil {
+		return ""
+	}
+	return *cdv.Ccy
+}
+
+func (cdv *CashierDepositValues) GetAmount() decimal.Decimal {
+	if cdv.Amount == nil {
+		return decimal.Zero
+	}
+	return *cdv.Amount
+}
+
+func (cdv *CashierDepositValues) GetFee() decimal.Decimal {
+	if cdv.Fee == nil {
+		return decimal.Zero
+	}
+	return *cdv.Fee
+}
+
+func (cdv *CashierDepositValues) GetChannelCode() string {
+	if cdv.ChannelCode == nil {
+		return ""
+	}
+	return *cdv.ChannelCode
+}
+
+func (cdv *CashierDepositValues) GetNotifyURL() string {
+	if cdv.NotifyURL == nil {
+		return ""
+	}
+	return *cdv.NotifyURL
+}
+
+func (cdv *CashierDepositValues) GetCountry() string {
+	if cdv.Country == nil {
+		return ""
+	}
+	return *cdv.Country
+}
+
+func (cdv *CashierDepositValues) GetCanceledAt() int64 {
+	if cdv.CanceledAt == nil {
+		return 0
+	}
+	return *cdv.CanceledAt
+}
+
+func (cdv *CashierDepositValues) GetCompletedAt() int64 {
+	if cdv.CompletedAt == nil {
+		return 0
+	}
+	return *cdv.CompletedAt
+}
+
+func (cdv *CashierDepositValues) GetExpiredAt() int64 {
+	if cdv.ExpiredAt == nil {
+		return 0
+	}
+	return *cdv.ExpiredAt
+}
+
+func (cdv *CashierDepositValues) GetConfirmedAt() int64 {
+	if cdv.ConfirmedAt == nil {
+		return 0
+	}
+	return *cdv.ConfirmedAt
+}
+
+// Setter methods for CashierDepositValues (支持链式调用)
+func (cdv *CashierDepositValues) SetStatus(status string) *CashierDepositValues {
+	cdv.Status = &status
+	return cdv
+}
+
+func (cdv *CashierDepositValues) SetCcy(ccy string) *CashierDepositValues {
+	cdv.Ccy = &ccy
+	return cdv
+}
+
+func (cdv *CashierDepositValues) SetAmount(amount decimal.Decimal) *CashierDepositValues {
+	cdv.Amount = &amount
+	return cdv
+}
+
+func (cdv *CashierDepositValues) SetFee(fee decimal.Decimal) *CashierDepositValues {
+	cdv.Fee = &fee
+	return cdv
+}
+
+func (cdv *CashierDepositValues) SetChannelCode(channelCode string) *CashierDepositValues {
+	cdv.ChannelCode = &channelCode
+	return cdv
+}
+
+func (cdv *CashierDepositValues) SetNotifyURL(notifyURL string) *CashierDepositValues {
+	cdv.NotifyURL = &notifyURL
+	return cdv
+}
+
+func (cdv *CashierDepositValues) SetCountry(country string) *CashierDepositValues {
+	cdv.Country = &country
+	return cdv
+}
+
+func (cdv *CashierDepositValues) SetCanceledAt(canceledAt int64) *CashierDepositValues {
+	cdv.CanceledAt = &canceledAt
+	return cdv
+}
+
+func (cdv *CashierDepositValues) SetCompletedAt(completedAt int64) *CashierDepositValues {
+	cdv.CompletedAt = &completedAt
+	return cdv
+}
+
+func (cdv *CashierDepositValues) SetExpiredAt(expiredAt int64) *CashierDepositValues {
+	cdv.ExpiredAt = &expiredAt
+	return cdv
+}
+
+func (cdv *CashierDepositValues) SetConfirmedAt(confirmedAt int64) *CashierDepositValues {
+	cdv.ConfirmedAt = &confirmedAt
+	return cdv
+}
+
+// SetValues 为CashierDeposit设置CashierDepositValues
+func (cd *CashierDeposit) SetValues(values *CashierDepositValues) *CashierDeposit {
+	if values == nil {
+		return cd
+	}
+
+	if cd.CashierDepositValues == nil {
+		cd.CashierDepositValues = &CashierDepositValues{}
+	}
+
+	if values.Status != nil {
+		cd.CashierDepositValues.SetStatus(*values.Status)
+	}
+	if values.Ccy != nil {
+		cd.CashierDepositValues.SetCcy(*values.Ccy)
+	}
+	if values.Amount != nil {
+		cd.CashierDepositValues.SetAmount(*values.Amount)
+	}
+	if values.Fee != nil {
+		cd.CashierDepositValues.SetFee(*values.Fee)
+	}
+	if values.ChannelCode != nil {
+		cd.CashierDepositValues.SetChannelCode(*values.ChannelCode)
+	}
+	if values.NotifyURL != nil {
+		cd.CashierDepositValues.SetNotifyURL(*values.NotifyURL)
+	}
+	if values.Country != nil {
+		cd.CashierDepositValues.SetCountry(*values.Country)
+	}
+	if values.CanceledAt != nil {
+		cd.CashierDepositValues.SetCanceledAt(*values.CanceledAt)
+	}
+	if values.CompletedAt != nil {
+		cd.CashierDepositValues.SetCompletedAt(*values.CompletedAt)
+	}
+	if values.ExpiredAt != nil {
+		cd.CashierDepositValues.SetExpiredAt(*values.ExpiredAt)
+	}
+	if values.ConfirmedAt != nil {
+		cd.CashierDepositValues.SetConfirmedAt(*values.ConfirmedAt)
+	}
+
+	return cd
+}

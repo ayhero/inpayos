@@ -39,7 +39,7 @@ type CashierPayoutValues struct {
 }
 
 func (CashierPayout) TableName() string {
-	return "t_payouts"
+	return "t_cashier_payouts"
 }
 
 // GetStatus returns the Status value

@@ -16,13 +16,9 @@ func ChangeMerchantPassword(email, newPassword string) error {
 		//log.Get().Errorf("ChangeMerchantPassword: Merchant not found for email: %s", email)
 		return errors.New("商户不存在")
 	}
-
-	// 生成新的盐
-	salt := utils.GenerateSalt()
-
+	merchant.Salt = utils.GenerateSalt()
 	// 设置新密码和盐
 	merchant.SetPassword(newPassword)
-	merchant.SetSalt(salt)
 
 	// 加密密码
 	merchant.Encrypt()
@@ -30,7 +26,7 @@ func ChangeMerchantPassword(email, newPassword string) error {
 	// 更新密码和盐
 	if err := models.GetDB().Model(&models.Merchant{}).Where("email = ?", email).Updates(map[string]interface{}{
 		"password": merchant.GetPassword(),
-		"salt":     merchant.GetSalt(),
+		"salt":     merchant.Salt,
 	}).Error; err != nil {
 		//log.Get().Errorf("ChangeMerchantPassword: Update password error: %v", err)
 		return errors.New("密码更新失败")

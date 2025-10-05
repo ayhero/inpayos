@@ -29,7 +29,7 @@ type CashierRouterValues struct {
 }
 
 func (t *CashierRouter) TableName() string {
-	return "t_merchant_routers"
+	return "t_cashier_routers"
 }
 
 type CashierRouters []*CashierRouter

@@ -62,17 +62,14 @@ func RegisterMerchant(req *MerchantRegisterRequest) error {
 	// 创建商户
 	merchant := &models.Merchant{
 		Mid:            utils.GenerateUserID(),
+		Salt:           utils.GenerateSalt(),
 		MerchantValues: &models.MerchantValues{},
 	}
-
-	// 生成盐值
-	salt := utils.GenerateSalt()
 
 	// 设置商户基本信息
 	merchant.SetEmail(req.Email).
 		SetPassword(req.Password).
 		SetName(req.Nickname).
-		SetSalt(salt).
 		SetType("merchant").
 		SetStatus(protocol.StatusActive).
 		//SetRegIP(req.RegIP)

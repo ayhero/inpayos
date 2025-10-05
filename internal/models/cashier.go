@@ -2,6 +2,7 @@ package models
 
 import (
 	"inpayos/internal/protocol"
+	"inpayos/internal/utils"
 	"time"
 )
 
@@ -9,7 +10,6 @@ import (
 type Cashier struct {
 	ID        uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	CashierID string `json:"cashier_id" gorm:"column:cashier_id;type:varchar(64);uniqueIndex"`
-	AccountID string `json:"account_id" gorm:"column:account_id;type:varchar(64);index"` // 关联的账户ID
 	Salt      string `json:"salt" gorm:"column:salt;type:varchar(256)"`
 	*CashierValues
 	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
@@ -49,6 +49,15 @@ type CashierValues struct {
 // 表名
 func (Cashier) TableName() string {
 	return "t_cashiers"
+}
+
+// NewCashier 创建新的出纳员/收银员
+func NewCashier() *Cashier {
+	return &Cashier{
+		CashierID:     utils.GenerateCashierID(),
+		Salt:          utils.GenerateSalt(),
+		CashierValues: &CashierValues{},
+	}
 }
 
 // Chainable setters
@@ -128,6 +137,26 @@ func (v *CashierValues) SetLogo(logo string) *CashierValues {
 
 func (v *CashierValues) SetRemark(remark string) *CashierValues {
 	v.Remark = &remark
+	return v
+}
+
+func (v *CashierValues) SetPayinStatus(payinStatus string) *CashierValues {
+	v.PayinStatus = &payinStatus
+	return v
+}
+
+func (v *CashierValues) SetPayinConfig(payinConfig *protocol.MapData) *CashierValues {
+	v.PayinConfig = payinConfig
+	return v
+}
+
+func (v *CashierValues) SetPayoutStatus(payoutStatus string) *CashierValues {
+	v.PayoutStatus = &payoutStatus
+	return v
+}
+
+func (v *CashierValues) SetPayoutConfig(payoutConfig *protocol.MapData) *CashierValues {
+	v.PayoutConfig = payoutConfig
 	return v
 }
 
@@ -244,6 +273,28 @@ func (v *CashierValues) GetRemark() string {
 	return *v.Remark
 }
 
+func (v *CashierValues) GetPayinStatus() string {
+	if v.PayinStatus == nil {
+		return ""
+	}
+	return *v.PayinStatus
+}
+
+func (v *CashierValues) GetPayinConfig() *protocol.MapData {
+	return v.PayinConfig
+}
+
+func (v *CashierValues) GetPayoutStatus() string {
+	if v.PayoutStatus == nil {
+		return ""
+	}
+	return *v.PayoutStatus
+}
+
+func (v *CashierValues) GetPayoutConfig() *protocol.MapData {
+	return v.PayoutConfig
+}
+
 // 业务方法
 
 // IsPrivate 检查是否为私户
@@ -268,4 +319,78 @@ func (v *CashierValues) IsExpired() bool {
 	}
 	now := time.Now().UnixMilli()
 	return now > v.GetExpireAt()
+}
+
+// SetValues 设置CashierValues
+func (c *Cashier) SetValues(values *CashierValues) *Cashier {
+	if values == nil {
+		return c
+	}
+
+	if c.CashierValues == nil {
+		c.CashierValues = &CashierValues{}
+	}
+
+	if values.Type != nil {
+		c.CashierValues.SetType(*values.Type)
+	}
+	if values.BankCode != nil {
+		c.CashierValues.SetBankCode(*values.BankCode)
+	}
+	if values.BankName != nil {
+		c.CashierValues.SetBankName(*values.BankName)
+	}
+	if values.CardNumber != nil {
+		c.CashierValues.SetCardNumber(*values.CardNumber)
+	}
+	if values.HolderName != nil {
+		c.CashierValues.SetHolderName(*values.HolderName)
+	}
+	if values.HolderPhone != nil {
+		c.CashierValues.SetHolderPhone(*values.HolderPhone)
+	}
+	if values.HolderEmail != nil {
+		c.CashierValues.SetHolderEmail(*values.HolderEmail)
+	}
+	if values.Country != nil {
+		c.CashierValues.SetCountry(*values.Country)
+	}
+	if values.CountryCode != nil {
+		c.CashierValues.SetCountryCode(*values.CountryCode)
+	}
+	if values.Province != nil {
+		c.CashierValues.SetProvince(*values.Province)
+	}
+	if values.City != nil {
+		c.CashierValues.SetCity(*values.City)
+	}
+	if values.Ccy != nil {
+		c.CashierValues.SetCurrency(*values.Ccy)
+	}
+	if values.PayinStatus != nil {
+		c.CashierValues.SetPayinStatus(*values.PayinStatus)
+	}
+	if values.PayinConfig != nil {
+		c.CashierValues.SetPayinConfig(values.PayinConfig)
+	}
+	if values.PayoutStatus != nil {
+		c.CashierValues.SetPayoutStatus(*values.PayoutStatus)
+	}
+	if values.PayoutConfig != nil {
+		c.CashierValues.SetPayoutConfig(values.PayoutConfig)
+	}
+	if values.Status != nil {
+		c.CashierValues.SetStatus(*values.Status)
+	}
+	if values.ExpireAt != nil {
+		c.CashierValues.SetExpireAt(*values.ExpireAt)
+	}
+	if values.Logo != nil {
+		c.CashierValues.SetLogo(*values.Logo)
+	}
+	if values.Remark != nil {
+		c.CashierValues.SetRemark(*values.Remark)
+	}
+
+	return c
 }
