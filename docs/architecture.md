@@ -514,7 +514,8 @@ CashierTeam管理
 **统一账户数据策略**:
 - **统一账户表**: t_accounts (UserID + UserType + Ccy 复合唯一索引)
   - UserType = "merchant": 商户账户数据
-  - UserType = "cashier_team": 收银团队账户数据  
+  - UserType = "cashier_team": 收银团队账户数据
+  - UserType = "cashier": 收银员个人账户数据
   - UserType = "admin": 管理员账户数据
 
 **核心业务数据表**:
@@ -524,7 +525,8 @@ CashierTeam管理
 
 **缓存分区**:
 - **商户缓存**: merchant_sessions, merchant_configs
-- **收银团队缓存**: cashier_sessions, cashier_configs
+- **收银团队缓存**: cashier_team_sessions, cashier_team_configs
+- **收银员缓存**: cashier_sessions, cashier_configs
 - **全局缓存**: global_cache, system_status
 
 ## 5. 数据模型设计
@@ -532,7 +534,7 @@ CashierTeam管理
 ### 5.1 统一账户模型
 
 ```go
-// Account 统一账户表 - 支持商户和收银团队两类平级角色
+// Account 统一账户表 - 支持多种用户角色类型
 type Account struct {
     ID        uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
     AccountID string `json:"account_id" gorm:"column:account_id;type:varchar(32);uniqueIndex"`
@@ -543,7 +545,7 @@ type Account struct {
 
 type AccountValues struct {
     UserID       *string `json:"user_id" gorm:"column:user_id;type:varchar(32);uniqueIndex:uk_userid_usertype_ccy"`
-    UserType     *string `json:"user_type" gorm:"column:user_type;type:varchar(16);uniqueIndex:uk_userid_usertype_ccy"`
+    UserType     *string `json:"user_type" gorm:"column:user_type;type:varchar(16);uniqueIndex:uk_userid_usertype_ccy"` // merchant, cashier_team, cashier, admin
     Ccy          *string `json:"ccy" gorm:"column:ccy;type:varchar(16);uniqueIndex:uk_userid_usertype_ccy"`
     Asset        *Asset  `json:"asset" gorm:"column:asset;serializer:json;type:json"`
     Status       *int    `json:"status" gorm:"column:status;type:int;default:1"`
