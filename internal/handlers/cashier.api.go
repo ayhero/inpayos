@@ -83,7 +83,7 @@ func (a *CashierApi) SetupRouter() *gin.Engine {
 
 // Payin 创建代收订单
 func (a *CashierApi) Payin(c *gin.Context) {
-	var req protocol.CreateTransactionRequest
+	var req protocol.MerchantPayinRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		lang := middleware.GetLanguage(c)
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
@@ -99,7 +99,7 @@ func (a *CashierApi) Payin(c *gin.Context) {
 
 // Cancel 取消订单
 func (a *CashierApi) Cancel(c *gin.Context) {
-	var req protocol.CancelTransactionRequest
+	var req protocol.MerchantCancelRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		lang := middleware.GetLanguage(c)
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
@@ -115,7 +115,7 @@ func (a *CashierApi) Cancel(c *gin.Context) {
 
 // Payout 创建代付订单
 func (a *CashierApi) Payout(c *gin.Context) {
-	var req protocol.CreateTransactionRequest
+	var req protocol.MerchantPayoutRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		lang := middleware.GetLanguage(c)
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
@@ -135,7 +135,7 @@ func (a *CashierApi) Payout(c *gin.Context) {
 
 // Query 查询交易状态/详情
 func (a *CashierApi) Query(c *gin.Context) {
-	var req protocol.QueryTransactionRequest
+	var req protocol.MerchantQueryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		lang := middleware.GetLanguage(c)
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))

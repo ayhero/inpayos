@@ -8,35 +8,89 @@ import (
 
 // MerchantPayout 代付记录表
 type MerchantPayout struct {
-	ID     uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	TrxID  string `json:"transaction_id" gorm:"column:transaction_id;type:varchar(64);uniqueIndex"`
-	Mid    string `json:"mid" gorm:"column:mid;type:varchar(32);index"`
-	UserID string `json:"user_id" gorm:"column:user_id;type:varchar(32);index"`
-	ReqID  string `json:"req_id" gorm:"column:req_id;type:varchar(64);index"`
-	*MerchantPayoutValues
-	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
-	UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
+	ID                    uint64           `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	TrxID                 string           `json:"transaction_id" gorm:"column:transaction_id;type:varchar(64);uniqueIndex"`
+	TrxType               string           `json:"trx_type" gorm:"column:trx_type;type:varchar(16);index;default:'payin'"`
+	Mid                   string           `json:"mid" gorm:"column:mid;type:varchar(32);index"`
+	UserID                string           `json:"user_id" gorm:"column:user_id;type:varchar(32);index"`
+	ReqID                 string           `json:"req_id" gorm:"column:req_id;type:varchar(64);index"`
+	OriTrxID              string           `json:"ori_trx_id" gorm:"column:ori_trx_id;index;<-:create"`
+	OriReqID              string           `json:"ori_req_id" gorm:"column:ori_req_id;index;<-:create"`
+	OriFlowNo             string           `json:"ori_flow_no" gorm:"column:ori_flow_no"`
+	TrxMethod             string           `json:"trx_method" gorm:"column:trx_method;<-:create"`
+	TrxMode               string           `json:"trx_mode" gorm:"column:trx_mode;<-:create"`
+	TrxApp                string           `json:"trx_app" gorm:"column:trx_app;<-:create"`
+	Pkg                   string           `json:"pkg" gorm:"column:pkg;<-:create"`
+	Did                   string           `json:"did" gorm:"column:did;<-:create"`
+	ProductID             string           `json:"product_id" gorm:"column:product_id;<-:create"`
+	UserIP                string           `json:"user_ip" gorm:"column:user_ip;<-:create"`
+	Email                 string           `json:"email" gorm:"column:email;<-:create"`
+	Phone                 string           `json:"phone" gorm:"column:phone;<-:create"`
+	Ccy                   string           `json:"ccy" gorm:"column:ccy;<-:create"`
+	Amount                *decimal.Decimal `json:"amount" gorm:"column:amount;<-:create"`
+	UsdAmount             *decimal.Decimal `json:"usd_amount" gorm:"column:usd_amount;<-:create"`
+	AccountNo             string           `json:"account_no" gorm:"column:account_no;<-:create"`
+	AccountName           string           `json:"account_name" gorm:"column:account_name;<-:create"`
+	AccountType           string           `json:"account_type" gorm:"column:account_type;<-:create"`
+	BankCode              string           `json:"bank_code" gorm:"column:bank_code;<-:create"`
+	BankName              string           `json:"bank_name" gorm:"column:bank_name;<-:create"`
+	ReturnURL             string           `json:"return_url" gorm:"column:return_url;<-:create"`
+	*MerchantPayoutValues `gorm:"embedded"`
+	CreatedAt             int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
+	UpdatedAt             int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"` // 更新时间 (毫秒时间戳)
 }
 
 type MerchantPayoutValues struct {
-	Status        *string          `json:"status" gorm:"column:status;type:varchar(16);index;default:'pending'"`
-	Amount        *decimal.Decimal `json:"amount" gorm:"column:amount;type:decimal(36,18)"`
-	Fee           *decimal.Decimal `json:"fee" gorm:"column:fee;type:decimal(36,18);default:0"`
-	Ccy           *string          `json:"ccy" gorm:"column:ccy;type:varchar(16)"`
-	Country       *string          `json:"country" gorm:"column:country;type:varchar(8)"`
-	ChannelCode   *string          `json:"channel_code" gorm:"column:channel_code;type:varchar(32)"`
-	PaymentMethod *string          `json:"payment_method" gorm:"column:payment_method;type:varchar(32)"`
-	RecipientInfo *string          `json:"recipient_info" gorm:"column:recipient_info;type:json"` // 收款方信息
-	NotifyURL     *string          `json:"notify_url" gorm:"column:notify_url;type:varchar(512)"`
-	OriTrxID      *string          `json:"ori_trx_id" gorm:"column:ori_trx_id;type:varchar(64)"` // 原交易ID(退款使用)
-	Metadata      *string          `json:"metadata" gorm:"column:metadata;type:json"`
-	Remark        *string          `json:"remark" gorm:"column:remark;type:varchar(512)"`
-	UsdAmount     *decimal.Decimal `json:"usd_amount" gorm:"column:usd_amount;type:decimal(36,18)"`    // USD金额
-	SettleID      *string          `json:"settle_id" gorm:"column:settle_id;type:varchar(64)"`         // 结算ID
-	SettleStatus  *string          `json:"settle_status" gorm:"column:settle_status;type:varchar(16)"` // 结算状态
-	SettledAt     *int64           `json:"settled_at" gorm:"column:settled_at"`                        // 结算时间
-	ExpiredAt     *int64           `json:"expired_at" gorm:"column:expired_at"`
-	CanceledAt    *int64           `json:"canceled_at" gorm:"column:canceled_at"`
+	MetaData *protocol.MapData `json:"metadata" gorm:"column:metadata;serializer:json;type:json"`
+
+	// Refund related fields
+	RefundedCount     *int             `json:"refunded_count" gorm:"column:refunded_count"`
+	RefundedAmount    *decimal.Decimal `json:"refunded_amount" gorm:"column:refunded_amount"`
+	RefundedUsdAmount *decimal.Decimal `json:"refunded_usd_amount" gorm:"column:refunded_usd_amount"`
+	LastRefundedAt    *int64           `json:"last_refunded_at" gorm:"column:last_refunded_at"`
+
+	// Settlement related fields
+	FlowNo       *string `json:"flow_no" gorm:"column:flow_no;index"`
+	SettleStatus *string `json:"settle_status" gorm:"column:settle_status;index"` // SettleStatus 结算状态
+	SettleID     *string `json:"settle_id" gorm:"column:settle_id;index"`
+	SettledAt    *int64  `json:"settled_at" gorm:"column:settled_at"`
+
+	// Basic transaction fields
+	Country   *string        `json:"country" gorm:"column:country"`
+	Remark    *string        `json:"remark" gorm:"column:remark"`
+	Status    *string        `json:"status" gorm:"column:status;index"`
+	Link      *string        `json:"link" gorm:"column:link"`
+	Detail    map[string]any `json:"detail" gorm:"column:detail;serializer:json;type:json"`
+	NotifyURL *string        `json:"notify_url" gorm:"column:notify_url"`
+
+	// Fee related fields
+	FeeCcy       *string          `json:"fee_ccy" gorm:"column:fee_ccy"`
+	FeeAmount    *decimal.Decimal `json:"fee_amount" gorm:"column:fee_amount"`
+	FeeUsdAmount *decimal.Decimal `json:"fee_usd_amount" gorm:"column:fee_usd_amount"`
+	FeeUsdRate   *decimal.Decimal `json:"fee_usd_rate" gorm:"column:fee_usd_rate"`
+
+	// Channel related fields
+	ChannelStatus       *string          `json:"channel_status" gorm:"column:channel_status"`
+	ResCode             *string          `json:"res_code" gorm:"column:res_code"`
+	ResMsg              *string          `json:"res_msg" gorm:"column:res_msg"`
+	Reason              *string          `json:"reason" gorm:"column:reason"`
+	ChannelTrxID        *string          `json:"channel_trx_id" gorm:"column:channel_trx_id;index"`
+	ChannelCode         *string          `json:"channel_code" gorm:"column:channel_code;index"`
+	ChannelAccount      *string          `json:"channel_account" gorm:"column:channel_account"`
+	ChannelGroup        *string          `json:"channel_group" gorm:"column:channel_group"`
+	ChannelFeeCcy       *string          `json:"channel_fee_ccy" gorm:"column:channel_fee_ccy"`
+	ChannelFeeAmount    *decimal.Decimal `json:"channel_fee_amount" gorm:"column:channel_fee_amount"`
+	ChannelFeeUsdAmount *decimal.Decimal `json:"channel_fee_usd_amount" gorm:"column:channel_fee_usd_amount"`
+	ChannelFeeUsdRate   *decimal.Decimal `json:"channel_fee_usd_rate" gorm:"column:channel_fee_usd_rate"`
+
+	// Timing fields
+	ConfirmedAt        *int64  `json:"confirmed_at" gorm:"column:confirmed_at"`
+	CompletedAt        *int64  `json:"completed_at" gorm:"column:completed_at"`
+	ExpiredAt          *int64  `json:"expired_at" gorm:"column:expired_at"`
+	CanceledAt         *int64  `json:"canceled_at" gorm:"column:canceled_at"`
+	CancelReason       *string `json:"cancel_reason" gorm:"column:cancel_reason"`
+	CancelFailedResult *string `json:"cancel_failed_result" gorm:"column:cancel_failed_result"`
+	Version            *int64  `json:"version" gorm:"column:version"`
 }
 
 func (MerchantPayout) TableName() string {
@@ -51,52 +105,12 @@ func (pov *MerchantPayoutValues) GetStatus() string {
 	return *pov.Status
 }
 
-// GetAmount returns the Amount value
-func (pov *MerchantPayoutValues) GetAmount() decimal.Decimal {
-	if pov.Amount == nil {
-		return decimal.Zero
-	}
-	return *pov.Amount
-}
-
-// GetFee returns the Fee value
-func (pov *MerchantPayoutValues) GetFee() decimal.Decimal {
-	if pov.Fee == nil {
-		return decimal.Zero
-	}
-	return *pov.Fee
-}
-
-// GetCcy returns the Ccy value
-func (pov *MerchantPayoutValues) GetCcy() string {
-	if pov.Ccy == nil {
-		return ""
-	}
-	return *pov.Ccy
-}
-
 // GetChannelCode returns the ChannelCode value
 func (pov *MerchantPayoutValues) GetChannelCode() string {
 	if pov.ChannelCode == nil {
 		return ""
 	}
 	return *pov.ChannelCode
-}
-
-// GetPaymentMethod returns the PaymentMethod value
-func (pov *MerchantPayoutValues) GetPaymentMethod() string {
-	if pov.PaymentMethod == nil {
-		return ""
-	}
-	return *pov.PaymentMethod
-}
-
-// GetRecipientInfo returns the RecipientInfo value
-func (pov *MerchantPayoutValues) GetRecipientInfo() string {
-	if pov.RecipientInfo == nil {
-		return ""
-	}
-	return *pov.RecipientInfo
 }
 
 // GetNotifyURL returns the NotifyURL value
@@ -131,45 +145,183 @@ func (pov *MerchantPayoutValues) GetCanceledAt() int64 {
 	return *pov.CanceledAt
 }
 
+// GetRemark returns the Remark value
+func (pov *MerchantPayoutValues) GetRemark() string {
+	if pov.Remark == nil {
+		return ""
+	}
+	return *pov.Remark
+}
+
+// GetSettleID returns the SettleID value
+func (pov *MerchantPayoutValues) GetSettleID() string {
+	if pov.SettleID == nil {
+		return ""
+	}
+	return *pov.SettleID
+}
+
+// GetSettleStatus returns the SettleStatus value
+func (pov *MerchantPayoutValues) GetSettleStatus() string {
+	if pov.SettleStatus == nil {
+		return ""
+	}
+	return *pov.SettleStatus
+}
+
+// GetSettledAt returns the SettledAt value
+func (pov *MerchantPayoutValues) GetSettledAt() int64 {
+	if pov.SettledAt == nil {
+		return 0
+	}
+	return *pov.SettledAt
+}
+
+// GetFlowNo returns the FlowNo value
+func (pov *MerchantPayoutValues) GetFlowNo() string {
+	if pov.FlowNo == nil {
+		return ""
+	}
+	return *pov.FlowNo
+}
+
+// GetChannelStatus returns the ChannelStatus value
+func (pov *MerchantPayoutValues) GetChannelStatus() string {
+	if pov.ChannelStatus == nil {
+		return ""
+	}
+	return *pov.ChannelStatus
+}
+
+// GetResCode returns the ResCode value
+func (pov *MerchantPayoutValues) GetResCode() string {
+	if pov.ResCode == nil {
+		return ""
+	}
+	return *pov.ResCode
+}
+
+// GetResMsg returns the ResMsg value
+func (pov *MerchantPayoutValues) GetResMsg() string {
+	if pov.ResMsg == nil {
+		return ""
+	}
+	return *pov.ResMsg
+}
+
+// GetReason returns the Reason value
+func (pov *MerchantPayoutValues) GetReason() string {
+	if pov.Reason == nil {
+		return ""
+	}
+	return *pov.Reason
+}
+
+// GetLink returns the Link value
+func (pov *MerchantPayoutValues) GetLink() string {
+	if pov.Link == nil {
+		return ""
+	}
+	return *pov.Link
+}
+
+// GetFeeCcy returns the FeeCcy value
+func (pov *MerchantPayoutValues) GetFeeCcy() string {
+	if pov.FeeCcy == nil {
+		return ""
+	}
+	return *pov.FeeCcy
+}
+
+// GetFeeAmount returns the FeeAmount value
+func (pov *MerchantPayoutValues) GetFeeAmount() decimal.Decimal {
+	if pov.FeeAmount == nil {
+		return decimal.Zero
+	}
+	return *pov.FeeAmount
+}
+
+// GetFeeUsdAmount returns the FeeUsdAmount value
+func (pov *MerchantPayoutValues) GetFeeUsdAmount() decimal.Decimal {
+	if pov.FeeUsdAmount == nil {
+		return decimal.Zero
+	}
+	return *pov.FeeUsdAmount
+}
+
+// GetFeeUsdRate returns the FeeUsdRate value
+func (pov *MerchantPayoutValues) GetFeeUsdRate() decimal.Decimal {
+	if pov.FeeUsdRate == nil {
+		return decimal.Zero
+	}
+	return *pov.FeeUsdRate
+}
+
+// GetChannelTrxID returns the ChannelTrxID value
+func (pov *MerchantPayoutValues) GetChannelTrxID() string {
+	if pov.ChannelTrxID == nil {
+		return ""
+	}
+	return *pov.ChannelTrxID
+}
+
+// GetChannelAccount returns the ChannelAccount value
+func (pov *MerchantPayoutValues) GetChannelAccount() string {
+	if pov.ChannelAccount == nil {
+		return ""
+	}
+	return *pov.ChannelAccount
+}
+
+// GetChannelGroup returns the ChannelGroup value
+func (pov *MerchantPayoutValues) GetChannelGroup() string {
+	if pov.ChannelGroup == nil {
+		return ""
+	}
+	return *pov.ChannelGroup
+}
+
+// GetChannelFeeCcy returns the ChannelFeeCcy value
+func (pov *MerchantPayoutValues) GetChannelFeeCcy() string {
+	if pov.ChannelFeeCcy == nil {
+		return ""
+	}
+	return *pov.ChannelFeeCcy
+}
+
+// GetChannelFeeAmount returns the ChannelFeeAmount value
+func (pov *MerchantPayoutValues) GetChannelFeeAmount() decimal.Decimal {
+	if pov.ChannelFeeAmount == nil {
+		return decimal.Zero
+	}
+	return *pov.ChannelFeeAmount
+}
+
+// GetChannelFeeUsdAmount returns the ChannelFeeUsdAmount value
+func (pov *MerchantPayoutValues) GetChannelFeeUsdAmount() decimal.Decimal {
+	if pov.ChannelFeeUsdAmount == nil {
+		return decimal.Zero
+	}
+	return *pov.ChannelFeeUsdAmount
+}
+
+// GetChannelFeeUsdRate returns the ChannelFeeUsdRate value
+func (pov *MerchantPayoutValues) GetChannelFeeUsdRate() decimal.Decimal {
+	if pov.ChannelFeeUsdRate == nil {
+		return decimal.Zero
+	}
+	return *pov.ChannelFeeUsdRate
+}
+
 // SetStatus sets the Status value
 func (pov *MerchantPayoutValues) SetStatus(value string) *MerchantPayoutValues {
 	pov.Status = &value
 	return pov
 }
 
-// SetAmount sets the Amount value
-func (pov *MerchantPayoutValues) SetAmount(value decimal.Decimal) *MerchantPayoutValues {
-	pov.Amount = &value
-	return pov
-}
-
-// SetFee sets the Fee value
-func (pov *MerchantPayoutValues) SetFee(value decimal.Decimal) *MerchantPayoutValues {
-	pov.Fee = &value
-	return pov
-}
-
-// SetCcy sets the Ccy value
-func (pov *MerchantPayoutValues) SetCcy(value string) *MerchantPayoutValues {
-	pov.Ccy = &value
-	return pov
-}
-
 // SetChannelCode sets the ChannelCode value
 func (pov *MerchantPayoutValues) SetChannelCode(value string) *MerchantPayoutValues {
 	pov.ChannelCode = &value
-	return pov
-}
-
-// SetPaymentMethod sets the PaymentMethod value
-func (pov *MerchantPayoutValues) SetPaymentMethod(value string) *MerchantPayoutValues {
-	pov.PaymentMethod = &value
-	return pov
-}
-
-// SetRecipientInfo sets the RecipientInfo value
-func (pov *MerchantPayoutValues) SetRecipientInfo(value string) *MerchantPayoutValues {
-	pov.RecipientInfo = &value
 	return pov
 }
 
@@ -197,6 +349,132 @@ func (pov *MerchantPayoutValues) SetCanceledAt(value int64) *MerchantPayoutValue
 	return pov
 }
 
+// SetRemark sets the Remark value
+func (pov *MerchantPayoutValues) SetRemark(value string) *MerchantPayoutValues {
+	pov.Remark = &value
+	return pov
+}
+
+// SetSettleID sets the SettleID value
+func (pov *MerchantPayoutValues) SetSettleID(value string) *MerchantPayoutValues {
+	pov.SettleID = &value
+	return pov
+}
+
+// SetSettleStatus sets the SettleStatus value
+func (pov *MerchantPayoutValues) SetSettleStatus(value string) *MerchantPayoutValues {
+	pov.SettleStatus = &value
+	return pov
+}
+
+// SetSettledAt sets the SettledAt value
+func (pov *MerchantPayoutValues) SetSettledAt(value int64) *MerchantPayoutValues {
+	pov.SettledAt = &value
+	return pov
+}
+
+// SetFlowNo sets the FlowNo value
+func (pov *MerchantPayoutValues) SetFlowNo(value string) *MerchantPayoutValues {
+	pov.FlowNo = &value
+	return pov
+}
+
+// SetChannelStatus sets the ChannelStatus value
+func (pov *MerchantPayoutValues) SetChannelStatus(value string) *MerchantPayoutValues {
+	pov.ChannelStatus = &value
+	return pov
+}
+
+// SetResCode sets the ResCode value
+func (pov *MerchantPayoutValues) SetResCode(value string) *MerchantPayoutValues {
+	pov.ResCode = &value
+	return pov
+}
+
+// SetResMsg sets the ResMsg value
+func (pov *MerchantPayoutValues) SetResMsg(value string) *MerchantPayoutValues {
+	pov.ResMsg = &value
+	return pov
+}
+
+// SetReason sets the Reason value
+func (pov *MerchantPayoutValues) SetReason(value string) *MerchantPayoutValues {
+	pov.Reason = &value
+	return pov
+}
+
+// SetLink sets the Link value
+func (pov *MerchantPayoutValues) SetLink(value string) *MerchantPayoutValues {
+	pov.Link = &value
+	return pov
+}
+
+// SetFeeCcy sets the FeeCcy value
+func (pov *MerchantPayoutValues) SetFeeCcy(value string) *MerchantPayoutValues {
+	pov.FeeCcy = &value
+	return pov
+}
+
+// SetFeeAmount sets the FeeAmount value
+func (pov *MerchantPayoutValues) SetFeeAmount(value decimal.Decimal) *MerchantPayoutValues {
+	pov.FeeAmount = &value
+	return pov
+}
+
+// SetFeeUsdAmount sets the FeeUsdAmount value
+func (pov *MerchantPayoutValues) SetFeeUsdAmount(value decimal.Decimal) *MerchantPayoutValues {
+	pov.FeeUsdAmount = &value
+	return pov
+}
+
+// SetFeeUsdRate sets the FeeUsdRate value
+func (pov *MerchantPayoutValues) SetFeeUsdRate(value decimal.Decimal) *MerchantPayoutValues {
+	pov.FeeUsdRate = &value
+	return pov
+}
+
+// SetChannelTrxID sets the ChannelTrxID value
+func (pov *MerchantPayoutValues) SetChannelTrxID(value string) *MerchantPayoutValues {
+	pov.ChannelTrxID = &value
+	return pov
+}
+
+// SetChannelAccount sets the ChannelAccount value
+func (pov *MerchantPayoutValues) SetChannelAccount(value string) *MerchantPayoutValues {
+	pov.ChannelAccount = &value
+	return pov
+}
+
+// SetChannelGroup sets the ChannelGroup value
+func (pov *MerchantPayoutValues) SetChannelGroup(value string) *MerchantPayoutValues {
+	pov.ChannelGroup = &value
+	return pov
+}
+
+// SetChannelFeeCcy sets the ChannelFeeCcy value
+func (pov *MerchantPayoutValues) SetChannelFeeCcy(value string) *MerchantPayoutValues {
+	pov.ChannelFeeCcy = &value
+	return pov
+}
+
+// SetChannelFeeAmount sets the ChannelFeeAmount value
+func (pov *MerchantPayoutValues) SetChannelFeeAmount(value decimal.Decimal) *MerchantPayoutValues {
+	pov.ChannelFeeAmount = &value
+	return pov
+}
+
+// SetChannelFeeUsdAmount sets the ChannelFeeUsdAmount value
+func (pov *MerchantPayoutValues) SetChannelFeeUsdAmount(value decimal.Decimal) *MerchantPayoutValues {
+	pov.ChannelFeeUsdAmount = &value
+	return pov
+}
+
+// SetChannelFeeUsdRate sets the ChannelFeeUsdRate value
+func (pov *MerchantPayoutValues) SetChannelFeeUsdRate(value decimal.Decimal) *MerchantPayoutValues {
+	pov.ChannelFeeUsdRate = &value
+	return pov
+}
+
 // SetValues sets multiple PayoutValues fields at once
 func (p *MerchantPayout) SetValues(values *MerchantPayoutValues) *MerchantPayout {
 	if values == nil {
@@ -210,23 +488,8 @@ func (p *MerchantPayout) SetValues(values *MerchantPayoutValues) *MerchantPayout
 	if values.Status != nil {
 		p.MerchantPayoutValues.SetStatus(*values.Status)
 	}
-	if values.Amount != nil {
-		p.MerchantPayoutValues.SetAmount(*values.Amount)
-	}
-	if values.Fee != nil {
-		p.MerchantPayoutValues.SetFee(*values.Fee)
-	}
-	if values.Ccy != nil {
-		p.MerchantPayoutValues.SetCcy(*values.Ccy)
-	}
 	if values.ChannelCode != nil {
 		p.MerchantPayoutValues.SetChannelCode(*values.ChannelCode)
-	}
-	if values.PaymentMethod != nil {
-		p.MerchantPayoutValues.SetPaymentMethod(*values.PaymentMethod)
-	}
-	if values.RecipientInfo != nil {
-		p.MerchantPayoutValues.SetRecipientInfo(*values.RecipientInfo)
 	}
 	if values.NotifyURL != nil {
 		p.MerchantPayoutValues.SetNotifyURL(*values.NotifyURL)
@@ -241,7 +504,80 @@ func (p *MerchantPayout) SetValues(values *MerchantPayoutValues) *MerchantPayout
 		p.MerchantPayoutValues.SetCanceledAt(*values.CanceledAt)
 	}
 
+	if values.Remark != nil {
+		p.MerchantPayoutValues.SetRemark(*values.Remark)
+	}
+
+	if values.SettleID != nil {
+		p.MerchantPayoutValues.SetSettleID(*values.SettleID)
+	}
+	if values.SettleStatus != nil {
+		p.MerchantPayoutValues.SetSettleStatus(*values.SettleStatus)
+	}
+	if values.SettledAt != nil {
+		p.MerchantPayoutValues.SetSettledAt(*values.SettledAt)
+	}
+	if values.FlowNo != nil {
+		p.MerchantPayoutValues.SetFlowNo(*values.FlowNo)
+	}
+	if values.ChannelStatus != nil {
+		p.MerchantPayoutValues.SetChannelStatus(*values.ChannelStatus)
+	}
+	if values.ResCode != nil {
+		p.MerchantPayoutValues.SetResCode(*values.ResCode)
+	}
+	if values.ResMsg != nil {
+		p.MerchantPayoutValues.SetResMsg(*values.ResMsg)
+	}
+	if values.Reason != nil {
+		p.MerchantPayoutValues.SetReason(*values.Reason)
+	}
+	if values.Link != nil {
+		p.MerchantPayoutValues.SetLink(*values.Link)
+	}
+	if values.FeeCcy != nil {
+		p.MerchantPayoutValues.SetFeeCcy(*values.FeeCcy)
+	}
+	if values.FeeAmount != nil {
+		p.MerchantPayoutValues.SetFeeAmount(*values.FeeAmount)
+	}
+	if values.FeeUsdAmount != nil {
+		p.MerchantPayoutValues.SetFeeUsdAmount(*values.FeeUsdAmount)
+	}
+	if values.FeeUsdRate != nil {
+		p.MerchantPayoutValues.SetFeeUsdRate(*values.FeeUsdRate)
+	}
+	if values.ChannelTrxID != nil {
+		p.MerchantPayoutValues.SetChannelTrxID(*values.ChannelTrxID)
+	}
+	if values.ChannelAccount != nil {
+		p.MerchantPayoutValues.SetChannelAccount(*values.ChannelAccount)
+	}
+	if values.ChannelGroup != nil {
+		p.MerchantPayoutValues.SetChannelGroup(*values.ChannelGroup)
+	}
+	if values.ChannelFeeCcy != nil {
+		p.MerchantPayoutValues.SetChannelFeeCcy(*values.ChannelFeeCcy)
+	}
+	if values.ChannelFeeAmount != nil {
+		p.MerchantPayoutValues.SetChannelFeeAmount(*values.ChannelFeeAmount)
+	}
+	if values.ChannelFeeUsdAmount != nil {
+		p.MerchantPayoutValues.SetChannelFeeUsdAmount(*values.ChannelFeeUsdAmount)
+	}
+	if values.ChannelFeeUsdRate != nil {
+		p.MerchantPayoutValues.SetChannelFeeUsdRate(*values.ChannelFeeUsdRate)
+	}
+
 	return p
+}
+
+func GetMerchantPayoutByTrxID(mid, trxID string) *Transaction {
+	var trx Transaction
+	if err := ReadDB.Model(&MerchantPayout{}).Where("trx_id = ? AND mid = ?", trxID, mid).First(&trx).Error; err == nil {
+		return &trx
+	}
+	return nil
 }
 
 // ToTransaction converts Payout to Transaction
@@ -251,32 +587,74 @@ func (p *MerchantPayout) ToTransaction() *Transaction {
 	}
 
 	transaction := &Transaction{
-		ID:      p.ID,
-		TrxID:   p.TrxID,
-		Mid:     p.Mid,
-		UserID:  p.UserID,
-		ReqID:   p.ReqID,
-		TrxType: protocol.TrxTypePayout, // Set transaction type to payout
+		ID:          int64(p.ID), // Convert uint64 to int64
+		Mid:         p.Mid,
+		UserID:      p.UserID,
+		TrxID:       p.TrxID,
+		ReqID:       p.ReqID,
+		OriTrxID:    p.OriTrxID,
+		OriReqID:    p.OriReqID,
+		OriFlowNo:   p.OriFlowNo,
+		TrxMethod:   p.TrxMethod,
+		TrxMode:     p.TrxMode,
+		TrxApp:      p.TrxApp,
+		Pkg:         p.Pkg,
+		Did:         p.Did,
+		ProductID:   p.ProductID,
+		UserIP:      p.UserIP,
+		Email:       p.Email,
+		Phone:       p.Phone,
+		Ccy:         p.Ccy,
+		Amount:      p.Amount,
+		UsdAmount:   p.UsdAmount,
+		AccountNo:   p.AccountNo,
+		AccountName: p.AccountName,
+		AccountType: p.AccountType,
+		BankCode:    p.BankCode,
+		BankName:    p.BankName,
+		ReturnURL:   p.ReturnURL,
 		TransactionValues: &TransactionValues{
-			Status:        p.MerchantPayoutValues.Status,
-			Amount:        p.MerchantPayoutValues.Amount,
-			Fee:           p.MerchantPayoutValues.Fee,
-			Ccy:           p.MerchantPayoutValues.Ccy,
-			ChannelCode:   p.MerchantPayoutValues.ChannelCode,
-			PaymentMethod: p.MerchantPayoutValues.PaymentMethod,
-			NotifyURL:     p.MerchantPayoutValues.NotifyURL,
-			ReturnURL:     nil,                                  // Payout doesn't have ReturnURL
-			NotifyStatus:  nil,                                  // Payout doesn't have NotifyStatus
-			NotifyTimes:   nil,                                  // Payout doesn't have NotifyTimes
-			OriTrxID:      nil,                                  // Payout doesn't have OriTrxID
-			Metadata:      p.MerchantPayoutValues.RecipientInfo, // Map RecipientInfo to Metadata
-			Remark:        nil,                                  // Payout doesn't have Remark
-			ExpiredAt:     p.MerchantPayoutValues.ExpiredAt,
-			ConfirmedAt:   nil, // Payout doesn't have ConfirmedAt
-			CanceledAt:    p.MerchantPayoutValues.CanceledAt,
-			UpdatedAt:     p.UpdatedAt, // Payout has UpdatedAt in main struct
+			MetaData:            p.MerchantPayoutValues.MetaData,
+			RefundedCount:       p.MerchantPayoutValues.RefundedCount,
+			RefundedAmount:      p.MerchantPayoutValues.RefundedAmount,
+			RefundedUsdAmount:   p.MerchantPayoutValues.RefundedUsdAmount,
+			LastRefundedAt:      p.MerchantPayoutValues.LastRefundedAt,
+			SettleStatus:        p.MerchantPayoutValues.SettleStatus,
+			SettleID:            p.MerchantPayoutValues.SettleID,
+			SettledAt:           p.MerchantPayoutValues.SettledAt,
+			Country:             p.MerchantPayoutValues.Country,
+			Remark:              p.MerchantPayoutValues.Remark,
+			FlowNo:              p.MerchantPayoutValues.FlowNo,
+			Status:              p.MerchantPayoutValues.Status,
+			Reason:              p.MerchantPayoutValues.Reason,
+			Link:                p.MerchantPayoutValues.Link,
+			Detail:              p.MerchantPayoutValues.Detail,
+			NotifyURL:           p.MerchantPayoutValues.NotifyURL,
+			FeeCcy:              p.MerchantPayoutValues.FeeCcy,
+			FeeAmount:           p.MerchantPayoutValues.FeeAmount,
+			FeeUsdAmount:        p.MerchantPayoutValues.FeeUsdAmount,
+			FeeUsdRate:          p.MerchantPayoutValues.FeeUsdRate,
+			ChannelStatus:       p.MerchantPayoutValues.ChannelStatus,
+			ResCode:             p.MerchantPayoutValues.ResCode,
+			ResMsg:              p.MerchantPayoutValues.ResMsg,
+			ChannelTrxID:        p.MerchantPayoutValues.ChannelTrxID,
+			ChannelCode:         p.MerchantPayoutValues.ChannelCode,
+			ChannelAccount:      p.MerchantPayoutValues.ChannelAccount,
+			ChannelGroup:        p.MerchantPayoutValues.ChannelGroup,
+			ChannelFeeCcy:       p.MerchantPayoutValues.ChannelFeeCcy,
+			ChannelFeeAmount:    p.MerchantPayoutValues.ChannelFeeAmount,
+			ChannelFeeUsdAmount: p.MerchantPayoutValues.ChannelFeeUsdAmount,
+			ChannelFeeUsdRate:   p.MerchantPayoutValues.ChannelFeeUsdRate,
+			ConfirmedAt:         p.MerchantPayoutValues.ConfirmedAt,
+			CompletedAt:         p.MerchantPayoutValues.CompletedAt,
+			ExpiredAt:           p.MerchantPayoutValues.ExpiredAt,
+			CanceledAt:          p.MerchantPayoutValues.CanceledAt,
+			CancelReason:        p.MerchantPayoutValues.CancelReason,
+			CancelFailedResult:  p.MerchantPayoutValues.CancelFailedResult,
+			Version:             p.MerchantPayoutValues.Version,
 		},
 		CreatedAt: p.CreatedAt,
+		UpdatedAt: p.UpdatedAt,
 	}
 
 	return transaction

@@ -6,9 +6,61 @@ import (
 	"inpayos/internal/models"
 	"inpayos/internal/protocol"
 	"inpayos/internal/utils"
+	"sync"
 )
 
-type MerchantRegisterRequest struct {
+type CashierAdminService struct {
+}
+
+var (
+	cashierAdminService     *CashierAdminService
+	cashierAdminServiceOnce sync.Once
+)
+
+func SetupCashierAdminService() {
+	cashierAdminServiceOnce.Do(func() {
+		cashierAdminService = &CashierAdminService{}
+	})
+}
+
+// GetCashierAdminService 获取CashierAdmin服务单例
+func GetCashierAdminService() *CashierAdminService {
+	if cashierAdminService == nil {
+		SetupCashierAdminService()
+	}
+	return cashierAdminService
+}
+
+// ChangeCashierTeamPassword 修改商户密码
+func ChangeCashierTeamPassword(email, newPassword string) error {
+	// 根据邮箱获取商户信息
+	team := models.GetCashierTeamByEmail(email)
+	if team == nil {
+		//log.Get().Errorf("ChangeCashierTeamPassword: CashierTeam not found for email: %s", email)
+		return errors.New("Team 不存在")
+	}
+	salt := utils.GenerateSalt()
+	team.Salt = &salt
+	// 设置新密码和盐
+	team.SetPassword(newPassword)
+
+	// 加密密码
+	team.Encrypt()
+
+	// 更新密码和盐
+	if err := models.GetDB().Model(&models.CashierTeam{}).Where("email = ?", email).Updates(map[string]interface{}{
+		"password": team.GetPassword(),
+		"salt":     team.Salt,
+	}).Error; err != nil {
+		//log.Get().Errorf("ChangeCashierTeamPassword: Update password error: %v", err)
+		return errors.New("密码更新失败")
+	}
+
+	//log.Get().Infof("ChangeCashierTeamPassword: Password changed successfully for email: %s", email)
+	return nil
+}
+
+type CashierTeamRegisterRequest struct {
 	Email       string `json:"email" binding:"required,email"`    // 邮箱
 	Password    string `json:"password" binding:"required,min=8"` // 密码
 	Nickname    string `json:"nickname" binding:"required,min=2"` // 昵称
@@ -20,7 +72,7 @@ type MerchantRegisterRequest struct {
 }
 
 // ValidateRegisterRequest 验证注册请求
-func (req *MerchantRegisterRequest) ValidateRegisterRequest() error {
+func (req *CashierTeamRegisterRequest) ValidateRegisterRequest() error {
 	// 验证昵称长度
 	if len(req.Nickname) > 32 {
 		return errors.New("nickname too long, max length is 32")
@@ -39,8 +91,8 @@ func (req *MerchantRegisterRequest) ValidateRegisterRequest() error {
 	return nil
 }
 
-// RegisterMerchant 注册商户
-func RegisterMerchant(req *MerchantRegisterRequest) error {
+// RegisterCashierTeam 注册商户
+func RegisterCashierTeam(req *CashierTeamRegisterRequest) error {
 	// 参数验证
 	if err := req.ValidateRegisterRequest(); err != nil {
 		return err
@@ -52,15 +104,15 @@ func RegisterMerchant(req *MerchantRegisterRequest) error {
 	}
 
 	// 检查邮箱是否已注册
-	if models.CheckMerchantEmail(req.Email) {
+	if models.CheckCashierTeamEmail(req.Email) {
 		return errors.New("email already registered")
 	}
 
 	// 创建商户
 	salt := utils.GenerateSalt()
-	merchant := &models.Merchant{
-		Mid: utils.GenerateUserID(),
-		MerchantValues: &models.MerchantValues{
+	merchant := &models.CashierTeam{
+		Tid: utils.GenerateCashierTeamID(),
+		CashierTeamValues: &models.CashierTeamValues{
 			Salt: &salt,
 		},
 	}
@@ -69,7 +121,7 @@ func RegisterMerchant(req *MerchantRegisterRequest) error {
 	merchant.SetEmail(req.Email).
 		SetPassword(req.Password).
 		SetName(req.Nickname).
-		SetType("merchant").
+		SetType("cashier_team").
 		SetStatus(protocol.StatusActive).
 		//SetRegIP(req.RegIP)
 		// 如果有公司信息，设置公司相关字段

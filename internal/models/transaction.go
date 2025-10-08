@@ -10,40 +10,91 @@ import (
 // Transaction 通用交易记录表（作为所有业务交易的抽象层）
 // 每个具体业务表（Payin, Payout等）通过 ToTransaction() 方法转换为此通用模型
 type Transaction struct {
-	ID        uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	Tid       string `json:"tid" gorm:"column:tid;type:varchar(32);index"`
-	CashierID string `json:"cashier_id" gorm:"column:cashier_id;type:varchar(32);index"`
-	Mid       string `json:"mid" gorm:"column:mid;type:varchar(32);index"`
-	UserID    string `json:"user_id" gorm:"column:user_id;type:varchar(32);index"`
-	TrxID     string `json:"transaction_id" gorm:"column:transaction_id;type:varchar(64);uniqueIndex"`
-	ReqID     string `json:"req_id" gorm:"column:req_id;type:varchar(64);index"`
-	TrxType   string `json:"trx_type" gorm:"column:trx_type;type:varchar(16);index"` // receipt, payment, refund, transfer
-	*TransactionValues
-	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
+	ID                 int64            `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	Tid                string           `json:"tid" gorm:"column:tid;type:varchar(32);index"`
+	CashierID          string           `json:"cashier_id" gorm:"column:cashier_id;type:varchar(32);index"`
+	Mid                string           `json:"mid" gorm:"column:mid;type:varchar(32);index"`
+	UserID             string           `json:"user_id" gorm:"column:user_id;type:varchar(32);index"`
+	TrxID              string           `json:"transaction_id" gorm:"column:transaction_id;type:varchar(64);uniqueIndex"`
+	TrxType            string           `json:"trx_type" gorm:"column:trx_type;type:varchar(32);index"` // 交易类型：payin, payout
+	ReqID              string           `json:"req_id" gorm:"column:req_id;type:varchar(64);index"`
+	OriTrxID           string           `json:"ori_trx_id" gorm:"column:ori_trx_id;index;<-:create"`
+	OriReqID           string           `json:"ori_req_id" gorm:"column:ori_req_id;index;<-:create"`
+	OriFlowNo          string           `json:"ori_flow_no" gorm:"column:ori_flow_no"`
+	TrxMethod          string           `json:"trx_method" gorm:"column:trx_method;<-:create"`
+	TrxMode            string           `json:"trx_mode" gorm:"column:trx_mode;<-:create"`
+	TrxApp             string           `json:"trx_app" gorm:"column:trx_app;<-:create"`
+	Pkg                string           `json:"pkg" gorm:"column:pkg;<-:create"`
+	Did                string           `json:"did" gorm:"column:did;<-:create"`
+	ProductID          string           `json:"product_id" gorm:"column:product_id;<-:create"`
+	UserIP             string           `json:"user_ip" gorm:"column:user_ip;<-:create"`
+	Email              string           `json:"email" gorm:"column:email;<-:create"`
+	Phone              string           `json:"phone" gorm:"column:phone;<-:create"`
+	Ccy                string           `json:"ccy" gorm:"column:ccy;<-:create"`
+	Amount             *decimal.Decimal `json:"amount" gorm:"column:amount;<-:create"`
+	UsdAmount          *decimal.Decimal `json:"usd_amount" gorm:"column:usd_amount;<-:create"`
+	AccountNo          string           `json:"account_no" gorm:"column:account_no;<-:create"`
+	AccountName        string           `json:"account_name" gorm:"column:account_name;<-:create"`
+	AccountType        string           `json:"account_type" gorm:"column:account_type;<-:create"`
+	BankCode           string           `json:"bank_code" gorm:"column:bank_code;<-:create"`
+	BankName           string           `json:"bank_name" gorm:"column:bank_name;<-:create"`
+	ReturnURL          string           `json:"return_url" gorm:"column:return_url;<-:create"`
+	*TransactionValues `gorm:"embedded"`
+	CreatedAt          int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
+	UpdatedAt          int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"` // 更新时间 (毫秒时间戳)
 }
 
 type TransactionValues struct {
-	Status        *string          `json:"status" gorm:"column:status;type:varchar(16);index"` // pending, processing, success, failed
-	Amount        *decimal.Decimal `json:"amount" gorm:"column:amount;type:decimal(36,18)"`
-	Fee           *decimal.Decimal `json:"fee" gorm:"column:fee;type:decimal(36,18);default:0"`
-	Ccy           *string          `json:"ccy" gorm:"column:ccy;type:varchar(16)"`
-	ChannelCode   *string          `json:"channel_code" gorm:"column:channel_code;type:varchar(32)"`
-	PaymentMethod *string          `json:"payment_method" gorm:"column:payment_method;type:varchar(32)"`
-	NotifyURL     *string          `json:"notify_url" gorm:"column:notify_url;type:varchar(512)"`
-	ReturnURL     *string          `json:"return_url" gorm:"column:return_url;type:varchar(512)"`
-	NotifyStatus  *string          `json:"notify_status" gorm:"column:notify_status;type:varchar(16);default:'pending'"`
-	NotifyTimes   *int             `json:"notify_times" gorm:"column:notify_times;type:int;default:0"`
-	OriTrxID      *string          `json:"ori_trx_id" gorm:"column:ori_trx_id;type:varchar(64)"` // 原交易ID(退款使用)
-	Metadata      *string          `json:"metadata" gorm:"column:metadata;type:json"`
-	Remark        *string          `json:"remark" gorm:"column:remark;type:varchar(512)"`
-	UsdAmount     *decimal.Decimal `json:"usd_amount" gorm:"column:usd_amount;type:decimal(36,18)"`    // USD金额
-	SettleID      *string          `json:"settle_id" gorm:"column:settle_id;type:varchar(64)"`         // 结算ID
-	SettleStatus  *string          `json:"settle_status" gorm:"column:settle_status;type:varchar(16)"` // 结算状态
-	SettledAt     *int64           `json:"settled_at" gorm:"column:settled_at"`                        // 结算时间
-	ExpiredAt     *int64           `json:"expired_at" gorm:"column:expired_at"`
-	ConfirmedAt   *int64           `json:"confirmed_at" gorm:"column:confirmed_at"`
-	CanceledAt    *int64           `json:"canceled_at" gorm:"column:canceled_at"`
-	UpdatedAt     int64            `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
+	MetaData *protocol.MapData `json:"metadata" gorm:"column:metadata;serializer:json;type:json"`
+
+	// Refund related fields
+	RefundedCount     *int             `json:"refunded_count" gorm:"column:refunded_count"`
+	RefundedAmount    *decimal.Decimal `json:"refunded_amount" gorm:"column:refunded_amount"`
+	RefundedUsdAmount *decimal.Decimal `json:"refunded_usd_amount" gorm:"column:refunded_usd_amount"`
+	LastRefundedAt    *int64           `json:"last_refunded_at" gorm:"column:last_refunded_at"`
+
+	// Settlement related fields
+	SettleStatus *string `json:"settle_status" gorm:"column:settle_status;index"` // SettleStatus 结算状态
+	SettleID     *string `json:"settle_id" gorm:"column:settle_id;index"`
+	SettledAt    *int64  `json:"settled_at" gorm:"column:settled_at"`
+
+	// Basic transaction fields
+	Country       *string        `json:"country" gorm:"column:country"`
+	Remark        *string        `json:"remark" gorm:"column:remark"`
+	FlowNo        *string        `json:"flow_no" gorm:"column:flow_no;index"`
+	Status        *string        `json:"status" gorm:"column:status;index"`
+	ChannelStatus *string        `json:"channel_status" gorm:"column:channel_status"`
+	ResCode       *string        `json:"res_code" gorm:"column:res_code"`
+	ResMsg        *string        `json:"res_msg" gorm:"column:res_msg"`
+	Reason        *string        `json:"reason" gorm:"column:reason"`
+	Link          *string        `json:"link" gorm:"column:link"`
+	Detail        map[string]any `json:"detail" gorm:"column:detail;serializer:json;type:json"`
+	NotifyURL     *string        `json:"notify_url" gorm:"column:notify_url"`
+
+	// Fee related fields
+	FeeCcy       *string          `json:"fee_ccy" gorm:"column:fee_ccy"`
+	FeeAmount    *decimal.Decimal `json:"fee_amount" gorm:"column:fee_amount"`
+	FeeUsdAmount *decimal.Decimal `json:"fee_usd_amount" gorm:"column:fee_usd_amount"`
+	FeeUsdRate   *decimal.Decimal `json:"fee_usd_rate" gorm:"column:fee_usd_rate"`
+
+	// Channel related fields
+	ChannelTrxID        *string          `json:"channel_trx_id" gorm:"column:channel_trx_id;index"`
+	ChannelCode         *string          `json:"channel_code" gorm:"column:channel_code;index"`
+	ChannelAccount      *string          `json:"channel_account" gorm:"column:channel_account"`
+	ChannelGroup        *string          `json:"channel_group" gorm:"column:channel_group"`
+	ChannelFeeCcy       *string          `json:"channel_fee_ccy" gorm:"column:channel_fee_ccy"`
+	ChannelFeeAmount    *decimal.Decimal `json:"channel_fee_amount" gorm:"column:channel_fee_amount"`
+	ChannelFeeUsdAmount *decimal.Decimal `json:"channel_fee_usd_amount" gorm:"column:channel_fee_usd_amount"`
+	ChannelFeeUsdRate   *decimal.Decimal `json:"channel_fee_usd_rate" gorm:"column:channel_fee_usd_rate"`
+
+	// Timing fields
+	ConfirmedAt        *int64  `json:"confirmed_at" gorm:"column:confirmed_at"`
+	CompletedAt        *int64  `json:"completed_at" gorm:"column:completed_at"`
+	ExpiredAt          *int64  `json:"expired_at" gorm:"column:expired_at"`
+	CanceledAt         *int64  `json:"canceled_at" gorm:"column:canceled_at"`
+	CancelReason       *string `json:"cancel_reason" gorm:"column:cancel_reason"`
+	CancelFailedResult *string `json:"cancel_failed_result" gorm:"column:cancel_failed_result"`
+	Version            *int64  `json:"version" gorm:"column:version"`
 }
 
 func (Transaction) TableName() string {
@@ -153,30 +204,6 @@ func (tv *TransactionValues) GetStatus() string {
 	return *tv.Status
 }
 
-// GetAmount returns the Amount value
-func (tv *TransactionValues) GetAmount() decimal.Decimal {
-	if tv.Amount == nil {
-		return decimal.Zero
-	}
-	return *tv.Amount
-}
-
-// GetFee returns the Fee value
-func (tv *TransactionValues) GetFee() decimal.Decimal {
-	if tv.Fee == nil {
-		return decimal.Zero
-	}
-	return *tv.Fee
-}
-
-// GetCcy returns the Ccy value
-func (tv *TransactionValues) GetCcy() string {
-	if tv.Ccy == nil {
-		return ""
-	}
-	return *tv.Ccy
-}
-
 // GetChannelCode returns the ChannelCode value
 func (tv *TransactionValues) GetChannelCode() string {
 	if tv.ChannelCode == nil {
@@ -185,60 +212,12 @@ func (tv *TransactionValues) GetChannelCode() string {
 	return *tv.ChannelCode
 }
 
-// GetPaymentMethod returns the PaymentMethod value
-func (tv *TransactionValues) GetPaymentMethod() string {
-	if tv.PaymentMethod == nil {
-		return ""
-	}
-	return *tv.PaymentMethod
-}
-
 // GetNotifyURL returns the NotifyURL value
 func (tv *TransactionValues) GetNotifyURL() string {
 	if tv.NotifyURL == nil {
 		return ""
 	}
 	return *tv.NotifyURL
-}
-
-// GetReturnURL returns the ReturnURL value
-func (tv *TransactionValues) GetReturnURL() string {
-	if tv.ReturnURL == nil {
-		return ""
-	}
-	return *tv.ReturnURL
-}
-
-// GetNotifyStatus returns the NotifyStatus value
-func (tv *TransactionValues) GetNotifyStatus() string {
-	if tv.NotifyStatus == nil {
-		return ""
-	}
-	return *tv.NotifyStatus
-}
-
-// GetNotifyTimes returns the NotifyTimes value
-func (tv *TransactionValues) GetNotifyTimes() int {
-	if tv.NotifyTimes == nil {
-		return 0
-	}
-	return *tv.NotifyTimes
-}
-
-// GetOriTrxID returns the OriTrxID value
-func (tv *TransactionValues) GetOriTrxID() string {
-	if tv.OriTrxID == nil {
-		return ""
-	}
-	return *tv.OriTrxID
-}
-
-// GetMetadata returns the Metadata value
-func (tv *TransactionValues) GetMetadata() string {
-	if tv.Metadata == nil {
-		return ""
-	}
-	return *tv.Metadata
 }
 
 // GetRemark returns the Remark value
@@ -273,32 +252,227 @@ func (tv *TransactionValues) GetCanceledAt() int64 {
 	return *tv.CanceledAt
 }
 
-// GetUpdatedAt returns the UpdatedAt value
-func (tv *TransactionValues) GetUpdatedAt() int64 {
-	return tv.UpdatedAt
+// GetCompletedAt returns the CompletedAt value
+func (tv *TransactionValues) GetCompletedAt() int64 {
+	if tv.CompletedAt == nil {
+		return 0
+	}
+	return *tv.CompletedAt
+}
+
+// GetRefundedCount returns the RefundedCount value
+func (tv *TransactionValues) GetRefundedCount() int {
+	if tv.RefundedCount == nil {
+		return 0
+	}
+	return *tv.RefundedCount
+}
+
+// GetRefundedAmount returns the RefundedAmount value
+func (tv *TransactionValues) GetRefundedAmount() decimal.Decimal {
+	if tv.RefundedAmount == nil {
+		return decimal.Zero
+	}
+	return *tv.RefundedAmount
+}
+
+// GetRefundedUsdAmount returns the RefundedUsdAmount value
+func (tv *TransactionValues) GetRefundedUsdAmount() decimal.Decimal {
+	if tv.RefundedUsdAmount == nil {
+		return decimal.Zero
+	}
+	return *tv.RefundedUsdAmount
+}
+
+// GetLastRefundedAt returns the LastRefundedAt value
+func (tv *TransactionValues) GetLastRefundedAt() int64 {
+	if tv.LastRefundedAt == nil {
+		return 0
+	}
+	return *tv.LastRefundedAt
+}
+
+// GetCountry returns the Country value
+func (tv *TransactionValues) GetCountry() string {
+	if tv.Country == nil {
+		return ""
+	}
+	return *tv.Country
+}
+
+// GetFlowNo returns the FlowNo value
+func (tv *TransactionValues) GetFlowNo() string {
+	if tv.FlowNo == nil {
+		return ""
+	}
+	return *tv.FlowNo
+}
+
+// GetReason returns the Reason value
+func (tv *TransactionValues) GetReason() string {
+	if tv.Reason == nil {
+		return ""
+	}
+	return *tv.Reason
+}
+
+// GetLink returns the Link value
+func (tv *TransactionValues) GetLink() string {
+	if tv.Link == nil {
+		return ""
+	}
+	return *tv.Link
+}
+
+// GetFeeCcy returns the FeeCcy value
+func (tv *TransactionValues) GetFeeCcy() string {
+	if tv.FeeCcy == nil {
+		return ""
+	}
+	return *tv.FeeCcy
+}
+
+// GetFeeAmount returns the FeeAmount value
+func (tv *TransactionValues) GetFeeAmount() decimal.Decimal {
+	if tv.FeeAmount == nil {
+		return decimal.Zero
+	}
+	return *tv.FeeAmount
+}
+
+// GetFeeUsdAmount returns the FeeUsdAmount value
+func (tv *TransactionValues) GetFeeUsdAmount() decimal.Decimal {
+	if tv.FeeUsdAmount == nil {
+		return decimal.Zero
+	}
+	return *tv.FeeUsdAmount
+}
+
+// GetFeeUsdRate returns the FeeUsdRate value
+func (tv *TransactionValues) GetFeeUsdRate() decimal.Decimal {
+	if tv.FeeUsdRate == nil {
+		return decimal.Zero
+	}
+	return *tv.FeeUsdRate
+}
+
+// GetChannelStatus returns the ChannelStatus value
+func (tv *TransactionValues) GetChannelStatus() string {
+	if tv.ChannelStatus == nil {
+		return ""
+	}
+	return *tv.ChannelStatus
+}
+
+// GetResCode returns the ResCode value
+func (tv *TransactionValues) GetResCode() string {
+	if tv.ResCode == nil {
+		return ""
+	}
+	return *tv.ResCode
+}
+
+// GetResMsg returns the ResMsg value
+func (tv *TransactionValues) GetResMsg() string {
+	if tv.ResMsg == nil {
+		return ""
+	}
+	return *tv.ResMsg
+}
+
+// GetChannelTrxID returns the ChannelTrxID value
+func (tv *TransactionValues) GetChannelTrxID() string {
+	if tv.ChannelTrxID == nil {
+		return ""
+	}
+	return *tv.ChannelTrxID
+}
+
+// GetChannelAccount returns the ChannelAccount value
+func (tv *TransactionValues) GetChannelAccount() string {
+	if tv.ChannelAccount == nil {
+		return ""
+	}
+	return *tv.ChannelAccount
+}
+
+// GetChannelGroup returns the ChannelGroup value
+func (tv *TransactionValues) GetChannelGroup() string {
+	if tv.ChannelGroup == nil {
+		return ""
+	}
+	return *tv.ChannelGroup
+}
+
+// GetChannelFeeCcy returns the ChannelFeeCcy value
+func (tv *TransactionValues) GetChannelFeeCcy() string {
+	if tv.ChannelFeeCcy == nil {
+		return ""
+	}
+	return *tv.ChannelFeeCcy
+}
+
+// GetChannelFeeAmount returns the ChannelFeeAmount value
+func (tv *TransactionValues) GetChannelFeeAmount() decimal.Decimal {
+	if tv.ChannelFeeAmount == nil {
+		return decimal.Zero
+	}
+	return *tv.ChannelFeeAmount
+}
+
+// GetChannelFeeUsdAmount returns the ChannelFeeUsdAmount value
+func (tv *TransactionValues) GetChannelFeeUsdAmount() decimal.Decimal {
+	if tv.ChannelFeeUsdAmount == nil {
+		return decimal.Zero
+	}
+	return *tv.ChannelFeeUsdAmount
+}
+
+// GetChannelFeeUsdRate returns the ChannelFeeUsdRate value
+func (tv *TransactionValues) GetChannelFeeUsdRate() decimal.Decimal {
+	if tv.ChannelFeeUsdRate == nil {
+		return decimal.Zero
+	}
+	return *tv.ChannelFeeUsdRate
+}
+
+// GetMetaData returns the MetaData value
+func (tv *TransactionValues) GetMetaData() *protocol.MapData {
+	return tv.MetaData
+}
+
+// GetDetail returns the Detail value
+func (tv *TransactionValues) GetDetail() map[string]any {
+	return tv.Detail
+}
+
+// GetCancelReason returns the CancelReason value
+func (tv *TransactionValues) GetCancelReason() string {
+	if tv.CancelReason == nil {
+		return ""
+	}
+	return *tv.CancelReason
+}
+
+// GetCancelFailedResult returns the CancelFailedResult value
+func (tv *TransactionValues) GetCancelFailedResult() string {
+	if tv.CancelFailedResult == nil {
+		return ""
+	}
+	return *tv.CancelFailedResult
+}
+
+// GetVersion returns the Version value
+func (tv *TransactionValues) GetVersion() int64 {
+	if tv.Version == nil {
+		return 0
+	}
+	return *tv.Version
 }
 
 // SetStatus sets the Status value
 func (tv *TransactionValues) SetStatus(value string) *TransactionValues {
 	tv.Status = &value
-	return tv
-}
-
-// SetAmount sets the Amount value
-func (tv *TransactionValues) SetAmount(value decimal.Decimal) *TransactionValues {
-	tv.Amount = &value
-	return tv
-}
-
-// SetFee sets the Fee value
-func (tv *TransactionValues) SetFee(value decimal.Decimal) *TransactionValues {
-	tv.Fee = &value
-	return tv
-}
-
-// SetCcy sets the Ccy value
-func (tv *TransactionValues) SetCcy(value string) *TransactionValues {
-	tv.Ccy = &value
 	return tv
 }
 
@@ -308,45 +482,9 @@ func (tv *TransactionValues) SetChannelCode(value string) *TransactionValues {
 	return tv
 }
 
-// SetPaymentMethod sets the PaymentMethod value
-func (tv *TransactionValues) SetPaymentMethod(value string) *TransactionValues {
-	tv.PaymentMethod = &value
-	return tv
-}
-
 // SetNotifyURL sets the NotifyURL value
 func (tv *TransactionValues) SetNotifyURL(value string) *TransactionValues {
 	tv.NotifyURL = &value
-	return tv
-}
-
-// SetReturnURL sets the ReturnURL value
-func (tv *TransactionValues) SetReturnURL(value string) *TransactionValues {
-	tv.ReturnURL = &value
-	return tv
-}
-
-// SetNotifyStatus sets the NotifyStatus value
-func (tv *TransactionValues) SetNotifyStatus(value string) *TransactionValues {
-	tv.NotifyStatus = &value
-	return tv
-}
-
-// SetNotifyTimes sets the NotifyTimes value
-func (tv *TransactionValues) SetNotifyTimes(value int) *TransactionValues {
-	tv.NotifyTimes = &value
-	return tv
-}
-
-// SetOriTrxID sets the OriTrxID value
-func (tv *TransactionValues) SetOriTrxID(value string) *TransactionValues {
-	tv.OriTrxID = &value
-	return tv
-}
-
-// SetMetadata sets the Metadata value
-func (tv *TransactionValues) SetMetadata(value string) *TransactionValues {
-	tv.Metadata = &value
 	return tv
 }
 
@@ -374,9 +512,171 @@ func (tv *TransactionValues) SetCanceledAt(value int64) *TransactionValues {
 	return tv
 }
 
-// SetUpdatedAt sets the UpdatedAt value
-func (tv *TransactionValues) SetUpdatedAt(value int64) *TransactionValues {
-	tv.UpdatedAt = value
+// SetCompletedAt sets the CompletedAt value
+func (tv *TransactionValues) SetCompletedAt(value int64) *TransactionValues {
+	tv.CompletedAt = &value
+	return tv
+}
+
+// SetRefundedCount sets the RefundedCount value
+func (tv *TransactionValues) SetRefundedCount(value int) *TransactionValues {
+	tv.RefundedCount = &value
+	return tv
+}
+
+// SetRefundedAmount sets the RefundedAmount value
+func (tv *TransactionValues) SetRefundedAmount(value decimal.Decimal) *TransactionValues {
+	tv.RefundedAmount = &value
+	return tv
+}
+
+// SetRefundedUsdAmount sets the RefundedUsdAmount value
+func (tv *TransactionValues) SetRefundedUsdAmount(value decimal.Decimal) *TransactionValues {
+	tv.RefundedUsdAmount = &value
+	return tv
+}
+
+// SetLastRefundedAt sets the LastRefundedAt value
+func (tv *TransactionValues) SetLastRefundedAt(value int64) *TransactionValues {
+	tv.LastRefundedAt = &value
+	return tv
+}
+
+// SetCountry sets the Country value
+func (tv *TransactionValues) SetCountry(value string) *TransactionValues {
+	tv.Country = &value
+	return tv
+}
+
+// SetFlowNo sets the FlowNo value
+func (tv *TransactionValues) SetFlowNo(value string) *TransactionValues {
+	tv.FlowNo = &value
+	return tv
+}
+
+// SetReason sets the Reason value
+func (tv *TransactionValues) SetReason(value string) *TransactionValues {
+	tv.Reason = &value
+	return tv
+}
+
+// SetLink sets the Link value
+func (tv *TransactionValues) SetLink(value string) *TransactionValues {
+	tv.Link = &value
+	return tv
+}
+
+// SetFeeCcy sets the FeeCcy value
+func (tv *TransactionValues) SetFeeCcy(value string) *TransactionValues {
+	tv.FeeCcy = &value
+	return tv
+}
+
+// SetFeeAmount sets the FeeAmount value
+func (tv *TransactionValues) SetFeeAmount(value decimal.Decimal) *TransactionValues {
+	tv.FeeAmount = &value
+	return tv
+}
+
+// SetFeeUsdAmount sets the FeeUsdAmount value
+func (tv *TransactionValues) SetFeeUsdAmount(value decimal.Decimal) *TransactionValues {
+	tv.FeeUsdAmount = &value
+	return tv
+}
+
+// SetFeeUsdRate sets the FeeUsdRate value
+func (tv *TransactionValues) SetFeeUsdRate(value decimal.Decimal) *TransactionValues {
+	tv.FeeUsdRate = &value
+	return tv
+}
+
+// SetChannelStatus sets the ChannelStatus value
+func (tv *TransactionValues) SetChannelStatus(value string) *TransactionValues {
+	tv.ChannelStatus = &value
+	return tv
+}
+
+// SetResCode sets the ResCode value
+func (tv *TransactionValues) SetResCode(value string) *TransactionValues {
+	tv.ResCode = &value
+	return tv
+}
+
+// SetResMsg sets the ResMsg value
+func (tv *TransactionValues) SetResMsg(value string) *TransactionValues {
+	tv.ResMsg = &value
+	return tv
+}
+
+// SetChannelTrxID sets the ChannelTrxID value
+func (tv *TransactionValues) SetChannelTrxID(value string) *TransactionValues {
+	tv.ChannelTrxID = &value
+	return tv
+}
+
+// SetChannelAccount sets the ChannelAccount value
+func (tv *TransactionValues) SetChannelAccount(value string) *TransactionValues {
+	tv.ChannelAccount = &value
+	return tv
+}
+
+// SetChannelGroup sets the ChannelGroup value
+func (tv *TransactionValues) SetChannelGroup(value string) *TransactionValues {
+	tv.ChannelGroup = &value
+	return tv
+}
+
+// SetChannelFeeCcy sets the ChannelFeeCcy value
+func (tv *TransactionValues) SetChannelFeeCcy(value string) *TransactionValues {
+	tv.ChannelFeeCcy = &value
+	return tv
+}
+
+// SetChannelFeeAmount sets the ChannelFeeAmount value
+func (tv *TransactionValues) SetChannelFeeAmount(value decimal.Decimal) *TransactionValues {
+	tv.ChannelFeeAmount = &value
+	return tv
+}
+
+// SetChannelFeeUsdAmount sets the ChannelFeeUsdAmount value
+func (tv *TransactionValues) SetChannelFeeUsdAmount(value decimal.Decimal) *TransactionValues {
+	tv.ChannelFeeUsdAmount = &value
+	return tv
+}
+
+// SetChannelFeeUsdRate sets the ChannelFeeUsdRate value
+func (tv *TransactionValues) SetChannelFeeUsdRate(value decimal.Decimal) *TransactionValues {
+	tv.ChannelFeeUsdRate = &value
+	return tv
+}
+
+// SetMetaData sets the MetaData value
+func (tv *TransactionValues) SetMetaData(value *protocol.MapData) *TransactionValues {
+	tv.MetaData = value
+	return tv
+}
+
+// SetDetail sets the Detail value
+func (tv *TransactionValues) SetDetail(value map[string]any) *TransactionValues {
+	tv.Detail = value
+	return tv
+}
+
+// SetCancelReason sets the CancelReason value
+func (tv *TransactionValues) SetCancelReason(value string) *TransactionValues {
+	tv.CancelReason = &value
+	return tv
+}
+
+// SetCancelFailedResult sets the CancelFailedResult value
+func (tv *TransactionValues) SetCancelFailedResult(value string) *TransactionValues {
+	tv.CancelFailedResult = &value
+	return tv
+}
+
+// SetVersion sets the Version value
+func (tv *TransactionValues) SetVersion(value int64) *TransactionValues {
+	tv.Version = &value
 	return tv
 }
 
@@ -393,38 +693,11 @@ func (t *Transaction) SetValues(values *TransactionValues) *Transaction {
 	if values.Status != nil {
 		t.TransactionValues.SetStatus(*values.Status)
 	}
-	if values.Amount != nil {
-		t.TransactionValues.SetAmount(*values.Amount)
-	}
-	if values.Fee != nil {
-		t.TransactionValues.SetFee(*values.Fee)
-	}
-	if values.Ccy != nil {
-		t.TransactionValues.SetCcy(*values.Ccy)
-	}
 	if values.ChannelCode != nil {
 		t.TransactionValues.SetChannelCode(*values.ChannelCode)
 	}
-	if values.PaymentMethod != nil {
-		t.TransactionValues.SetPaymentMethod(*values.PaymentMethod)
-	}
 	if values.NotifyURL != nil {
 		t.TransactionValues.SetNotifyURL(*values.NotifyURL)
-	}
-	if values.ReturnURL != nil {
-		t.TransactionValues.SetReturnURL(*values.ReturnURL)
-	}
-	if values.NotifyStatus != nil {
-		t.TransactionValues.SetNotifyStatus(*values.NotifyStatus)
-	}
-	if values.NotifyTimes != nil {
-		t.TransactionValues.SetNotifyTimes(*values.NotifyTimes)
-	}
-	if values.OriTrxID != nil {
-		t.TransactionValues.SetOriTrxID(*values.OriTrxID)
-	}
-	if values.Metadata != nil {
-		t.TransactionValues.SetMetadata(*values.Metadata)
 	}
 	if values.Remark != nil {
 		t.TransactionValues.SetRemark(*values.Remark)
@@ -438,9 +711,7 @@ func (t *Transaction) SetValues(values *TransactionValues) *Transaction {
 	if values.CanceledAt != nil {
 		t.TransactionValues.SetCanceledAt(*values.CanceledAt)
 	}
-	if values.UsdAmount != nil {
-		t.TransactionValues.SetUsdAmount(*values.UsdAmount)
-	}
+
 	if values.SettleID != nil {
 		t.TransactionValues.SetSettleID(*values.SettleID)
 	}
@@ -450,24 +721,91 @@ func (t *Transaction) SetValues(values *TransactionValues) *Transaction {
 	if values.SettledAt != nil {
 		t.TransactionValues.SetSettledAt(*values.SettledAt)
 	}
-	// UpdatedAt is not a pointer, so we always set it
-	t.TransactionValues.SetUpdatedAt(values.UpdatedAt)
-
-	return t
-}
-
-// GetUsdAmount 获取USD金额
-func (tv *TransactionValues) GetUsdAmount() decimal.Decimal {
-	if tv.UsdAmount == nil {
-		return decimal.Zero
+	if values.CompletedAt != nil {
+		t.TransactionValues.SetCompletedAt(*values.CompletedAt)
 	}
-	return *tv.UsdAmount
-}
-
-// SetUsdAmount 设置USD金额
-func (tv *TransactionValues) SetUsdAmount(value decimal.Decimal) *TransactionValues {
-	tv.UsdAmount = &value
-	return tv
+	if values.RefundedCount != nil {
+		t.TransactionValues.SetRefundedCount(*values.RefundedCount)
+	}
+	if values.RefundedAmount != nil {
+		t.TransactionValues.SetRefundedAmount(*values.RefundedAmount)
+	}
+	if values.RefundedUsdAmount != nil {
+		t.TransactionValues.SetRefundedUsdAmount(*values.RefundedUsdAmount)
+	}
+	if values.LastRefundedAt != nil {
+		t.TransactionValues.SetLastRefundedAt(*values.LastRefundedAt)
+	}
+	if values.Country != nil {
+		t.TransactionValues.SetCountry(*values.Country)
+	}
+	if values.FlowNo != nil {
+		t.TransactionValues.SetFlowNo(*values.FlowNo)
+	}
+	if values.Reason != nil {
+		t.TransactionValues.SetReason(*values.Reason)
+	}
+	if values.Link != nil {
+		t.TransactionValues.SetLink(*values.Link)
+	}
+	if values.FeeCcy != nil {
+		t.TransactionValues.SetFeeCcy(*values.FeeCcy)
+	}
+	if values.FeeAmount != nil {
+		t.TransactionValues.SetFeeAmount(*values.FeeAmount)
+	}
+	if values.FeeUsdAmount != nil {
+		t.TransactionValues.SetFeeUsdAmount(*values.FeeUsdAmount)
+	}
+	if values.FeeUsdRate != nil {
+		t.TransactionValues.SetFeeUsdRate(*values.FeeUsdRate)
+	}
+	if values.ChannelStatus != nil {
+		t.TransactionValues.SetChannelStatus(*values.ChannelStatus)
+	}
+	if values.ResCode != nil {
+		t.TransactionValues.SetResCode(*values.ResCode)
+	}
+	if values.ResMsg != nil {
+		t.TransactionValues.SetResMsg(*values.ResMsg)
+	}
+	if values.ChannelTrxID != nil {
+		t.TransactionValues.SetChannelTrxID(*values.ChannelTrxID)
+	}
+	if values.ChannelAccount != nil {
+		t.TransactionValues.SetChannelAccount(*values.ChannelAccount)
+	}
+	if values.ChannelGroup != nil {
+		t.TransactionValues.SetChannelGroup(*values.ChannelGroup)
+	}
+	if values.ChannelFeeCcy != nil {
+		t.TransactionValues.SetChannelFeeCcy(*values.ChannelFeeCcy)
+	}
+	if values.ChannelFeeAmount != nil {
+		t.TransactionValues.SetChannelFeeAmount(*values.ChannelFeeAmount)
+	}
+	if values.ChannelFeeUsdAmount != nil {
+		t.TransactionValues.SetChannelFeeUsdAmount(*values.ChannelFeeUsdAmount)
+	}
+	if values.ChannelFeeUsdRate != nil {
+		t.TransactionValues.SetChannelFeeUsdRate(*values.ChannelFeeUsdRate)
+	}
+	if values.MetaData != nil {
+		t.TransactionValues.SetMetaData(values.MetaData)
+	}
+	if values.Detail != nil {
+		t.TransactionValues.SetDetail(values.Detail)
+	}
+	if values.CancelReason != nil {
+		t.TransactionValues.SetCancelReason(*values.CancelReason)
+	}
+	if values.CancelFailedResult != nil {
+		t.TransactionValues.SetCancelFailedResult(*values.CancelFailedResult)
+	}
+	if values.Version != nil {
+		t.TransactionValues.SetVersion(*values.Version)
+	}
+	return t
 }
 
 // GetSettleID 获取结算ID
@@ -534,73 +872,163 @@ func NewTrxValues() *TransactionValues {
 }
 
 // SaveTransactionValues 保存交易值更新
-func SaveTransactionValues(db *gorm.DB, trx *Transaction, values *TransactionValues) error {
-	// 创建更新映射
-	updates := make(map[string]interface{})
-
-	if values.Status != nil {
-		updates["status"] = *values.Status
-	}
-	if values.Amount != nil {
-		updates["amount"] = *values.Amount
-	}
-	if values.Fee != nil {
-		updates["fee"] = *values.Fee
-	}
-	if values.Ccy != nil {
-		updates["ccy"] = *values.Ccy
-	}
-	if values.ChannelCode != nil {
-		updates["channel_code"] = *values.ChannelCode
-	}
-	if values.PaymentMethod != nil {
-		updates["payment_method"] = *values.PaymentMethod
-	}
-	if values.NotifyURL != nil {
-		updates["notify_url"] = *values.NotifyURL
-	}
-	if values.ReturnURL != nil {
-		updates["return_url"] = *values.ReturnURL
-	}
-	if values.NotifyStatus != nil {
-		updates["notify_status"] = *values.NotifyStatus
-	}
-	if values.NotifyTimes != nil {
-		updates["notify_times"] = *values.NotifyTimes
-	}
-	if values.OriTrxID != nil {
-		updates["ori_trx_id"] = *values.OriTrxID
-	}
-	if values.Metadata != nil {
-		updates["metadata"] = *values.Metadata
-	}
-	if values.Remark != nil {
-		updates["remark"] = *values.Remark
-	}
-	if values.ExpiredAt != nil {
-		updates["expired_at"] = *values.ExpiredAt
-	}
-	if values.ConfirmedAt != nil {
-		updates["confirmed_at"] = *values.ConfirmedAt
-	}
-	if values.CanceledAt != nil {
-		updates["canceled_at"] = *values.CanceledAt
-	}
-	if values.UsdAmount != nil {
-		updates["usd_amount"] = *values.UsdAmount
-	}
-	if values.SettleID != nil {
-		updates["settle_id"] = *values.SettleID
-	}
-	if values.SettleStatus != nil {
-		updates["settle_status"] = *values.SettleStatus
-	}
-	if values.SettledAt != nil {
-		updates["settled_at"] = *values.SettledAt
-	}
-	// UpdatedAt总是更新
-	updates["updated_at"] = values.UpdatedAt
-
+func SaveTransactionValues(db *gorm.DB, trx *Transaction, values *TransactionValues) (err error) {
+	defer func() {
+		if err == nil {
+			trx.SetValues(values)
+		}
+	}()
 	// 执行更新
-	return db.Model(trx).Updates(updates).Error
+	err = db.Model(trx).Updates(values).Error
+	return
+}
+
+func (t *Transaction) Protocol() *protocol.Transaction {
+	if t == nil {
+		return nil
+	}
+
+	info := &protocol.Transaction{
+		// 基础交易信息
+		ID:        t.ID,
+		Tid:       t.Tid,
+		TrxID:     t.TrxID,
+		TrxType:   t.TrxType,
+		Mid:       t.Mid,
+		ReqID:     t.ReqID,
+		UserID:    t.UserID,
+		CashierID: t.CashierID,
+
+		// 原始交易信息
+		OriTrxID:  t.OriTrxID,
+		OriReqID:  t.OriReqID,
+		OriFlowNo: t.OriFlowNo,
+
+		// 交易方式和模式
+		TrxMethod:     t.TrxMethod,
+		TrxMode:       t.TrxMode,
+		TrxApp:        t.TrxApp,
+		Pkg:           t.Pkg,
+		Did:           t.Did,
+		ProductID:     t.ProductID,
+		PaymentMethod: t.TrxMethod, // 兼容性字段
+
+		// 用户信息
+		UserIP: t.UserIP,
+		Email:  t.Email,
+		Phone:  t.Phone,
+
+		// 币种和账户信息
+		Ccy:         t.Ccy,
+		AccountNo:   t.AccountNo,
+		AccountName: t.AccountName,
+		AccountType: t.AccountType,
+		BankCode:    t.BankCode,
+		BankName:    t.BankName,
+
+		// URL信息
+		ReturnURL: t.ReturnURL,
+
+		// 时间戳
+		CreatedAt: t.CreatedAt,
+		UpdatedAt: t.UpdatedAt,
+	}
+
+	// 处理金额字段 - 转换为字符串
+	if t.Amount != nil {
+		info.Amount = t.Amount.String()
+
+		// 处理实际金额（从Amount减去费用后的金额）
+		actualAmount := *t.Amount
+		if t.TransactionValues != nil && t.TransactionValues.FeeAmount != nil {
+			actualAmount = actualAmount.Sub(*t.TransactionValues.FeeAmount)
+		}
+		info.ActualAmount = actualAmount.String()
+	}
+
+	if t.UsdAmount != nil {
+		info.UsdAmount = t.UsdAmount.String()
+	}
+
+	// 安全处理 TransactionValues 字段
+	if t.TransactionValues != nil {
+		// 基础状态信息
+		info.Country = t.TransactionValues.GetCountry()
+		info.Status = t.TransactionValues.GetStatus()
+		info.ChannelStatus = t.TransactionValues.GetChannelStatus()
+		info.ResCode = t.TransactionValues.GetResCode()
+		info.ResMsg = t.TransactionValues.GetResMsg()
+		info.Reason = t.TransactionValues.GetReason()
+		info.NotifyURL = t.TransactionValues.GetNotifyURL()
+		info.Remark = t.TransactionValues.GetRemark()
+
+		// 流程信息
+		info.FlowNo = t.TransactionValues.GetFlowNo()
+		info.Link = t.TransactionValues.GetLink()
+
+		// 费用信息
+		info.FeeCcy = t.TransactionValues.GetFeeCcy()
+		if t.TransactionValues.FeeAmount != nil {
+			info.FeeAmount = t.TransactionValues.FeeAmount.String()
+		}
+		if t.TransactionValues.FeeUsdAmount != nil {
+			info.FeeUsdAmount = t.TransactionValues.FeeUsdAmount.String()
+		}
+		if t.TransactionValues.FeeUsdRate != nil {
+			info.FeeUsdRate = t.TransactionValues.FeeUsdRate.String()
+		}
+
+		// 渠道信息
+		info.ChannelTrxID = t.TransactionValues.GetChannelTrxID()
+		info.ChannelCode = t.TransactionValues.GetChannelCode()
+		info.ChannelAccount = t.TransactionValues.GetChannelAccount()
+		info.ChannelGroup = t.TransactionValues.GetChannelGroup()
+		info.ChannelFeeCcy = t.TransactionValues.GetChannelFeeCcy()
+		if t.TransactionValues.ChannelFeeAmount != nil {
+			info.ChannelFeeAmount = t.TransactionValues.ChannelFeeAmount.String()
+		}
+		if t.TransactionValues.ChannelFeeUsdAmount != nil {
+			info.ChannelFeeUsdAmount = t.TransactionValues.ChannelFeeUsdAmount.String()
+		}
+		if t.TransactionValues.ChannelFeeUsdRate != nil {
+			info.ChannelFeeUsdRate = t.TransactionValues.ChannelFeeUsdRate.String()
+		}
+
+		// 退款信息
+		info.RefundedCount = t.TransactionValues.GetRefundedCount()
+		if t.TransactionValues.RefundedAmount != nil {
+			info.RefundedAmount = t.TransactionValues.RefundedAmount.String()
+		}
+		if t.TransactionValues.RefundedUsdAmount != nil {
+			info.RefundedUsdAmount = t.TransactionValues.RefundedUsdAmount.String()
+		}
+		info.LastRefundedAt = t.TransactionValues.GetLastRefundedAt()
+
+		// 结算信息
+		info.SettleStatus = t.TransactionValues.GetSettleStatus()
+		info.SettleID = t.TransactionValues.GetSettleID()
+		info.SettledAt = t.TransactionValues.GetSettledAt()
+
+		// 时间字段
+		info.ConfirmedAt = t.TransactionValues.GetConfirmedAt()
+		info.CompletedAt = t.TransactionValues.GetCompletedAt()
+		info.ExpiredAt = t.TransactionValues.GetExpiredAt()
+		info.CanceledAt = t.TransactionValues.GetCanceledAt()
+		info.CancelReason = t.TransactionValues.GetCancelReason()
+		info.CancelFailedResult = t.TransactionValues.GetCancelFailedResult()
+
+		// 扩展信息
+		if t.TransactionValues.GetMetaData() != nil {
+			info.Metadata = *t.TransactionValues.GetMetaData()
+		}
+		info.Detail = t.TransactionValues.GetDetail()
+		info.Version = t.TransactionValues.GetVersion()
+
+		// 处理失败原因
+		if t.TransactionValues.GetStatus() == protocol.StatusFailed {
+			info.FailureReason = t.TransactionValues.GetReason()
+		}
+	}
+
+	return info
 }

@@ -37,7 +37,7 @@ func GetChannelByMerchant(req *RouterRequest) (r *protocol.RouterInfo) {
 			continue
 		}
 		if router.ChannelAccount != nil && *router.ChannelAccount != "" {
-			account := models.GetChannelAccountsByAccountID(*router.ChannelAccount)
+			account := models.GetChannelAccountsByAccountID(router.GetChannelAccount())
 			if account != nil {
 				r.ChannelAccounts = append(r.ChannelAccounts, account.GetAccountID())
 				r.ChannelCodeLib[account.GetAccountID()] = account.ChannelCode
@@ -45,7 +45,7 @@ func GetChannelByMerchant(req *RouterRequest) (r *protocol.RouterInfo) {
 			}
 		}
 		if router.ChannelCode != nil && *router.ChannelCode != "" {
-			account := models.GetActiveChannelAccountByCode(req.Mid, *router.ChannelCode)
+			account := models.GetActiveChannelAccountByCode(req.Mid, router.GetChannelCode())
 			if account != nil {
 				r.ChannelAccounts = append(r.ChannelAccounts, account.GetAccountID())
 				r.ChannelCodeLib[account.GetAccountID()] = account.ChannelCode
@@ -53,7 +53,7 @@ func GetChannelByMerchant(req *RouterRequest) (r *protocol.RouterInfo) {
 			}
 		}
 		if router.ChannelGroup != nil && *router.ChannelGroup != "" {
-			group := models.GetActiveChannelGroupByCode(*router.ChannelGroup)
+			group := models.GetActiveChannelGroupByCode(router.GetChannelGroup())
 			if group != nil {
 				accounts := []string{}
 				for _, member := range group.Members {

@@ -42,12 +42,12 @@ func (t *CashierAdmin) SetupRouter() *gin.Engine {
 	api.POST("/auth", t.Auth)     // 注册授权路由
 	api.POST("/logout", t.Logout) // 注册登出路由
 	// 无需认证的路由
-	api.POST("/verifycode/send", t.SendVerifyCode) // 发送验证码
-	api.POST("/verifycode/verify", t.VerifyCode)   // 验证验证码
-	api.POST("/register", t.Register)              // 注册商户
-	api.POST("/password/reset", t.ResetPassword)   // 重置密码
+	api.POST("/verifycode/send", SendVerifyCode) // 发送验证码
+	api.POST("/verifycode/verify", VerifyCode)   // 验证验证码
+	api.POST("/register", t.Register)            // 注册商户
+	api.POST("/password/reset", t.ResetPassword) // 重置密码
 	// 注册JWT中间件
-	api.Use(middleware.MerchantPermissionMiddleware())
+	api.Use(middleware.CashierTeamJWTAuth())
 	api.POST("/info", t.Info)                      // 商户信息
 	api.POST("/password/change", t.ChangePassword) // 修改密码
 

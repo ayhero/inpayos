@@ -28,18 +28,18 @@ func (t *CashierAdmin) BindG2FA(c *gin.Context) {
 	}
 
 	// 获取当前商户信息
-	merchant := middleware.GetMerchantFromContext(c)
+	cashierTeam := middleware.GetCashierTeamFromContext(c)
 	//已经绑定过，重新绑定
-	if merchant.GetG2FA() != "" {
+	if cashierTeam.GetG2FA() != "" {
 		// 验证码校验
-		if !services.VerifyEmailCode(protocol.VerifyCodeTypeResetG2FA, merchant.GetEmail(), req.VerifyCode) {
+		if !services.VerifyEmailCode(protocol.VerifyCodeTypeResetG2FA, cashierTeam.GetEmail(), req.VerifyCode) {
 			c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
 			return
 		}
 	}
 
 	// 从缓存获取待绑定的G2FA密钥
-	cacheKey := fmt.Sprintf(protocol.G2FABindingTpl, merchant.Mid)
+	cacheKey := fmt.Sprintf(protocol.G2FABindingTpl, cashierTeam.Tid)
 	newG2FAKey, err := models.GetCache(cacheKey)
 	if err != nil {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.SystemError, lang))
@@ -53,7 +53,7 @@ func (t *CashierAdmin) BindG2FA(c *gin.Context) {
 	}
 
 	// 验证通过后，更新商户的G2FA信息
-	if err := models.WriteDB.Model(merchant).Updates(&models.MerchantValues{G2FA: &newG2FAKey}).Error; err != nil {
+	if err := models.WriteDB.Model(cashierTeam).Updates(&models.MerchantValues{G2FA: &newG2FAKey}).Error; err != nil {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.DatabaseError, lang))
 		return
 	}

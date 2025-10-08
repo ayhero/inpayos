@@ -1,64 +1,108 @@
 package protocol
 
-// CreateTransactionRequest 创建交易请求
-type CreateTransactionRequest struct {
-	ReqID         string `json:"req_id" binding:"required"`
-	TrxType       string `json:"trx_type"` // 交易类型：payin, payout
-	Ccy           string `json:"ccy" binding:"required"`
-	Amount        string `json:"amount" binding:"required"`
-	Country       string `json:"country"`
-	PaymentMethod string `json:"payment_method" binding:"required"`
-	NotifyURL     string `json:"notify_url"`
-	ReturnURL     string `json:"return_url"`
-}
-
-// ConfirmTransactionRequest 确认交易请求（支付完成）
-type ConfirmTransactionRequest struct {
-	TrxID  string `json:"trx_id" ` // 交易ID
-	Ccy    string `json:"ccy" binding:"required"`
-	Amount string `json:"amount" binding:"required"`
-}
-
-// CancelTransactionRequest 取消/退款交易请求
-type CancelTransactionRequest struct {
-	TrxID   string `json:"trx_id" `  // 交易ID
-	TrxType string `json:"trx_type"` // 交易类型
-	ReqID   string `json:"req_id"`   // 请求ID
-}
-
-// QueryTransactionRequest 查询交易请求
-type QueryTransactionRequest struct {
-	TrxID   string `json:"trx_id" `  // 交易ID
-	TrxType string `json:"trx_type"` // 交易类型
-	ReqID   string `json:"req_id"`   // 请求ID
-}
-
 // Transaction 交易响应
 type Transaction struct {
-	TrxID         string `json:"trx_id"`
-	Mid           string `json:"mid"`
-	ReqID         string `json:"req_id"`
-	Amount        string `json:"amount"`
-	ActualAmount  string `json:"actual_amount,omitempty"`
-	FeeAmount     string `json:"fee_amount,omitempty"`
-	Ccy           string `json:"ccy"`
-	Country       string `json:"country"`
-	PaymentMethod string `json:"payment_method"`
-	Status        string `json:"status"`
-	NotifyURL     string `json:"notify_url,omitempty"`
-	ReturnURL     string `json:"return_url,omitempty"`
-	FailureReason string `json:"failure_reason,omitempty"`
-	Metadata      string `json:"metadata,omitempty"`
-	ExpiredAt     int64  `json:"expired_at"`
-	CompletedAt   int64  `json:"completed_at"`
-	CreatedAt     int64  `json:"created_at"`
-	UpdatedAt     int64  `json:"updated_at"`
-}
+	// 基础交易信息
+	ID      int64  `json:"id,omitempty"`
+	Tid     string `json:"tid,omitempty"`
+	TrxID   string `json:"trx_id"`
+	TrxType string `json:"trx_type,omitempty"`
+	Mid     string `json:"mid"`
+	ReqID   string `json:"req_id"`
+	UserID  string `json:"user_id,omitempty"`
 
-// TransactionsResponse 交易列表响应
-type TransactionsResponse struct {
-	Transactions []Transaction `json:"transactions"`
-	Total        int64         `json:"total"`
-	Page         int           `json:"page"`
-	Size         int           `json:"size"`
+	// 原始交易信息
+	OriTrxID  string `json:"ori_trx_id,omitempty"`
+	OriReqID  string `json:"ori_req_id,omitempty"`
+	OriFlowNo string `json:"ori_flow_no,omitempty"`
+
+	// 交易方式和模式
+	TrxMethod     string `json:"trx_method,omitempty"` // 原 PaymentMethod
+	TrxMode       string `json:"trx_mode,omitempty"`
+	TrxApp        string `json:"trx_app,omitempty"`
+	Pkg           string `json:"pkg,omitempty"`
+	Did           string `json:"did,omitempty"`
+	ProductID     string `json:"product_id,omitempty"`
+	PaymentMethod string `json:"payment_method"` // 保持兼容性
+
+	// 用户信息
+	UserIP  string `json:"user_ip,omitempty"`
+	Email   string `json:"email,omitempty"`
+	Phone   string `json:"phone,omitempty"`
+	Country string `json:"country"`
+
+	// 金额信息
+	Ccy          string `json:"ccy"`
+	Amount       string `json:"amount"`
+	ActualAmount string `json:"actual_amount,omitempty"`
+	UsdAmount    string `json:"usd_amount,omitempty"`
+
+	// 费用信息
+	FeeCcy       string `json:"fee_ccy,omitempty"`
+	FeeAmount    string `json:"fee_amount,omitempty"`
+	FeeUsdAmount string `json:"fee_usd_amount,omitempty"`
+	FeeUsdRate   string `json:"fee_usd_rate,omitempty"`
+
+	// 账户信息
+	AccountNo   string `json:"account_no,omitempty"`
+	AccountName string `json:"account_name,omitempty"`
+	AccountType string `json:"account_type,omitempty"`
+	BankCode    string `json:"bank_code,omitempty"`
+	BankName    string `json:"bank_name,omitempty"`
+
+	// 状态信息
+	Status        string `json:"status"`
+	ChannelStatus string `json:"channel_status,omitempty"`
+	ResCode       string `json:"res_code,omitempty"`
+	ResMsg        string `json:"res_msg,omitempty"`
+	Reason        string `json:"reason,omitempty"`
+	FailureReason string `json:"failure_reason,omitempty"`
+
+	// 渠道信息
+	ChannelTrxID        string `json:"channel_trx_id,omitempty"`
+	ChannelCode         string `json:"channel_code,omitempty"`
+	ChannelAccount      string `json:"channel_account,omitempty"`
+	ChannelGroup        string `json:"channel_group,omitempty"`
+	ChannelFeeCcy       string `json:"channel_fee_ccy,omitempty"`
+	ChannelFeeAmount    string `json:"channel_fee_amount,omitempty"`
+	ChannelFeeUsdAmount string `json:"channel_fee_usd_amount,omitempty"`
+	ChannelFeeUsdRate   string `json:"channel_fee_usd_rate,omitempty"`
+
+	// 流程信息
+	FlowNo    string `json:"flow_no,omitempty"`
+	Link      string `json:"link,omitempty"`
+	NotifyURL string `json:"notify_url,omitempty"`
+	ReturnURL string `json:"return_url,omitempty"`
+	Remark    string `json:"remark,omitempty"`
+
+	// 退款信息
+	RefundedCount     int    `json:"refunded_count,omitempty"`
+	RefundedAmount    string `json:"refunded_amount,omitempty"`
+	RefundedUsdAmount string `json:"refunded_usd_amount,omitempty"`
+	LastRefundedAt    int64  `json:"last_refunded_at,omitempty"`
+
+	// 结算信息
+	SettleStatus string `json:"settle_status,omitempty"`
+	SettleID     string `json:"settle_id,omitempty"`
+	SettledAt    int64  `json:"settled_at,omitempty"`
+
+	// 取消信息
+	CanceledAt         int64  `json:"canceled_at,omitempty"`
+	CancelReason       string `json:"cancel_reason,omitempty"`
+	CancelFailedResult string `json:"cancel_failed_result,omitempty"`
+
+	// 时间戳
+	ConfirmedAt int64 `json:"confirmed_at,omitempty"`
+	CompletedAt int64 `json:"completed_at"`
+	ExpiredAt   int64 `json:"expired_at"`
+	CreatedAt   int64 `json:"created_at"`
+	UpdatedAt   int64 `json:"updated_at"`
+
+	// 扩展信息
+	Metadata MapData        `json:"metadata,omitempty"`
+	Detail   map[string]any `json:"detail,omitempty"`
+	Version  int64          `json:"version,omitempty"`
+
+	// 收银员信息
+	CashierID string `json:"cashier_id,omitempty"`
 }

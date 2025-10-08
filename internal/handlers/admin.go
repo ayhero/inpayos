@@ -56,7 +56,7 @@ func (a *Admin) SetupRouter() *gin.Engine {
 
 	// 需要JWT认证的端点
 	adminAPI := router.Group("/")
-	adminAPI.Use(middleware.JWTAuth())
+	adminAPI.Use(middleware.AdminJWTAuth())
 	adminAPI.Use(middleware.PermissionCheck())
 	return router
 }

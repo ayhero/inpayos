@@ -7,15 +7,15 @@ import (
 
 // Admin 管理员表
 type Admin struct {
-	ID      int64  `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	AdminID string `json:"admin_id" gorm:"column:admin_id;type:varchar(64);uniqueIndex"`
-	Salt    string `json:"salt" gorm:"column:salt;type:varchar(256)"`
+	ID     int64  `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	UserID string `json:"user_id" gorm:"column:user_id;type:varchar(64);uniqueIndex"`
 	*AdminValues
 	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
 	UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
 }
 
 type AdminValues struct {
+	Salt     *string `json:"salt" gorm:"column:salt;type:varchar(256)"`
 	Username *string `json:"username" gorm:"column:username;type:varchar(50);uniqueIndex"`
 	Email    *string `json:"email" gorm:"column:email;type:varchar(255);uniqueIndex"`
 	Role     *string `json:"role" gorm:"column:role;type:varchar(50);index"`
@@ -29,10 +29,11 @@ func (Admin) TableName() string {
 
 // 创建新管理员
 func NewAdmin() *Admin {
+	salt := utils.GenerateSalt()
 	return &Admin{
-		AdminID: utils.GenerateAdminID(),
-		Salt:    utils.GenerateSalt(),
+		UserID: utils.GenerateAdminID(),
 		AdminValues: &AdminValues{
+			Salt:   &salt,
 			Status: utils.StringPtr(protocol.AdminStatusActive),
 		},
 		CreatedAt: utils.TimeNowMilli(),
@@ -213,11 +214,20 @@ func (a *Admin) SetValues(values *AdminValues) *Admin {
 // 转换方法
 func (a *Admin) ToProtocol() *protocol.Admin {
 	return &protocol.Admin{
-		AdminID:   a.AdminID,
+		AdminID:   a.UserID,
 		Username:  a.GetUsername(),
 		Email:     a.GetEmail(),
 		Role:      a.GetRole(),
 		Status:    a.GetStatus(),
 		CreatedAt: a.CreatedAt,
 	}
+}
+
+func GetAdminUserByID(userID string) *Admin {
+	var admin Admin
+	result := ReadDB.Where("user_id = ?", userID).First(&admin)
+	if result.Error != nil {
+		return nil
+	}
+	return &admin
 }

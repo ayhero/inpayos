@@ -18,7 +18,7 @@ import (
 // @Param data body VerifyCodeRequest true "邮箱"
 // @Success 200 {object} protocol.Result "返回结果"
 // @Router /verifycode/send [post]
-func (t *CashierAdmin) SendVerifyCode(c *gin.Context) {
+func SendVerifyCode(c *gin.Context) {
 	lang := middleware.GetLanguage(c)
 	var req SendVerifyCodeReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -42,7 +42,7 @@ func (t *CashierAdmin) SendVerifyCode(c *gin.Context) {
 // @Param request body VerifyCodeReq true "验证码验证请求"
 // @Success 200 {object} protocol.Result "返回结果"
 // @Router /verifycode/verify [post]
-func (t *CashierAdmin) VerifyCode(c *gin.Context) {
+func VerifyCode(c *gin.Context) {
 	lang := middleware.GetLanguage(c)
 	var req VerifyCodeReq
 	if err := c.ShouldBindJSON(&req); err != nil {

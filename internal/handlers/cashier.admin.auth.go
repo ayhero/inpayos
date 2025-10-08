@@ -1,12 +1,13 @@
 package handlers
 
 import (
+	"inpayos/internal/config"
 	"inpayos/internal/middleware"
 	"inpayos/internal/models"
 	"inpayos/internal/protocol"
 	"inpayos/internal/services"
-	"inpayos/internal/utils"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,7 +28,7 @@ func (s *CashierAdmin) Auth(c *gin.Context) {
 		return
 	}
 
-	var merchant *models.Merchant
+	var cashier *models.CashierTeam
 
 	if req.Email != "" {
 		if req.Password == "" && req.Code == "" {
@@ -38,15 +39,15 @@ func (s *CashierAdmin) Auth(c *gin.Context) {
 			c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
 			return
 		}
-		merchant = models.GetMerchantByEmail(req.Email)
-		if merchant == nil {
+		cashier = models.GetCashierTeamByEmail(req.Email)
+		if cashier == nil {
 			c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.MerchantNotFound, lang))
 			return
 		}
 
-		merchant.Decrypt()
+		cashier.Decrypt()
 		if req.Code != "" {
-			if merchant.GetG2FA() == "" {
+			if cashier.GetG2FA() == "" {
 				c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.TwoFactorRequired, lang))
 				return
 			}
@@ -54,12 +55,12 @@ func (s *CashierAdmin) Auth(c *gin.Context) {
 				c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.MissingParams, lang))
 				return
 			}
-			if !services.VerifyG2FACode(merchant.GetG2FA(), req.Code) {
+			if !services.VerifyG2FACode(cashier.GetG2FA(), req.Code) {
 				c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidTwoFactorCode, lang))
 				return
 			}
 		} else if req.Password != "" {
-			if !merchant.IsPasswordValid(req.Password) {
+			if !cashier.IsPasswordValid(req.Password) {
 				c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidCredentials, lang))
 				return
 			}
@@ -70,8 +71,8 @@ func (s *CashierAdmin) Auth(c *gin.Context) {
 			c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidToken, lang))
 			return
 		}
-		merchant = utils.GetContextData[models.Merchant](c, middleware.MerchantKey)
-		if merchant == nil {
+		cashier = middleware.GetCashierTeamFromContext(c)
+		if cashier == nil {
 			c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.MerchantNotFound, lang))
 			return
 		}
@@ -81,7 +82,7 @@ func (s *CashierAdmin) Auth(c *gin.Context) {
 	}
 
 	// Generate JWT token
-	token, err := utils.GenerateMerchantTokenWithExpire(merchant.Mid, 0)
+	token, err := middleware.GenerateToken(cashier.Tid, time.Now().Add(72*time.Hour), config.Get().Server.CashierAdmin.Jwt.Secret)
 	if err != nil {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.SystemError, lang))
 		return

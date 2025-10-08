@@ -16,7 +16,8 @@ func ChangeMerchantPassword(email, newPassword string) error {
 		//log.Get().Errorf("ChangeMerchantPassword: Merchant not found for email: %s", email)
 		return errors.New("商户不存在")
 	}
-	merchant.Salt = utils.GenerateSalt()
+	salt := utils.GenerateSalt()
+	merchant.Salt = &salt
 	// 设置新密码和盐
 	merchant.SetPassword(newPassword)
 

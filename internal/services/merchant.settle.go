@@ -491,7 +491,7 @@ func (s *MerchantSettleService) SettleTransaction(ctx context.Context, trx *mode
 	case protocol.StatusFailed:
 		log.Get().Infof("SettleTransaction: transaction %s has failed settlement record (settle_id: %s), will retry", trx.TrxID, settleTransaction.SettleID)
 	default:
-		log.Get().Warnf("SettleTransaction: transaction %s has unknown settlement status %d (settle_id: %s), will retry", trx.TrxID, status, settleTransaction.SettleID)
+		log.Get().Warnf("SettleTransaction: transaction %s has unknown settlement status %s (settle_id: %s), will retry", trx.TrxID, status, settleTransaction.SettleID)
 	}
 
 	// 使用 context 缓存获取结算策略，传入交易时间
@@ -619,12 +619,12 @@ func (s *MerchantSettleService) IsStrategyMatched(trx *models.Transaction, strat
 	}
 
 	// 检查交易币种匹配
-	if strategy.TrxCcy != "" && strategy.TrxCcy != trx.GetCcy() {
+	if strategy.TrxCcy != "" && strategy.TrxCcy != trx.Ccy {
 		return false
 	}
 
 	// 检查结算币种匹配
-	if strategy.SettleCcy != "" && strategy.SettleCcy != trx.GetCcy() {
+	if strategy.SettleCcy != "" && strategy.SettleCcy != trx.Ccy {
 		return false
 	}
 
@@ -648,7 +648,7 @@ func (s *MerchantSettleService) IsRuleApplicable(trx *models.Transaction, rule *
 	}
 
 	// 检查币种匹配
-	if rule.Ccy != "" && rule.Ccy != trx.GetCcy() {
+	if rule.Ccy != "" && rule.Ccy != trx.Ccy {
 		return false
 	}
 
@@ -670,7 +670,7 @@ func (s *MerchantSettleService) CalculateSettlement(trx *models.Transaction, rul
 	}
 
 	result := &SettlementResult{
-		FeeCcy: trx.GetCcy(),
+		FeeCcy: trx.Ccy,
 	}
 
 	// 获取交易金额
@@ -721,11 +721,11 @@ func NewSettleTransaction(trx *models.Transaction, settleLogID string) *models.M
 		SettleLogID:                     &settleLogID, // 直接关联结算周期记录
 		MID:                             trx.Mid,
 		TrxType:                         trx.TrxType,
-		TrxCcy:                          trx.GetCcy(),
+		TrxCcy:                          trx.Ccy,
 		TrxAmount:                       trx.Amount,
 		TrxUsdAmount:                    trx.UsdAmount,
 		TrxAt:                           trx.CreatedAt,
-		SettleCcy:                       trx.GetCcy(),
+		SettleCcy:                       trx.Ccy,
 		MerchantSettleTransactionValues: &models.MerchantSettleTransactionValues{},
 	}
 	settleTransaction.SetStatus(protocol.StatusPending)
@@ -853,7 +853,7 @@ func (s *MerchantSettleService) GetOrCreateTransactionSettleLog(trx *models.Tran
 
 	// 2. 获取结算配置
 	var settlePeriodType string = "D1" // 默认按天结算
-	var settleCcy string = trx.GetCcy()
+	var settleCcy string = trx.Ccy
 	var settleStrategies []string
 
 	// 从合同配置获取结算周期类型和策略

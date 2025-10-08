@@ -15,7 +15,7 @@ import (
 
 // Payin 创建代收订单
 func (a *OpenApi) Payin(c *gin.Context) {
-	var req protocol.CreateTransactionRequest
+	var req protocol.MerchantPayinRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		lang := middleware.GetLanguage(c)
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
@@ -23,7 +23,7 @@ func (a *OpenApi) Payin(c *gin.Context) {
 	}
 
 	// 执行业务逻辑（代收类型）
-	response, code := services.GetMerchantTransactionService().CreatePayin(&req)
+	response, code := a.Transaction.CreatePayin(&req)
 	lang := middleware.GetLanguage(c)
 	result := protocol.HandleServiceResult(code, response, lang)
 	c.JSON(http.StatusOK, result)
@@ -31,7 +31,7 @@ func (a *OpenApi) Payin(c *gin.Context) {
 
 // Cancel 取消订单
 func (a *OpenApi) Cancel(c *gin.Context) {
-	var req protocol.CancelTransactionRequest
+	var req protocol.MerchantCancelRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		lang := middleware.GetLanguage(c)
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
@@ -39,7 +39,7 @@ func (a *OpenApi) Cancel(c *gin.Context) {
 	}
 
 	// 执行取消逻辑
-	response, code := services.GetMerchantTransactionService().Cancel(&req)
+	response, code := a.Transaction.Cancel(&req)
 	lang := middleware.GetLanguage(c)
 	result := protocol.HandleServiceResult(code, response, lang)
 	c.JSON(http.StatusOK, result)
@@ -47,7 +47,7 @@ func (a *OpenApi) Cancel(c *gin.Context) {
 
 // Payout 创建代付订单
 func (a *OpenApi) Payout(c *gin.Context) {
-	var req protocol.CreateTransactionRequest
+	var req protocol.MerchantPayoutRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		lang := middleware.GetLanguage(c)
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
@@ -55,7 +55,7 @@ func (a *OpenApi) Payout(c *gin.Context) {
 	}
 
 	// 执行业务逻辑（代付类型）
-	response, code := services.GetMerchantTransactionService().CreatePayout(&req)
+	response, code := a.Transaction.CreatePayout(&req)
 	lang := middleware.GetLanguage(c)
 	result := protocol.HandleServiceResult(code, response, lang)
 	c.JSON(http.StatusOK, result)
@@ -67,7 +67,7 @@ func (a *OpenApi) Payout(c *gin.Context) {
 
 // Query 查询交易状态/详情
 func (a *OpenApi) Query(c *gin.Context) {
-	var req protocol.QueryTransactionRequest
+	var req protocol.MerchantQueryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		lang := middleware.GetLanguage(c)
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
@@ -79,15 +79,7 @@ func (a *OpenApi) Query(c *gin.Context) {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.MissingParams, lang))
 		return
 	}
-
-	// 从上下文获取交易服务
-	transactionService := services.GetMerchantTransactionService()
-	if transactionService == nil {
-		lang := middleware.GetLanguage(c)
-		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.SystemError, lang))
-		return
-	}
-	response, code := transactionService.Query(&req)
+	response, code := a.Transaction.Query(&req)
 	lang := middleware.GetLanguage(c)
 	result := protocol.HandleServiceResult(code, response, lang)
 	c.JSON(http.StatusOK, result)

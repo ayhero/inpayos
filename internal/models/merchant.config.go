@@ -38,7 +38,7 @@ func (MerchantConfig) TableName() string {
 
 // GetConfig 获取配置对象
 func (m *MerchantConfig) GetConfig() (*TrxConfig, error) {
-	if m.ConfigData == nil || len(m.ConfigData) == 0 {
+	if len(m.ConfigData) == 0 {
 		return &TrxConfig{}, nil
 	}
 

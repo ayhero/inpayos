@@ -6,15 +6,15 @@ import (
 )
 
 type Merchant struct {
-	ID   int64  `json:"id" gorm:"column:id;primaryKey;AUTO_INCREMENT"`
-	Mid  string `json:"mid" gorm:"column:mid;type:varchar(64);uniqueIndex"`
-	Salt string `json:"salt" gorm:"column:salt;type:varchar(256)"`
+	ID  int64  `json:"id" gorm:"column:id;primaryKey;AUTO_INCREMENT"`
+	Mid string `json:"mid" gorm:"column:mid;type:varchar(64);uniqueIndex"`
 	*MerchantValues
 	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
 	UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"` // 更新时间 (毫秒时间戳)
 }
 
 type MerchantValues struct {
+	Salt      *string `json:"salt" gorm:"column:salt;type:varchar(256)"`
 	AuthID    *string `json:"auth_id" gorm:"column:auth_id;type:varchar(32);uniqueIndex"`
 	Name      *string `json:"name" gorm:"column:name;type:varchar(64)"`
 	Type      *string `json:"type" gorm:"column:type;type:varchar(32)"`
@@ -35,10 +35,12 @@ func (t *Merchant) TableName() string {
 
 // NewMerchant 创建新的商户
 func NewMerchant() *Merchant {
+	salt := utils.GenerateSalt()
 	return &Merchant{
-		Mid:            utils.GenerateMerchantID(),
-		Salt:           utils.GenerateSalt(),
-		MerchantValues: &MerchantValues{},
+		Mid: utils.GenerateMerchantID(),
+		MerchantValues: &MerchantValues{
+			Salt: &salt,
+		},
 	}
 }
 func (m *MerchantValues) GetPassword() string {
@@ -263,7 +265,10 @@ func GetMerchantsByStatus(status string) ([]*Merchant, error) {
 }
 
 func (u *Merchant) Decrypt() {
-	salt := u.Salt
+	if u.Salt == nil {
+		return
+	}
+	salt := *u.Salt
 	pwd, err := utils.Decrypt(u.GetPassword(), []byte(salt))
 	if err == nil {
 		u.SetPassword(pwd)
@@ -271,7 +276,10 @@ func (u *Merchant) Decrypt() {
 }
 
 func (u *Merchant) Encrypt() {
-	salt := u.Salt
+	if u.Salt == nil {
+		return
+	}
+	salt := *u.Salt
 	pwd, err := utils.Encrypt([]byte(u.GetPassword()), []byte(salt))
 	if err == nil {
 		u.SetPassword(pwd)

@@ -240,13 +240,17 @@ inpayos 是一个**多语言支持的支付网关服务**，采用分层多服�
        │ChannelCode  │
        └─────┬───────┘
              │
-    ┌──────▼──────┬──────────────┐
-    │             │              │
-    ▼             ▼              ▼
-�CashierAPI   🏦BankAPI    🔗ThirdPartyAPI
-(收银渠道)     (银行渠道)    (第三方渠道)
-    │             │              │
-    ▼             ▼              ▼
+    ┌────────▼────────┬────────────────┐
+    │                 │                │
+    ▼                 ▼                ▼
+�CashierAPI     🔗ThirdPartyAPI
+(收银渠道)      (第三方渠道)
+                包含银行API和其他第三方API
+    │                 │
+    ▼                 ▼
+    └─────────────────┘
+             │
+             ▼
 📋 业务表记录 (SType="merchant", Sid=商户ID)
              │
              ▼
@@ -492,45 +496,7 @@ CashierTeam管理
 - **TaskService**: 定时任务服务，处理系统级定时任务
 - **MessageService**: 消息服务，处理系统通知和回调
 
-#### 4.5.3 服务调用模式
-
-```go
-// 示例：核心服务统一接口设计
-type DepositService interface {
-    CreateDeposit(stype, sid string, req *CreateDepositRequest) (*Deposit, error)
-    QueryDeposit(stype, sid string, req *QueryDepositRequest) (*Deposit, error)
-    CancelDeposit(stype, sid string, req *CancelDepositRequest) (*Deposit, error)
-}
-
-type WithdrawService interface {
-    CreateWithdraw(stype, sid string, req *CreateWithdrawRequest) (*Withdraw, error)
-    QueryWithdraw(stype, sid string, req *QueryWithdrawRequest) (*Withdraw, error)
-    CancelWithdraw(stype, sid string, req *CancelWithdrawRequest) (*Withdraw, error)
-}
-
-type AccountService interface {
-    GetAccount(userType, userID, currency string) (*Account, error)
-    UpdateBalance(userType, userID, currency string, amount decimal.Decimal) error
-    FreezeBalance(userType, userID, currency string, amount decimal.Decimal) error
-}
-
-// 各系统调用示例
-// 商户系统调用
-depositService.CreateDeposit("merchant", merchantID, req)
-
-// 收银团队系统调用
-depositService.CreateDeposit("cashier_team", teamID, req)
-
-// 管理后台调用
-accountService.GetAccount("merchant", merchantID, "USD")
-
-// 说明：
-// - Cashier是支付渠道，通过ChannelCode="Cashier"标识
-// - CashierTeam在CashierAPI的调用层处理具体业务
-// - 没有独立的银行渠道，银行API归入ThirdPartyAPI
-```
-
-#### 4.5.4 业务模块分离原则
+#### 4.5.3 业务模块分离原则
 
 **核心服务** (共享)：
 - 只处理数据操作和业务规则
@@ -546,15 +512,15 @@ accountService.GetAccount("merchant", merchantID, "USD")
 ### 4.6 数据层 (Data Layer)
 
 **统一账户数据策略**:
-- **统一账户表**: t_accounts (UserID + UserType + Currency 唯一索引)
+- **统一账户表**: t_accounts (UserID + UserType + Ccy 复合唯一索引)
   - UserType = "merchant": 商户账户数据
-  - UserType = "cashier_team": 收银团队账户数据
+  - UserType = "cashier_team": 收银团队账户数据  
   - UserType = "admin": 管理员账户数据
 
-**角色相关数据**:
-- **商户数据**: t_merchants, t_merchant_admins, merchant_transactions, merchant_configs
-- **收银团队数据**: t_cashiers, t_cashier_admins, cashier_transactions, cashier_configs
-- **全局数据**: t_admins, system_config, global_stats, audit_logs
+**核心业务数据表**:
+- **账户和用户**: t_accounts, t_merchants, t_cashier_teams, t_cashiers, t_admins
+- **业务交易**: t_deposits, t_withdraws
+- **全局数据**: system_config, global_stats, audit_logs
 
 **缓存分区**:
 - **商户缓存**: merchant_sessions, merchant_configs
@@ -568,111 +534,176 @@ accountService.GetAccount("merchant", merchantID, "USD")
 ```go
 // Account 统一账户表 - 支持商户和收银团队两类平级角色
 type Account struct {
-    ID        uint64 `json:"id" gorm:"primaryKey;autoIncrement"`
-    AccountID string `json:"account_id" gorm:"uniqueIndex"`          // 账户唯一标识
-    Salt      string `json:"salt"`                                   // 加密salt
+    ID        uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+    AccountID string `json:"account_id" gorm:"column:account_id;type:varchar(32);uniqueIndex"`
+    Salt      string `json:"salt" gorm:"column:salt;type:varchar(256)"`
     *AccountValues
-    CreatedAt int64 `json:"created_at" gorm:"autoCreateTime:milli"`
+    CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
 }
 
 type AccountValues struct {
-    UserID       *string `json:"user_id"`   // 用户ID（商户ID或收银团队ID）
-    UserType     *string `json:"user_type"` // 用户类型：merchant, cashier_team, admin
-    Ccy          *string `json:"ccy"`       // 币种
-    Asset        *Asset  `json:"asset"`     // 资产信息
-    Status       *int    `json:"status"`    // 账户状态
-    Version      *int64  `json:"version"`   // 版本号（乐观锁）
-    LastActiveAt *int64  `json:"last_active_at"` // 最后活跃时间
-    UpdatedAt    int64   `json:"updated_at" gorm:"autoUpdateTime:milli"`
+    UserID       *string `json:"user_id" gorm:"column:user_id;type:varchar(32);uniqueIndex:uk_userid_usertype_ccy"`
+    UserType     *string `json:"user_type" gorm:"column:user_type;type:varchar(16);uniqueIndex:uk_userid_usertype_ccy"`
+    Ccy          *string `json:"ccy" gorm:"column:ccy;type:varchar(16);uniqueIndex:uk_userid_usertype_ccy"`
+    Asset        *Asset  `json:"asset" gorm:"column:asset;serializer:json;type:json"`
+    Status       *int    `json:"status" gorm:"column:status;type:int;default:1"`
+    Version      *int64  `json:"version" gorm:"column:version;type:bigint;default:1"`
+    LastActiveAt *int64  `json:"last_active_at" gorm:"column:last_active_at;type:bigint"`
+    UpdatedAt    int64   `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
 }
 
-// 索引：UserID + UserType + Currency 唯一
+// 表名
+func (Account) TableName() string {
+    return "t_accounts"
+}
+
+// 复合唯一索引：UserID + UserType + Ccy 唯一
 ```
 
-### 5.2 收银团队模型
+### 5.2 收银员模型
 
 ```go
-// Cashier 收银员/收银团队表
+// Cashier 出纳员/收银员表（区分公户和私户）
 type Cashier struct {
-    ID        uint64 `json:"id" gorm:"primaryKey;autoIncrement"`
-    CashierID string `json:"cashier_id" gorm:"uniqueIndex"`      // 收银员唯一标识
-    AccountID string `json:"account_id" gorm:"index"`           // 关联的账户ID
-    Salt      string `json:"salt"`
+    ID        uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+    CashierID string `json:"cashier_id" gorm:"column:cashier_id;type:varchar(64);uniqueIndex"`
     *CashierValues
-    CreatedAt int64 `json:"created_at" gorm:"autoCreateTime:milli"`
-    UpdatedAt int64 `json:"updated_at" gorm:"autoUpdateTime:milli"`
+    CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
+    UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
 }
 
 type CashierValues struct {
+    Salt *string `json:"salt" gorm:"column:salt;type:varchar(256)"`
+    
     // 基础信息
-    Type        *string `json:"type"`         // private(私户), corporate(公户)
-    BankCode    *string `json:"bank_code"`    // 银行代码
-    BankName    *string `json:"bank_name"`    // 银行名称
-    CardNumber  *string `json:"card_number"`  // 卡号
-    HolderName  *string `json:"holder_name"`  // 持卡人姓名
-    HolderPhone *string `json:"holder_phone"` // 持卡人手机
-    HolderEmail *string `json:"holder_email"` // 持卡人邮箱
-    
+    Type        *string `json:"type" gorm:"column:type;type:varchar(16);index;default:'private'"` // private(私户), corporate(公户)
+    BankCode    *string `json:"bank_code" gorm:"column:bank_code;type:varchar(32);index"`         // 银行代码
+    BankName    *string `json:"bank_name" gorm:"column:bank_name;type:varchar(128)"`              // 银行名称
+    CardNumber  *string `json:"card_number" gorm:"column:card_number;type:varchar(32);index"`     // 卡号
+    HolderName  *string `json:"holder_name" gorm:"column:holder_name;type:varchar(128)"`          // 持卡人姓名
+    HolderPhone *string `json:"holder_phone" gorm:"column:holder_phone;type:varchar(32)"`         // 持卡人手机
+    HolderEmail *string `json:"holder_email" gorm:"column:holder_email;type:varchar(128)"`        // 持卡人邮箱
+
     // 地域信息
-    Country     *string `json:"country"`      // 国家
-    CountryCode *string `json:"country_code"` // 国家代码
-    Province    *string `json:"province"`     // 省/州
-    City        *string `json:"city"`         // 城市
-    
+    Country     *string `json:"country" gorm:"column:country;type:varchar(8);index"`     // 国家
+    CountryCode *string `json:"country_code" gorm:"column:country_code;type:varchar(8)"` // 国家代码
+    Province    *string `json:"province" gorm:"column:province;type:varchar(64)"`        // 省/州
+    City        *string `json:"city" gorm:"column:city;type:varchar(64)"`                // 城市
+
     // 业务配置
-    Ccy          *string           `json:"ccy"`           // 币种
-    PayinStatus  *string           `json:"payin_status"`  // 收款状态
-    PayinConfig  *protocol.MapData `json:"payin_config"`  // 收款配置
-    PayoutStatus *string           `json:"payout_status"` // 付款状态
-    PayoutConfig *protocol.MapData `json:"payout_config"` // 付款配置
-    Status       *string           `json:"status"`        // 状态
-    
+    Ccy          *string           `json:"ccy" gorm:"column:ccy;type:varchar(8);index;default:'CNY'"`                   // 币种
+    PayinStatus  *string           `json:"payin_status" gorm:"column:payin_status;type:varchar(16);default:'active'"`   // 收款状态：active, inactive, frozen, suspended
+    PayinConfig  *protocol.MapData `json:"payin_config" gorm:"column:payin_config;type:text"`                           // 收款配置
+    PayoutStatus *string           `json:"payout_status" gorm:"column:payout_status;type:varchar(16);default:'active'"` // 付款状态：active, inactive, frozen, suspended
+    PayoutConfig *protocol.MapData `json:"payout_config" gorm:"column:payout_config;type:text"`                         // 付款配置
+    Status       *string           `json:"status" gorm:"column:status;type:varchar(16);default:'active'"`               // active, inactive, frozen, suspended
+
     // 其他信息
-    ExpireAt *int64  `json:"expire_at"` // 过期时间
-    Logo     *string `json:"logo"`      // 头像/标志
-    Remark   *string `json:"remark"`    // 备注
+    ExpireAt *int64  `json:"expire_at" gorm:"column:expire_at"`             // 过期时间
+    Logo     *string `json:"logo" gorm:"column:logo;type:varchar(512)"`     // 头像/标志
+    Remark   *string `json:"remark" gorm:"column:remark;type:varchar(512)"` // 备注
+}
+
+// 表名
+func (Cashier) TableName() string {
+    return "t_cashiers"
 }
 ```
 
-### 5.3 收银团队管理员模型
+### 5.3 收银团队模型
 
 ```go
-// CashierAdmin 收银团队管理员表
-type CashierAdmin struct {
-    ID      int64  `json:"id" gorm:"primaryKey;autoIncrement"`
-    AdminID string `json:"admin_id" gorm:"uniqueIndex"`        // 管理员唯一标识
-    Salt    string `json:"salt"`
-    *CashierAdminValues
-    CreatedAt int64 `json:"created_at" gorm:"autoCreateTime:milli"`
+// CashierTeam 收银团队表
+type CashierTeam struct {
+    ID  int64  `gorm:"primaryKey;autoIncrement" json:"id"`
+    Tid string `json:"tid" gorm:"column:tid"`
+    *CashierTeamValues
+    CreatedAt int64 `gorm:"autoCreateTime:milli" json:"created_at"`
+    UpdatedAt int64 `gorm:"autoUpdateTime:milli" json:"updated_at"`
 }
 
-type CashierAdminValues struct {
-    // 基本信息
-    Username *string `json:"username" gorm:"uniqueIndex"` // 用户名
-    Email    *string `json:"email" gorm:"uniqueIndex"`    // 邮箱
-    Phone    *string `json:"phone"`                       // 手机号
-    
-    // 个人信息
-    FirstName *string `json:"first_name"` // 名
-    LastName  *string `json:"last_name"`  // 姓
-    FullName  *string `json:"full_name"`  // 全名
-    Avatar    *string `json:"avatar"`     // 头像
-    
-    // 认证信息
-    PasswordHash     *string `json:"-"`                    // 密码哈希
-    PasswordSalt     *string `json:"-"`                    // 密码salt
-    EmailVerified    *bool   `json:"email_verified"`       // 邮箱验证状态
-    PhoneVerified    *bool   `json:"phone_verified"`       // 手机验证状态
-    TwoFactorEnabled *bool   `json:"two_factor_enabled"`   // 2FA启用状态
-    TwoFactorSecret  *string `json:"-"`                    // 2FA密钥
-    
-    // 角色和权限
-    Role        *string `json:"role"`        // super_admin, admin, moderator, support, analyst
-    Permissions *string `json:"permissions"` // JSON数组存储权限列表
-    Department  *string `json:"department"`  // 部门
-    JobTitle    *string `json:"job_title"`   // 职位
-    
-    // 状态管理
+type CashierTeamValues struct {
+    Salt        *string `json:"salt" gorm:"column:salt;type:varchar(256)"`
+    Description *string `gorm:"type:varchar(255)" json:"description"`
+    AuthID      *string `json:"auth_id" gorm:"column:auth_id;type:varchar(32);uniqueIndex"`
+    Name        *string `json:"name" gorm:"column:name;type:varchar(64)"`
+    Type        *string `json:"type" gorm:"column:type;type:varchar(32)"`
+    Email       *string `json:"email" gorm:"column:email;type:varchar(128);uniqueIndex"`
+    Phone       *string `json:"phone" gorm:"column:phone;type:varchar(20)"`
+    Status      *string `json:"status" gorm:"column:status;type:varchar(32)"`
+    Password    *string `json:"password" gorm:"column:password;type:varchar(128);not null"`
+    Region      *string `json:"region" gorm:"column:region;type:varchar(32)"`
+    Avatar      *string `json:"avatar" gorm:"column:avatar;type:varchar(255)"`
+    G2FA        *string `json:"g2fa" gorm:"column:g2fa;type:varchar(256)"`
+    NotifyURL   *string `json:"notify_url" gorm:"column:notify_url;type:varchar(1024)"`
+    RegIP       *string `json:"reg_ip" gorm:"column:reg_ip;type:varchar(64)"` // 注册IP
+}
+
+// 表名
+func (CashierTeam) TableName() string {
+    return "t_cashier_teams"
+}
+```
+
+### 5.4 商户模型
+
+```go
+// Merchant 商户表
+type Merchant struct {
+    ID  int64  `json:"id" gorm:"column:id;primaryKey;AUTO_INCREMENT"`
+    Mid string `json:"mid" gorm:"column:mid;type:varchar(64);uniqueIndex"`
+    *MerchantValues
+    CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
+    UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
+}
+
+type MerchantValues struct {
+    Salt      *string `json:"salt" gorm:"column:salt;type:varchar(256)"`
+    AuthID    *string `json:"auth_id" gorm:"column:auth_id;type:varchar(32);uniqueIndex"`
+    Name      *string `json:"name" gorm:"column:name;type:varchar(64)"`
+    Type      *string `json:"type" gorm:"column:type;type:varchar(32)"`
+    Email     *string `json:"email" gorm:"column:email;type:varchar(128);uniqueIndex"`
+    Phone     *string `json:"phone" gorm:"column:phone;type:varchar(20)"`
+    Status    *string `json:"status" gorm:"column:status;type:varchar(32)"`
+    Password  *string `json:"password" gorm:"column:password;type:varchar(128);not null"`
+    Region    *string `json:"region" gorm:"column:region;type:varchar(32)"`
+    Avatar    *string `json:"avatar" gorm:"column:avatar;type:varchar(255)"`
+    G2FA      *string `json:"g2fa" gorm:"column:g2fa;type:varchar(256)"`
+    NotifyURL *string `json:"notify_url" gorm:"column:notify_url;type:varchar(1024)"`
+    RegIP     *string `json:"reg_ip" gorm:"column:reg_ip;type:varchar(64)"` // 注册IP
+}
+
+// 表名
+func (Merchant) TableName() string {
+    return "t_merchants"
+}
+```
+
+### 5.5 全局管理员模型
+
+```go
+// Admin 管理员表
+type Admin struct {
+    ID     int64  `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+    UserID string `json:"user_id" gorm:"column:user_id;type:varchar(64);uniqueIndex"`
+    *AdminValues
+    CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
+    UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
+}
+
+type AdminValues struct {
+    Salt     *string `json:"salt" gorm:"column:salt;type:varchar(256)"`
+    Username *string `json:"username" gorm:"column:username;type:varchar(50);uniqueIndex"`
+    Email    *string `json:"email" gorm:"column:email;type:varchar(255);uniqueIndex"`
+    Role     *string `json:"role" gorm:"column:role;type:varchar(50);index"`
+    Status   *string `json:"status" gorm:"column:status;type:varchar(32);index;default:'active'"`
+    Password *string `json:"password" gorm:"column:password;type:varchar(128);not null"`
+}
+
+// 表名
+func (Admin) TableName() string {
+    return "t_admins"
+}
     Status       *string `json:"status"`        // active, inactive, suspended, locked
     ActiveStatus *string `json:"active_status"` // online, offline, busy
     
@@ -694,121 +725,87 @@ type CashierAdminValues struct {
 }
 ```
 
-### 5.4 全局管理员模型
+### 5.6 统一业务交易模型
+
+#### 5.6.1 统一充值模型
 
 ```go
-// Admin 全局管理员表
-type Admin struct {
-    ID      int64  `json:"id" gorm:"primaryKey;autoIncrement"`
-    AdminID string `json:"admin_id" gorm:"uniqueIndex"`
-    Salt    string `json:"salt"`
-    *AdminValues
-    CreatedAt int64 `json:"created_at" gorm:"autoCreateTime:milli"`
-}
-
-type AdminValues struct {
-    Username     *string `json:"username" gorm:"uniqueIndex"`     // 用户名
-    Email        *string `json:"email" gorm:"uniqueIndex"`        // 邮箱
-    Role         *string `json:"role"`                           // 角色
-    Status       *string `json:"status"`                         // 状态
-    ActiveStatus *string `json:"active_status"`                  // 活跃状态
-    UpdatedAt    int64   `json:"updated_at" gorm:"autoUpdateTime:milli"`
-}
-```
-
-### 5.5 统一业务交易模型
-
-#### 5.5.1 通用交易抽象层
-
-```go
-// Transaction 通用交易记录表（作为所有业务交易的抽象层）
-type Transaction struct {
-    ID        uint64 `json:"id" gorm:"primaryKey;autoIncrement"`
-    Tid       string `json:"tid" gorm:"index"`                    // 交易ID
-    CashierID string `json:"cashier_id" gorm:"index"`             // 收银员ID
-    Mid       string `json:"mid" gorm:"index"`                    // 商户ID
-    UserID    string `json:"user_id" gorm:"index"`                // 用户ID
-    TrxID     string `json:"transaction_id" gorm:"uniqueIndex"`   // 交易唯一标识
-    ReqID     string `json:"req_id" gorm:"index"`                 // 请求ID
-    TrxType   string `json:"trx_type" gorm:"index"`               // 交易类型
-    *TransactionValues
-    CreatedAt int64 `json:"created_at" gorm:"autoCreateTime:milli"`
-}
-
-// 支持的交易类型：receipt, payment, refund, transfer, deposit, withdraw
-```
-
-#### 5.5.2 统一充值模型
-
-```go
-// Deposit 充值记录表 - 支持商户和收银团队统一充值
+// Deposit 充值记录表
 type Deposit struct {
-    ID        uint64 `json:"id" gorm:"primaryKey;autoIncrement"`
-    TrxID     string `json:"trx_id" gorm:"uniqueIndex"`           // 交易唯一标识
-    Sid       string `json:"sid" gorm:"index"`                    // 服务主体ID (商户ID或收银团队ID或收银员ID)
-    SType     string `json:"s_type" gorm:"index"`                 // 服务类型：merchant, cashier_team, cashier
-    AccountID string `json:"account_id" gorm:"index"`             // 关联账户ID
+    ID        uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+    TrxID     string `json:"trx_id" gorm:"column:trx_id;type:varchar(64);uniqueIndex"`
+    Sid       string `json:"sid" gorm:"column:sid;type:varchar(32);index"`
+    SType     string `json:"s_type" gorm:"column:s_type;type:varchar(32);index"` // service类型，如 "merchant", "cashier"
+    AccountID string `json:"account_id" gorm:"column:account_id;type:varchar(64);index"`
     *DepositValues
-    CreatedAt int64 `json:"created_at" gorm:"autoCreateTime:milli"`
-    UpdatedAt int64 `json:"updated_at" gorm:"autoUpdateTime:milli"`
+    CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
+    UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
 }
 
 type DepositValues struct {
-    Status      *string          `json:"status"`       // pending, processing, success, failed
-    Ccy         *string          `json:"ccy"`          // 币种
-    Amount      *decimal.Decimal `json:"amount"`       // 充值金额
-    Fee         *decimal.Decimal `json:"fee"`          // 手续费
-    ChannelCode *string          `json:"channel_code"` // 渠道代码
-    NotifyURL   *string          `json:"notify_url"`   // 回调地址
-    Country     *string          `json:"country"`      // 国家
-    // 状态时间戳
-    CanceledAt  *int64 `json:"canceled_at"`  // 取消时间
-    CompletedAt *int64 `json:"completed_at"` // 完成时间
-    ExpiredAt   *int64 `json:"expired_at"`   // 过期时间
-    ConfirmedAt *int64 `json:"confirmed_at"` // 确认时间
+    Status      *string          `json:"status" gorm:"column:status;type:varchar(16);index;default:'pending'"`
+    Ccy         *string          `json:"ccy" gorm:"column:ccy;type:varchar(16)"`
+    Amount      *decimal.Decimal `json:"amount" gorm:"column:amount;type:decimal(36,18)"`
+    Fee         *decimal.Decimal `json:"fee" gorm:"column:fee;type:decimal(36,18);default:0"`
+    ChannelCode *string          `json:"channel_code" gorm:"column:channel_code;type:varchar(32)"`
+    NotifyURL   *string          `json:"notify_url" gorm:"column:notify_url;type:varchar(512)"`
+    Country     *string          `json:"country" gorm:"column:country;type:varchar(8)"`
+    CanceledAt  *int64           `json:"canceled_at" gorm:"column:canceled_at"`
+    CompletedAt *int64           `json:"completed_at" gorm:"column:completed_at"`
+    ExpiredAt   *int64           `json:"expired_at" gorm:"column:expired_at"`
+    ConfirmedAt *int64           `json:"confirmed_at" gorm:"column:confirmed_at"`
+}
+
+// 表名
+func (Deposit) TableName() string {
+    return "t_deposits"
 }
 
 // 通过 Sid + SType 区分业务主体:
 // - SType="merchant", Sid=商户ID: 商户充值
-// - SType="cashier_team", Sid=团队ID: 收银团队充值
+// - SType="cashier", Sid=收银员ID: 收银员充值
 ```
 
-#### 5.5.3 统一提现模型
+#### 5.6.2 统一提现模型
 
 ```go
-// Withdraw 提现记录表 - 支持商户和收银团队统一提现
+// Withdraw 提现记录表
 type Withdraw struct {
-    ID        uint64 `json:"id" gorm:"primaryKey;autoIncrement"`
-    Sid       string `json:"sid" gorm:"index"`                    // 服务主体ID (商户ID或收银团队ID或收银员ID)
-    SType     string `json:"s_type" gorm:"index"`                 // 服务类型：merchant, cashier_team, cashier
-    TrxID     string `json:"trx_id" gorm:"uniqueIndex"`           // 交易唯一标识
-    AccountID string `json:"account_id" gorm:"index"`             // 关联账户ID
+    ID        uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+    TrxID     string `json:"trx_id" gorm:"column:trx_id;type:varchar(64);uniqueIndex"`
+    Sid       string `json:"sid" gorm:"column:sid;type:varchar(32);index"`
+    SType     string `json:"s_type" gorm:"column:s_type;type:varchar(32);index"` // service类型，如 "merchant", "cashier"
+    AccountID string `json:"account_id" gorm:"column:account_id;type:varchar(64);index"`
     *WithdrawValues
-    CreatedAt int64 `json:"created_at" gorm:"autoCreateTime:milli"`
-    UpdatedAt int64 `json:"updated_at" gorm:"autoUpdateTime:milli"`
+    CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
+    UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
 }
 
 type WithdrawValues struct {
-    Status      *string          `json:"status"`       // pending, processing, success, failed
-    Ccy         *string          `json:"ccy"`          // 币种
-    Amount      *decimal.Decimal `json:"amount"`       // 提现金额
-    Fee         *decimal.Decimal `json:"fee"`          // 手续费
-    ChannelCode *string          `json:"channel_code"` // 渠道代码
-    NotifyURL   *string          `json:"notify_url"`   // 回调地址
-    Country     *string          `json:"country"`      // 国家
-    // 状态时间戳
-    CanceledAt  *int64 `json:"canceled_at"`  // 取消时间
-    CompletedAt *int64 `json:"completed_at"` // 完成时间
-    ExpiredAt   *int64 `json:"expired_at"`   // 过期时间
-    ConfirmedAt *int64 `json:"confirmed_at"` // 确认时间
+    Status      *string          `json:"status" gorm:"column:status;type:varchar(16);index;default:'pending'"`
+    Ccy         *string          `json:"ccy" gorm:"column:ccy;type:varchar(16)"`
+    Amount      *decimal.Decimal `json:"amount" gorm:"column:amount;type:decimal(36,18)"`
+    Fee         *decimal.Decimal `json:"fee" gorm:"column:fee;type:decimal(36,18);default:0"`
+    ChannelCode *string          `json:"channel_code" gorm:"column:channel_code;type:varchar(32)"`
+    NotifyURL   *string          `json:"notify_url" gorm:"column:notify_url;type:varchar(512)"`
+    Country     *string          `json:"country" gorm:"column:country;type:varchar(8)"`
+    CanceledAt  *int64           `json:"canceled_at" gorm:"column:canceled_at"`
+    CompletedAt *int64           `json:"completed_at" gorm:"column:completed_at"`
+    ExpiredAt   *int64           `json:"expired_at" gorm:"column:expired_at"`
+    ConfirmedAt *int64           `json:"confirmed_at" gorm:"column:confirmed_at"`
+}
+
+// 表名
+func (Withdraw) TableName() string {
+    return "t_withdraws"
 }
 
 // 通过 Sid + SType 区分业务主体:
 // - SType="merchant", Sid=商户ID: 商户提现
-// - SType="cashier_team", Sid=团队ID: 收银团队提现
+// - SType="cashier", Sid=收银员ID: 收银员提现
 ```
 
-#### 5.5.4 资产模型
+#### 5.6.3 资产模型
 
 ```go
 // Asset 资产模型，支持多资金属性
@@ -818,7 +815,7 @@ type Asset struct {
     FrozenBalance    decimal.Decimal `json:"frozen_balance"`    // 冻结余额
     MarginBalance    decimal.Decimal `json:"margin_balance"`    // 保证金余额
     ReserveBalance   decimal.Decimal `json:"reserve_balance"`   // 预留余额
-    Currency         string          `json:"currency"`          // 币种
+    Ccy              string          `json:"ccy"`               // 币种
     UpdatedAt        int64           `json:"updated_at"`        // 更新时间
 }
 ```

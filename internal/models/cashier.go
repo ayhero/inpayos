@@ -10,13 +10,13 @@ import (
 type Cashier struct {
 	ID        uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	CashierID string `json:"cashier_id" gorm:"column:cashier_id;type:varchar(64);uniqueIndex"`
-	Salt      string `json:"salt" gorm:"column:salt;type:varchar(256)"`
 	*CashierValues
 	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
 	UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
 }
 
 type CashierValues struct {
+	Salt *string `json:"salt" gorm:"column:salt;type:varchar(256)"`
 	// 基础信息
 	Type        *string `json:"type" gorm:"column:type;type:varchar(16);index;default:'private'"` // private(私户), corporate(公户)
 	BankCode    *string `json:"bank_code" gorm:"column:bank_code;type:varchar(32);index"`         // 银行代码
@@ -53,10 +53,12 @@ func (Cashier) TableName() string {
 
 // NewCashier 创建新的出纳员/收银员
 func NewCashier() *Cashier {
+	salt := utils.GenerateSalt()
 	return &Cashier{
-		CashierID:     utils.GenerateCashierID(),
-		Salt:          utils.GenerateSalt(),
-		CashierValues: &CashierValues{},
+		CashierID: utils.GenerateCashierID(),
+		CashierValues: &CashierValues{
+			Salt: &salt,
+		},
 	}
 }
 

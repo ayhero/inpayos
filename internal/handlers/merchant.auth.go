@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"inpayos/internal/config"
 	"inpayos/internal/middleware"
 	"inpayos/internal/models"
 	"inpayos/internal/protocol"
 	"inpayos/internal/services"
 	"inpayos/internal/utils"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -94,7 +96,7 @@ func (s *MerchantAdmin) Auth(c *gin.Context) {
 	}
 
 	// Generate JWT token
-	token, err := utils.GenerateMerchantTokenWithExpire(merchant.Mid, 0)
+	token, err := middleware.GenerateToken(merchant.Mid, time.Now().Add(72*time.Hour), config.Get().Server.CashierAdmin.Jwt.Secret)
 	if err != nil {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.SystemError, lang))
 		return

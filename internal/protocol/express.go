@@ -3,6 +3,7 @@ package protocol
 import (
 	"fmt"
 	"inpayos/internal/utils"
+	"slices"
 	"strings"
 
 	"github.com/Knetic/govaluate"
@@ -135,17 +136,13 @@ func (t Express) MatchStringVal(target string) (result bool) {
 		result = target == match
 	case IN_MATCH:
 		tg_list := strings.Split(match, ",")
-		for _, _v := range tg_list {
-			if _v == target {
-				return true
-			}
+		if slices.Contains(tg_list, target) {
+			return true
 		}
 	case NOT_IN_MATCH:
 		tg_list := strings.Split(match, ",")
-		for _, _v := range tg_list {
-			if _v == target {
-				return false
-			}
+		if slices.Contains(tg_list, target) {
+			return false
 		}
 	}
 	return result

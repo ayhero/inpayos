@@ -21,107 +21,13 @@ const (
 	TokenKey = "token"
 )
 
-const (
-	MerchantKey = "merchant"
-	MIDKey      = "mid"
-)
-
 // JWTClaims JWT载荷
 type JWTClaims struct {
-	UserID     string `json:"user_id"`
-	UserType   string `json:"user_type"` // merchant, admin, cashier
-	Email      string `json:"email"`
-	MerchantID string `json:"merchant_id"` // 商户ID（对于admin可能为空）
-	Role       string `json:"role"`        // 角色权限
+	UserID   string `json:"user_id"`
+	UserType string `json:"user_type"` // merchant, admin, cashier
+	Email    string `json:"email"`
+	Role     string `json:"role"` // 角色权限
 	jwt.RegisteredClaims
-}
-
-// JWTMiddleware JWT认证中间件
-func JWTMiddleware(jwtSecret string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		token := ValidToken(c, []byte(jwtSecret))
-		if token == nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, protocol.NewAuthErrorResult())
-			c.Abort()
-			return
-		}
-
-		// 提取用户信息
-		if claims, ok := token.Claims.(*JWTClaims); ok {
-			// 将用户信息存储到上下文中
-			c.Set("user_id", claims.UserID)
-			c.Set("user_type", claims.UserType)
-			c.Set("email", claims.Email)
-			c.Set("merchant_id", claims.MerchantID)
-			c.Set("role", claims.Role)
-			c.Set("jwt_claims", claims)
-		}
-
-		c.Next()
-	}
-}
-
-// AdminPermissionMiddleware 管理员权限中间件
-func AdminPermissionMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		userType, exists := c.Get("user_type")
-		if !exists {
-			c.JSON(http.StatusUnauthorized, protocol.NewAuthErrorResult())
-			c.Abort()
-			return
-		}
-
-		// 检查是否为管理员
-		if userType != "admin" {
-			c.JSON(http.StatusForbidden, protocol.NewBusinessErrorResult("Admin access required"))
-			c.Abort()
-			return
-		}
-
-		c.Next()
-	}
-}
-
-// MerchantPermissionMiddleware 商户权限中间件
-func MerchantPermissionMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		userType, exists := c.Get("user_type")
-		if !exists {
-			c.JSON(http.StatusUnauthorized, protocol.NewAuthErrorResult())
-			c.Abort()
-			return
-		}
-
-		// 检查是否为商户
-		if userType != "merchant" {
-			c.JSON(http.StatusForbidden, protocol.NewBusinessErrorResult("Merchant access required"))
-			c.Abort()
-			return
-		}
-
-		c.Next()
-	}
-}
-
-// CashierPermissionMiddleware 出纳员权限中间件
-func CashierPermissionMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		userType, exists := c.Get("user_type")
-		if !exists {
-			c.JSON(http.StatusUnauthorized, protocol.NewAuthErrorResult())
-			c.Abort()
-			return
-		}
-
-		// 检查是否为出纳员或管理员
-		if userType != "cashier" && userType != "admin" {
-			c.JSON(http.StatusForbidden, protocol.NewBusinessErrorResult("Cashier access required"))
-			c.Abort()
-			return
-		}
-
-		c.Next()
-	}
 }
 
 // RequireUserType 用户类型验证中间件
@@ -205,13 +111,9 @@ func GetTokenFromRequest(c *gin.Context) string {
 }
 
 // GenerateToken 生成JWT Token
-func GenerateToken(userID, userType, email, merchantID, role string, expiresAt time.Time, jwtSecret string) (string, error) {
+func GenerateToken(userID string, expiresAt time.Time, jwtSecret string) (string, error) {
 	claims := &JWTClaims{
-		UserID:     userID,
-		UserType:   userType,
-		Email:      email,
-		MerchantID: merchantID,
-		Role:       role,
+		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

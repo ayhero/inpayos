@@ -1,17 +1,20 @@
 package models
 
-import "inpayos/internal/utils"
+import (
+	"inpayos/internal/protocol"
+	"inpayos/internal/utils"
+)
 
 type CashierTeam struct {
-	ID   int64  `gorm:"primaryKey;autoIncrement" json:"id"`
-	Tid  string `json:"tid" gorm:"column:tid"`
-	Salt string `json:"salt" gorm:"column:salt;type:varchar(256)"`
+	ID  int64  `gorm:"primaryKey;autoIncrement" json:"id"`
+	Tid string `json:"tid" gorm:"column:tid"`
 	*CashierTeamValues
 	CreatedAt int64 `gorm:"autoCreateTime:milli" json:"created_at"`
 	UpdatedAt int64 `gorm:"autoUpdateTime:milli" json:"updated_at"`
 }
 
 type CashierTeamValues struct {
+	Salt        *string `json:"salt" gorm:"column:salt;type:varchar(256)"`
 	Description *string `gorm:"type:varchar(255)" json:"description"`
 	AuthID      *string `json:"auth_id" gorm:"column:auth_id;type:varchar(32);uniqueIndex"`
 	Name        *string `json:"name" gorm:"column:name;type:varchar(64)"`
@@ -33,10 +36,12 @@ func (CashierTeam) TableName() string {
 
 // NewCashierTeam 创建新的出纳员团队
 func NewCashierTeam() *CashierTeam {
+	salt := utils.GenerateSalt()
 	return &CashierTeam{
-		Tid:               utils.GenerateCashierTeamID(),
-		Salt:              utils.GenerateSalt(),
-		CashierTeamValues: &CashierTeamValues{},
+		Tid: utils.GenerateCashierTeamID(),
+		CashierTeamValues: &CashierTeamValues{
+			Salt: &salt,
+		},
 	}
 }
 
@@ -276,4 +281,57 @@ func (ct *CashierTeam) SetValues(values *CashierTeamValues) *CashierTeam {
 	}
 
 	return ct
+}
+
+func (u *CashierTeam) Decrypt() {
+	if u.Salt == nil {
+		return
+	}
+	salt := *u.Salt
+	pwd, err := utils.Decrypt(u.GetPassword(), []byte(salt))
+	if err == nil {
+		u.SetPassword(pwd)
+	}
+}
+
+func (u *CashierTeam) Encrypt() {
+	if u.Salt == nil {
+		return
+	}
+	salt := *u.Salt
+	pwd, err := utils.Encrypt([]byte(u.GetPassword()), []byte(salt))
+	if err == nil {
+		u.SetPassword(pwd)
+	}
+}
+
+// IsPasswordValid 验证密码是否正确
+func (u *CashierTeam) IsPasswordValid(password string) bool {
+	return u.GetPassword() == password
+}
+func GetCashierTeamByTid(tid string) *CashierTeam {
+	var ct CashierTeam
+	if err := ReadDB.Where("tid = ?", tid).First(&ct).Error; err != nil {
+		return nil
+	}
+	return &ct
+}
+
+func GetCashierTeamByEmail(email string) *CashierTeam {
+	var ct CashierTeam
+	if err := ReadDB.Where("email = ?", email).First(&ct).Error; err != nil {
+		return nil
+	}
+	return &ct
+}
+
+func (t *CashierTeam) Protocol() *protocol.CashierTeam {
+	info := &protocol.CashierTeam{}
+	return info
+}
+
+func CheckCashierTeamEmail(email string) bool {
+	var count int64
+	ReadDB.Model(&CashierTeam{}).Where("email = ?", email).Count(&count)
+	return count > 0
 }

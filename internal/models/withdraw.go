@@ -9,9 +9,9 @@ import (
 // Withdraw 提现记录表
 type Withdraw struct {
 	ID        uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	TrxID     string `json:"trx_id" gorm:"column:trx_id;type:varchar(64);uniqueIndex"`
 	Sid       string `json:"sid" gorm:"column:sid;type:varchar(32);index"`
 	SType     string `json:"s_type" gorm:"column:s_type;type:varchar(32);index"` // service类型，如 "merchant", "cashier"
-	TrxID     string `json:"trx_id" gorm:"column:trx_id;type:varchar(64);uniqueIndex"`
 	AccountID string `json:"account_id" gorm:"column:account_id;type:varchar(64);index"`
 	*WithdrawValues
 	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`

@@ -30,7 +30,7 @@ func (t *CashierAdmin) ResetPassword(c *gin.Context) {
 	code := strings.TrimSpace(req.VerificationCode)
 
 	// 验证验证码
-	if !services.VerifyEmailCode("reset", email, code) {
+	if !services.VerifyEmailCode(protocol.MsgTypePasswordReset, email, code) {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
 		return
 	}
@@ -71,7 +71,7 @@ func (t *CashierAdmin) ChangePassword(c *gin.Context) {
 	// 从上下文中获取商户信息
 	merchant := middleware.GetMerchantFromContext(c)
 	// 修改密码
-	if err := services.ChangeMerchantPassword(merchant.GetEmail(), req.NewPassword); err != nil {
+	if err := services.ChangeCashierTeamPassword(merchant.GetEmail(), req.NewPassword); err != nil {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.SystemError, lang))
 		return
 	}

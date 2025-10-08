@@ -55,7 +55,7 @@ type ListCashiersRequest struct {
 	HolderName string `json:"holder_name" form:"holder_name"`
 }
 
-type CashierResponse struct {
+type Cashier struct {
 	ID           uint64          `json:"id"`
 	CashierID    string          `json:"cashier_id"`
 	AccountID    string          `json:"account_id"`
@@ -82,4 +82,7 @@ type CashierResponse struct {
 	Remark       string          `json:"remark"`
 	CreatedAt    int64           `json:"created_at"`
 	UpdatedAt    int64           `json:"updated_at"`
+}
+
+type CashierTeam struct {
 }

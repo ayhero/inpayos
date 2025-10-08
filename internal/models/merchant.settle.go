@@ -303,8 +303,8 @@ func UpdateSettleLogWithTransaction(settleLogID string, trx *Transaction, settle
 	}
 
 	// 如果是第一笔交易，设置币种
-	if trx.Ccy != nil && *trx.Ccy != "" {
-		updates["trx_ccy"] = *trx.Ccy
+	if trx.Ccy != "" {
+		updates["trx_ccy"] = trx.Ccy
 	}
 	// 累加金额
 	if trx.Amount != nil {

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"inpayos/internal/protocol"
+	"inpayos/internal/utils"
 )
 
 // MerchantSecret 商户密钥表
@@ -17,11 +18,10 @@ type MerchantSecret struct {
 	*MerchantSecretValues
 	CreatedAt int64 `gorm:"column:created_at;type:bigint;autoCreateTime:milli" json:"created_at"`
 	UpdatedAt int64 `gorm:"column:updated_at;type:bigint;autoUpdateTime:milli" json:"updated_at"`
-	DeletedAt int64 `gorm:"column:deleted_at;type:bigint;index" json:"deleted_at,omitempty"`
 }
 
 type MerchantSecretValues struct {
-	Permissions string  `gorm:"column:permissions;type:text" json:"permissions"`                        // JSON 格式存储权限列表
+	Permissions *string `gorm:"column:permissions;type:text" json:"permissions"`                        // JSON 格式存储权限列表
 	Status      *string `gorm:"column:status;type:varchar(20);not null;default:'active'" json:"status"` // active, inactive, suspended
 	ExpiresAt   *int64  `gorm:"column:expires_at;type:bigint" json:"expires_at"`                        // 过期时间戳
 }
@@ -42,17 +42,17 @@ func (ms *MerchantSecret) IsExpired() bool {
 	if expiresAt == 0 {
 		return false // 没有设置过期时间表示永不过期
 	}
-	return expiresAt < time.Now().UnixMilli()
+	return expiresAt < utils.TimeNowMilli()
 }
 
 // GetPermissionList 获取权限列表
 func (ms *MerchantSecret) GetPermissionList() []string {
-	if ms.Permissions == "" {
+	if ms.Permissions == nil || *ms.Permissions == "" {
 		return []string{"*"} // 默认所有权限
 	}
 
 	var permissions []string
-	err := json.Unmarshal([]byte(ms.Permissions), &permissions)
+	err := json.Unmarshal([]byte(*ms.Permissions), &permissions)
 	if err != nil {
 		return []string{"*"} // 解析失败时给予所有权限
 	}
@@ -66,7 +66,8 @@ func (ms *MerchantSecret) SetPermissionList(permissions []string) error {
 	if err != nil {
 		return err
 	}
-	ms.Permissions = string(data)
+	permStr := string(data)
+	ms.Permissions = &permStr
 	return nil
 }
 
@@ -106,8 +107,8 @@ func GetBySecretKey(secretKey string) *MerchantSecret {
 	return &secret
 }
 
-// GetByAppIDAndSecret 根据 app_id 和 secret key 获取商户密钥信息
-func GetByAppIDAndSecret(appID, secretKey string) *MerchantSecret {
+// GetAppByID 根据 app_id 和 secret key 获取商户密钥信息
+func GetAppByID(appID, secretKey string) *MerchantSecret {
 	if appID == "" || secretKey == "" {
 		return nil
 	}
@@ -125,7 +126,10 @@ func GetByAppIDAndSecret(appID, secretKey string) *MerchantSecret {
 // MerchantSecretValues Getter Methods
 // GetPermissions returns the Permissions value
 func (msv *MerchantSecretValues) GetPermissions() string {
-	return msv.Permissions
+	if msv.Permissions == nil {
+		return ""
+	}
+	return *msv.Permissions
 }
 
 // GetStatus returns the Status value
@@ -147,7 +151,7 @@ func (msv *MerchantSecretValues) GetExpiresAt() int64 {
 // MerchantSecretValues Setter Methods (support method chaining)
 // SetPermissions sets the Permissions value
 func (msv *MerchantSecretValues) SetPermissions(value string) *MerchantSecretValues {
-	msv.Permissions = value
+	msv.Permissions = &value
 	return msv
 }
 
@@ -174,8 +178,9 @@ func (ms *MerchantSecret) SetValues(values *MerchantSecretValues) *MerchantSecre
 	}
 
 	// Set all fields from the provided values
-	// Permissions is not a pointer, so we always set it
-	ms.MerchantSecretValues.SetPermissions(values.Permissions)
+	if values.Permissions != nil {
+		ms.MerchantSecretValues.SetPermissions(*values.Permissions)
+	}
 	if values.Status != nil {
 		ms.MerchantSecretValues.SetStatus(*values.Status)
 	}
@@ -183,5 +188,84 @@ func (ms *MerchantSecret) SetValues(values *MerchantSecretValues) *MerchantSecre
 		ms.MerchantSecretValues.SetExpiresAt(*values.ExpiresAt)
 	}
 
+	return ms
+}
+
+// MerchantSecret Getter Methods
+// GetID returns the ID value
+func (ms *MerchantSecret) GetID() uint64 {
+	return ms.ID
+}
+
+// GetMid returns the Mid value
+func (ms *MerchantSecret) GetMid() string {
+	return ms.Mid
+}
+
+// GetAppID returns the AppID value
+func (ms *MerchantSecret) GetAppID() string {
+	return ms.AppID
+}
+
+// GetAppName returns the AppName value
+func (ms *MerchantSecret) GetAppName() string {
+	return ms.AppName
+}
+
+// GetSecretKey returns the SecretKey value
+func (ms *MerchantSecret) GetSecretKey() string {
+	return ms.SecretKey
+}
+
+// GetCreatedAt returns the CreatedAt value
+func (ms *MerchantSecret) GetCreatedAt() int64 {
+	return ms.CreatedAt
+}
+
+// GetUpdatedAt returns the UpdatedAt value
+func (ms *MerchantSecret) GetUpdatedAt() int64 {
+	return ms.UpdatedAt
+}
+
+// MerchantSecret Setter Methods (support method chaining)
+// SetID sets the ID value
+func (ms *MerchantSecret) SetID(value uint64) *MerchantSecret {
+	ms.ID = value
+	return ms
+}
+
+// SetMid sets the Mid value
+func (ms *MerchantSecret) SetMid(value string) *MerchantSecret {
+	ms.Mid = value
+	return ms
+}
+
+// SetAppID sets the AppID value
+func (ms *MerchantSecret) SetAppID(value string) *MerchantSecret {
+	ms.AppID = value
+	return ms
+}
+
+// SetAppName sets the AppName value
+func (ms *MerchantSecret) SetAppName(value string) *MerchantSecret {
+	ms.AppName = value
+	return ms
+}
+
+// SetSecretKey sets the SecretKey value
+func (ms *MerchantSecret) SetSecretKey(value string) *MerchantSecret {
+	ms.SecretKey = value
+	return ms
+}
+
+// SetCreatedAt sets the CreatedAt value
+func (ms *MerchantSecret) SetCreatedAt(value int64) *MerchantSecret {
+	ms.CreatedAt = value
+	return ms
+}
+
+// SetUpdatedAt sets the UpdatedAt value
+func (ms *MerchantSecret) SetUpdatedAt(value int64) *MerchantSecret {
+	ms.UpdatedAt = value
 	return ms
 }
