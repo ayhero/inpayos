@@ -1,8 +1,8 @@
-# InPayOS Development Configuration
-# 支付网关开发环境配置
+# InPayOS Production Configuration
+# 支付网关生产环境配置
 
-debug: true
-environment: "development"
+debug: false
+environment: "production"
 
 # 服务器配置
 server:
@@ -43,41 +43,41 @@ server:
 
 # 数据库配置
 database:
-  dsn: "host=localhost user=inpayos password=password dbname=inpayos_dev port=5432 sslmode=disable TimeZone=Asia/Shanghai"
-  max_idle_conns: 5
-  max_open_conns: 50
-  conn_max_lifetime: "30m"
-  conn_max_idle_time: "5m"
+  dsn: "host={{SYSTEM_INTERNAL_IP}} user=inpayos password=${DB_PASSWORD} dbname=inpayos_prod port=5432 sslmode=require TimeZone=Asia/Shanghai"
+  max_idle_conns: 10
+  max_open_conns: 100
+  conn_max_lifetime: "60m"
+  conn_max_idle_time: "10m"
 
 # Redis配置
 redis:
-  host: "localhost"
+  host: "{{SYSTEM_INTERNAL_IP}}"
   port: 6379
-  password: ""
+  password: "${REDIS_PASSWORD}"
   db: 0
-  pool_size: 10
+  pool_size: 20
   min_idle_conns: 5
 
 # 日志配置
 log:
-  level: "debug"
+  level: "info"
   format: "json"
-  output: "stdout"
-  file_path: "logs/inpayos.log"
+  output: "file"
+  file_path: "/logs/inpayos.log"
   max_size: 100
-  max_backups: 3
-  max_age: 28
+  max_backups: 10
+  max_age: 30
   compress: true
 
 # JWT配置
 jwt:
-  secret: "inpayos_jwt_secret_key_dev"
+  secret: "${JWT_SECRET}"
   expires_in: "24h"
   refresh_expires_in: "168h"
 
 # 加密配置
 encryption:
-  key: "inpayos_encryption_key_32_characters"
+  key: "${ENCRYPTION_KEY}"
   
 # 支付渠道配置
 channels:
@@ -111,9 +111,12 @@ monitoring:
   
 # 安全配置
 security:
-  api_rate_limit: 1000
+  api_rate_limit: 10000
   cors_origins:
-    - "*"
+    - "https://inpayos.com"
+    - "https://admin.inpayos.com"
+    - "https://merchant.inpayos.com"
   trusted_proxies:
-    - "127.0.0.1"
-    - "::1"
+    - "10.0.0.0/8"
+    - "172.16.0.0/12"
+    - "192.168.0.0/16"
