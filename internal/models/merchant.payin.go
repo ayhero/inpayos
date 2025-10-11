@@ -50,7 +50,7 @@ type MerchantPayinValues struct {
 	LastRefundedAt    *int64           `json:"last_refunded_at" gorm:"column:last_refunded_at"`
 
 	// Settlement related fields
-	FlowNo       string  `json:"flow_no" gorm:"column:flow_no"`
+	FlowNo       *string `json:"flow_no" gorm:"column:flow_no"`
 	SettleStatus *string `json:"settle_status" gorm:"column:settle_status;index"` // SettleStatus 结算状态
 	SettleID     *string `json:"settle_id" gorm:"column:settle_id;index"`
 	SettledAt    *int64  `json:"settled_at" gorm:"column:settled_at"`
@@ -219,7 +219,10 @@ func (pv *MerchantPayinValues) GetLastRefundedAt() int64 {
 
 // GetFlowNo returns the FlowNo value
 func (pv *MerchantPayinValues) GetFlowNo() string {
-	return pv.FlowNo
+	if pv.FlowNo == nil {
+		return ""
+	}
+	return *pv.FlowNo
 }
 
 // GetChannelStatus returns the ChannelStatus value
@@ -442,7 +445,7 @@ func (pv *MerchantPayinValues) SetLastRefundedAt(value int64) *MerchantPayinValu
 
 // SetFlowNo sets the FlowNo value
 func (pv *MerchantPayinValues) SetFlowNo(value string) *MerchantPayinValues {
-	pv.FlowNo = value
+	pv.FlowNo = &value
 	return pv
 }
 
@@ -598,7 +601,9 @@ func (p *MerchantPayin) SetValues(values *MerchantPayinValues) *MerchantPayin {
 	if values.LastRefundedAt != nil {
 		p.MerchantPayinValues.SetLastRefundedAt(*values.LastRefundedAt)
 	}
-	p.MerchantPayinValues.SetFlowNo(values.FlowNo)
+	if values.FlowNo != nil {
+		p.MerchantPayinValues.SetFlowNo(*values.FlowNo)
+	}
 	if values.ChannelStatus != nil {
 		p.MerchantPayinValues.SetChannelStatus(*values.ChannelStatus)
 	}
@@ -695,7 +700,7 @@ func (p *MerchantPayin) ToTransaction() *Transaction {
 			SettledAt:           p.MerchantPayinValues.SettledAt,
 			Country:             p.MerchantPayinValues.Country,
 			Remark:              p.MerchantPayinValues.Remark,
-			FlowNo:              &p.MerchantPayinValues.FlowNo,
+			FlowNo:              p.MerchantPayinValues.FlowNo,
 			Status:              p.MerchantPayinValues.Status,
 			Reason:              p.MerchantPayinValues.Reason,
 			Link:                p.MerchantPayinValues.Link,

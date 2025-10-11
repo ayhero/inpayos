@@ -5,12 +5,16 @@ import (
 	"inpayos/internal/protocol"
 )
 
+type ChannelTrxRequest struct {
+	Transaction *models.Transaction
+}
+
 // ChannelOpenApi 支付渠道接口
 type ChannelOpenApi interface {
-	Payin(in *protocol.ChannelPayinRequest) *protocol.ChannelResult
-	Refund(in *protocol.ChannelRefundRequest) *protocol.ChannelResult
-	Payout(in *protocol.ChannelPayoutRequest) *protocol.ChannelResult
-	Query(in *protocol.ChannelQueryQuest) *protocol.ChannelResult
+	Payin(in *ChannelTrxRequest) *protocol.ChannelResult
+	Refund(in *ChannelTrxRequest) *protocol.ChannelResult
+	Payout(in *ChannelTrxRequest) *protocol.ChannelResult
+	Query(in *ChannelTrxRequest) *protocol.ChannelResult
 }
 
 var channel_open_api_service_lib = make(map[string]func(*models.ChannelAccount) ChannelOpenApi)

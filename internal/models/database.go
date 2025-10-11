@@ -71,18 +71,49 @@ func initDBByConfig(cfg *config.DatabaseConfig) (*gorm.DB, error) {
 // AutoMigrate runs database migrations
 func AutoMigrate() error {
 	return WriteDB.AutoMigrate(
+		// 基础实体
 		&Account{},
-		&Asset{},
-		&FundFlow{},
+		&Admin{},
+		&Merchant{},
+		&MerchantSecret{},
+		&Cashier{},
+
+		// 交易相关
+		&Transaction{},
 		&MerchantPayin{},
 		&MerchantPayout{},
-		&Webhook{},
-		&Cashier{},
+		&Deposit{},
+		&Withdraw{},
+		&CashierPayin{},
+		&CashierPayout{},
+
+		// 资金和流水
+		&FundFlow{},
+		&TrxHistory{},
+
+		// 配置相关
 		&MerchantConfig{},
-		&MerchantSecret{},
-		// 新增的核心业务表
 		&MerchantFeeConfig{},
-		&MerchantCheckout{},
 		&APIConfig{},
+		&Contract{},
+
+		// 路由和渠道
+		&MerchantRouter{},
+		&CashierRouter{},
+		&ChannelGroup{},
+
+		// 结算相关
+		&SettleRule{},
+		&MerchantSettleTransaction{},
+		&MerchantSettleHistory{},
+
+		// 通知和消息
+		&Webhook{},
+		&MessageTemplate{},
+		&FCMToken{},
+
+		// 统计和系统
+		&SummaryStats{},
+		&Task{},
 	)
 }

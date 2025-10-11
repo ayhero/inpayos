@@ -2,6 +2,25 @@ package protocol
 
 import "github.com/shopspring/decimal"
 
+type OpenApiRequest struct {
+	Mid          string `json:"mid"`
+	TrxType      string `json:"trx_type"`
+	ReqID        string `json:"req_id" binding:"required"`
+	Ccy          string `json:"ccy" binding:"required"`
+	Amount       string `json:"amount" binding:"required"`
+	TrxMethod    string `json:"trx_method" binding:"required"`
+	TrxMode      string `json:"trx_mode"`
+	TrxApp       string `json:"trx_app"`
+	Pkg          string `json:"pkg"`
+	Did          string `json:"did"`
+	ProductID    string `json:"product_id"`
+	UserIP       string `json:"user_ip"`
+	NotifyURL    string `json:"notify_url"`
+	ReturnURL    string `json:"return_url"`
+	ChannelCode  string `json:"channel_code"`
+	ChannelGroup string `json:"channel_group"`
+}
+
 type MerchantPayinRequest struct {
 	Mid          string `json:"mid"`
 	ReqID        string `json:"req_id" binding:"required"`

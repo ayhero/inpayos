@@ -572,6 +572,13 @@ func (p *MerchantPayout) SetValues(values *MerchantPayoutValues) *MerchantPayout
 	return p
 }
 
+func GetMerchantPayoutByReqID(mid, reqID string) *MerchantPayout {
+	var existingTrx MerchantPayout
+	if err := ReadDB.Where("mid = ? AND req_id = ?", mid, reqID).First(&existingTrx).Error; err == nil {
+		return &existingTrx
+	}
+	return nil
+}
 func GetMerchantPayoutByTrxID(mid, trxID string) *Transaction {
 	var trx Transaction
 	if err := ReadDB.Model(&MerchantPayout{}).Where("trx_id = ? AND mid = ?", trxID, mid).First(&trx).Error; err == nil {

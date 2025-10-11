@@ -40,27 +40,25 @@ func (t *TestChannel) getTestResultByAmount(amount float64) (status string, resC
 }
 
 // Payin 实现代收支付请求
-func (t *TestChannel) Payin(in *protocol.ChannelPayinRequest) *protocol.ChannelResult {
+func (t *TestChannel) Payin(in *ChannelTrxRequest) *protocol.ChannelResult {
 	// 创建日志包装器
 	logger := protocol.NewChannelLogWrapper(protocol.ChannelTest, t.AccountID, in)
 	var result *protocol.ChannelResult
 	defer logger.Log(result)
 
 	// 检查支持的币种
-	if !t.isSupportedCurrency(in.Ccy) {
+	if !t.isSupportedCurrency(in.Transaction.Ccy) {
 		result = &protocol.ChannelResult{
 			Status:       protocol.StatusFailed,
 			ResCode:      protocol.ResCodeFailure,
-			ResMsg:       fmt.Sprintf("Unsupported currency: %s", in.Ccy),
+			ResMsg:       fmt.Sprintf("Unsupported currency: %s", in.Transaction.Ccy),
 			ChannelCode:  protocol.ChannelTest,
 			ChannelTrxID: t.generateChannelTrxID(),
-			CreatedAt:    time.Now().Unix(),
-			UpdatedAt:    time.Now().Unix(),
 		}
 		return result
 	}
 
-	amt := in.Amount.InexactFloat64()
+	amt := in.Transaction.Amount.InexactFloat64()
 	status, resCode, resMsg := t.getTestResultByAmount(amt)
 
 	result = &protocol.ChannelResult{
@@ -69,8 +67,6 @@ func (t *TestChannel) Payin(in *protocol.ChannelPayinRequest) *protocol.ChannelR
 		ResMsg:       resMsg,
 		ChannelCode:  protocol.ChannelTest,
 		ChannelTrxID: t.generateChannelTrxID(),
-		CreatedAt:    time.Now().Unix(),
-		UpdatedAt:    time.Now().Unix(),
 	}
 
 	// 如果是成功状态，设置完成时间
@@ -82,27 +78,25 @@ func (t *TestChannel) Payin(in *protocol.ChannelPayinRequest) *protocol.ChannelR
 }
 
 // Payout 实现代付请求
-func (t *TestChannel) Payout(in *protocol.ChannelPayoutRequest) *protocol.ChannelResult {
+func (t *TestChannel) Payout(in *ChannelTrxRequest) *protocol.ChannelResult {
 	// 创建日志包装器
 	logger := protocol.NewChannelLogWrapper(protocol.ChannelTest, t.AccountID, in)
 	var result *protocol.ChannelResult
 	defer logger.Log(result)
 
 	// 检查支持的币种
-	if !t.isSupportedCurrency(in.Ccy) {
+	if !t.isSupportedCurrency(in.Transaction.Ccy) {
 		result = &protocol.ChannelResult{
 			Status:       protocol.StatusFailed,
 			ResCode:      protocol.ResCodeFailure,
-			ResMsg:       fmt.Sprintf("Unsupported currency: %s", in.Ccy),
+			ResMsg:       fmt.Sprintf("Unsupported currency: %s", in.Transaction.Ccy),
 			ChannelCode:  protocol.ChannelTest,
 			ChannelTrxID: t.generateChannelTrxID(),
-			CreatedAt:    time.Now().Unix(),
-			UpdatedAt:    time.Now().Unix(),
 		}
 		return result
 	}
 
-	amt := in.Amount.InexactFloat64()
+	amt := in.Transaction.Amount.InexactFloat64()
 	status, resCode, resMsg := t.getTestResultByAmount(amt)
 
 	result = &protocol.ChannelResult{
@@ -111,8 +105,6 @@ func (t *TestChannel) Payout(in *protocol.ChannelPayoutRequest) *protocol.Channe
 		ResMsg:       resMsg,
 		ChannelCode:  protocol.ChannelTest,
 		ChannelTrxID: t.generateChannelTrxID(),
-		CreatedAt:    time.Now().Unix(),
-		UpdatedAt:    time.Now().Unix(),
 	}
 
 	// 如果是成功状态，设置完成时间
@@ -124,27 +116,25 @@ func (t *TestChannel) Payout(in *protocol.ChannelPayoutRequest) *protocol.Channe
 }
 
 // Refund 实现退款请求
-func (t *TestChannel) Refund(in *protocol.ChannelRefundRequest) *protocol.ChannelResult {
+func (t *TestChannel) Refund(in *ChannelTrxRequest) *protocol.ChannelResult {
 	// 创建日志包装器
 	logger := protocol.NewChannelLogWrapper(protocol.ChannelTest, t.AccountID, in)
 	var result *protocol.ChannelResult
 	defer logger.Log(result)
 
 	// 检查支持的币种
-	if !t.isSupportedCurrency(in.Ccy) {
+	if !t.isSupportedCurrency(in.Transaction.Ccy) {
 		result = &protocol.ChannelResult{
 			Status:       protocol.StatusFailed,
 			ResCode:      protocol.ResCodeFailure,
-			ResMsg:       fmt.Sprintf("Unsupported currency: %s", in.Ccy),
+			ResMsg:       fmt.Sprintf("Unsupported currency: %s", in.Transaction.Ccy),
 			ChannelCode:  protocol.ChannelTest,
 			ChannelTrxID: t.generateChannelTrxID(),
-			CreatedAt:    time.Now().Unix(),
-			UpdatedAt:    time.Now().Unix(),
 		}
 		return result
 	}
 
-	amt := in.Amount.InexactFloat64()
+	amt := in.Transaction.Amount.InexactFloat64()
 	status, resCode, resMsg := t.getTestResultByAmount(amt)
 
 	result = &protocol.ChannelResult{
@@ -153,8 +143,6 @@ func (t *TestChannel) Refund(in *protocol.ChannelRefundRequest) *protocol.Channe
 		ResMsg:       resMsg,
 		ChannelCode:  protocol.ChannelTest,
 		ChannelTrxID: t.generateChannelTrxID(),
-		CreatedAt:    time.Now().Unix(),
-		UpdatedAt:    time.Now().Unix(),
 	}
 
 	// 如果是成功状态，设置完成时间
@@ -166,7 +154,7 @@ func (t *TestChannel) Refund(in *protocol.ChannelRefundRequest) *protocol.Channe
 }
 
 // Query 实现查询请求
-func (t *TestChannel) Query(in *protocol.ChannelQueryQuest) *protocol.ChannelResult {
+func (t *TestChannel) Query(in *ChannelTrxRequest) *protocol.ChannelResult {
 	// 创建日志包装器
 	logger := protocol.NewChannelLogWrapper(protocol.ChannelTest, t.AccountID, in)
 	var result *protocol.ChannelResult
@@ -177,9 +165,9 @@ func (t *TestChannel) Query(in *protocol.ChannelQueryQuest) *protocol.ChannelRes
 	resCode := protocol.CODE_SUCCESS
 	resMsg := "transaction found"
 
-	if in.ChannelTrxID != "" {
+	if in.Transaction.GetChannelTrxID() != "" {
 		// 基于渠道交易ID中的关键词来决定查询结果
-		trxID := in.ChannelTrxID
+		trxID := in.Transaction.GetChannelTrxID()
 		if strings.Contains(trxID, "failed") || strings.Contains(trxID, "fail") || strings.Contains(trxID, "error") {
 			status = protocol.StatusFailed
 			resCode = protocol.ResCodeFailure
@@ -195,9 +183,7 @@ func (t *TestChannel) Query(in *protocol.ChannelQueryQuest) *protocol.ChannelRes
 		ResCode:      resCode,
 		ResMsg:       resMsg,
 		ChannelCode:  protocol.ChannelTest,
-		ChannelTrxID: in.ChannelTrxID,
-		CreatedAt:    time.Now().Unix(),
-		UpdatedAt:    time.Now().Unix(),
+		ChannelTrxID: in.Transaction.GetChannelTrxID(),
 	}
 
 	// 如果是成功状态，设置完成时间

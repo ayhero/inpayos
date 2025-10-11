@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/spf13/viper"
 )
@@ -14,20 +13,21 @@ var (
 )
 
 type Config struct {
-	Debug      bool              `mapstructure:"debug"`
-	Env        string            `mapstructure:"env"`
-	Server     *ServerConfig     `mapstructure:"server"`
-	Database   *DatabaseConfig   `mapstructure:"database"`
-	WriteDB    *DatabaseConfig   `mapstructure:"write_db"`
-	ReadDB     *DatabaseConfig   `mapstructure:"read_db"`
-	Redis      *RedisConfig      `mapstructure:"redis"`
-	Log        *LogConfig        `mapstructure:"log"`
-	JWT        *JWTConfig        `mapstructure:"jwt"`
-	Email      *EmailConfig      `mapstructure:"email"`       // 邮件服务配置
-	SMS        *SMSConfig        `mapstructure:"sms"`         // SMS服务配置
-	VerifyCode *VerifyCodeConfig `mapstructure:"verify_code"` // 验证码配置
-	Settle     *SettleConfig     `mapstructure:"settle"`      // 结算配置
-	Task       *TaskConfig       `mapstructure:"task"`        // 任务调度配置
+	Debug          bool                  `mapstructure:"debug"`
+	Env            string                `mapstructure:"env"`
+	Server         *ServerConfig         `mapstructure:"server"`
+	WriteDB        *DatabaseConfig       `mapstructure:"write_db"`
+	ReadDB         *DatabaseConfig       `mapstructure:"read_db"`
+	Redis          *RedisConfig          `mapstructure:"redis"`
+	I18n           *I18nConfig           `mapstructure:"i18n"`
+	Log            *LogConfig            `mapstructure:"log"`
+	Email          *EmailConfig          `mapstructure:"email"`       // 邮件服务配置
+	SMS            *SMSConfig            `mapstructure:"sms"`         // SMS服务配置
+	VerifyCode     *VerifyCodeConfig     `mapstructure:"verify_code"` // 验证码配置
+	Settle         *SettleConfig         `mapstructure:"settle"`      // 结算配置
+	Task           *TaskConfig           `mapstructure:"task"`        // 任务调度配置
+	MerchantPayin  *MerchantPayinConfig  `mapstructure:"payin"`       // 支付配置
+	MerchantPayout *MerchantPayoutConfig `mapstructure:"payout"`      // 支付配置
 }
 
 // Get 获取配置单例
@@ -40,8 +40,21 @@ func Set(cfg *Config) {
 	config = cfg
 }
 
+func (c *Config) ValidateDB() {
+	if c.WriteDB == nil {
+		panic("WriteDB config is required")
+	}
+	if c.ReadDB == nil {
+		panic("ReadDB config is required")
+	}
+	if c.Redis == nil {
+		panic("Redis config is required")
+	}
+}
+
 // Validate 验证并设置所有配置默认值
 func (c *Config) Validate() {
+	c.ValidateDB()
 	c.Env = strings.ToLower(c.Env)
 	if c.Env == "" || (c.Env != DevEnv && c.Env != ProdEnv) {
 		c.Env = DefaultEnv
@@ -49,39 +62,17 @@ func (c *Config) Validate() {
 	if c.Server != nil {
 		c.Server.Validate()
 	}
-
 	if c.Log == nil {
 		c.Log = &LogConfig{}
 	}
 	c.Log.Validate()
-
-	if c.JWT == nil {
-		c.JWT = &JWTConfig{}
-	}
-	c.JWT.Validate()
 	if c.Settle != nil {
 		c.Settle.Validate()
 	}
-
-	// Validate other configs
-	c.validateDatabaseConfig()
-	c.validateRedisConfig()
-}
-func (c *Config) validateDatabaseConfig() {
-	if c.Database.MaxIdleConns == 0 {
-		c.Database.MaxIdleConns = 5
+	if c.I18n == nil {
+		c.I18n = &I18nConfig{}
 	}
-	if c.Database.MaxOpenConns == 0 {
-		c.Database.MaxOpenConns = 25
-	}
-	if c.Database.ConnMaxLifetime == 0 {
-		c.Database.ConnMaxLifetime = 300 * time.Second
-	}
-}
-
-func (c *Config) validateRedisConfig() {
-	// Redis配置验证
-	// DSN格式验证可以在连接时进行
+	c.I18n.Validate()
 }
 
 // LoadConfig 加载配置

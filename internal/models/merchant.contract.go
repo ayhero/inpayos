@@ -18,16 +18,16 @@ type Contract struct {
 }
 
 func (t Contract) TableName() string {
-	return "t_merchant_contract"
+	return "t_merchant_contracts"
 }
 
 type ContractValues struct {
-	StartAt      int64                 `json:"start_at" gorm:"index;comment:生效时间"`          // StartAt 生效时间
-	ExpiredAt    int64                 `json:"expired_at" gorm:"index;comment:过期时间"`        // ExpiredAt 过期时间
-	Status       int64                 `json:"status" gorm:"index;comment:状态"`              // Status 状态
-	Payin        *PayinSetting         `json:"payin" gorm:"column:payin;serializer:json"`   // PayinSetting 充值配置
-	Payout       *PayinSetting         `json:"payout" gorm:"column:payout;serializer:json"` // PayoutSetting 提现配置
-	SettleConfig *ContractSettleConfig `json:"settle_config" gorm:"column:settle_config"`   // SettleConfig 结算配置
+	StartAt      int64                 `json:"start_at" gorm:"index;comment:生效时间"`                                  // StartAt 生效时间
+	ExpiredAt    int64                 `json:"expired_at" gorm:"index;comment:过期时间"`                                // ExpiredAt 过期时间
+	Status       int64                 `json:"status" gorm:"index;comment:状态"`                                      // Status 状态
+	Payin        *PayinSetting         `json:"payin" gorm:"column:payin;type:json;serializer:json"`                 // PayinSetting 充值配置
+	Payout       *PayinSetting         `json:"payout" gorm:"column:payout;type:json;serializer:json"`               // PayoutSetting 提现配置
+	SettleConfig *ContractSettleConfig `json:"settle_config" gorm:"column:settle_config;type:json;serializer:json"` // SettleConfig 结算配置
 }
 
 type PayinSetting struct {
@@ -36,8 +36,8 @@ type PayinSetting struct {
 }
 
 type ContractTrxConfig struct {
-	Payin  []*ContractTrxSetting `json:"payin" gorm:"column:payin"`
-	Payout []*ContractTrxSetting `json:"payout" gorm:"column:payout"`
+	Payin  []*ContractTrxSetting `json:"payin" gorm:"column:payin;serializer:json;type:json"`
+	Payout []*ContractTrxSetting `json:"payout" gorm:"column:payout;serializer:json;type:json"`
 }
 
 type ContractTrxSetting struct {
@@ -56,14 +56,14 @@ type ContractTrxSetting struct {
 type ContractSettleConfig struct {
 	Type   string                   `json:"type" gorm:"column:type"` // 结算类型，如：TRX, TRX_APP, TRX_PKG
 	Ccy    string                   `json:"ccy" gorm:"column:ccy"`   // 结算币种，如：CNY, USD
-	Payin  []*ContractSettleSetting `json:"payin" gorm:"column:payin"`
-	Payout []*ContractSettleSetting `json:"payout" gorm:"column:payout"`
+	Payin  []*ContractSettleSetting `json:"payin" gorm:"column:payin;serializer:json;type:json"`
+	Payout []*ContractSettleSetting `json:"payout" gorm:"column:payout;serializer:json;type:json"`
 }
 
 type ContractSettleSetting struct {
-	Type       string   `json:"type" gorm:"column:type"`             // 结算周期，如：D0, D1, D7, M1
-	Ccy        string   `json:"ccy" gorm:"column:ccy"`               // 结算币种，如：CNY, USD
-	Strategies []string `json:"strategies" gorm:"column:strategies"` // 结算策略
+	Type       string   `json:"type" gorm:"column:type"`                                       // 结算周期，如：D0, D1, D7, M1
+	Ccy        string   `json:"ccy" gorm:"column:ccy"`                                         // 结算币种，如：CNY, USD
+	Strategies []string `json:"strategies" gorm:"column:strategies;serializer:json;type:json"` // 结算策略
 }
 
 func ListMerchantContractByMid(mid string) []*Contract {

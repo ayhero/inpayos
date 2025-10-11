@@ -1,28 +1,153 @@
-# inpayos 配置文件
+# inpayos 最简配置文件
 debug: true
 env: dev
 
+# 服务配置
 server:
-  api:
-    port: "8080"
-    host: "0.0.0.0"
+  openapi:
+    port: "6080"
+    name: "openapi"
+    version: "v1"
+    read_timeout: 60
+    write_timeout: 60
   merchant:
-    port: "8081"
-    host: "0.0.0.0"
+    port: "6081"
+    name: "merchant"
+    version: "v1"
+    read_timeout: 60
+    write_timeout: 60
+    jwt:
+      secret: "mK8vZ3nQ9wX2eR6tY7uI0pL4sD5fG8hJ1aS9dF6gH3jK5lZ8xC7vB2nM4qW9eR1t"
+      expire_duration: 24h
+      refresh_duration: 168h
+      issuer: "inpayos-merchant"
+      skip_paths:
+        - "/health"
+        - "/ping"
   admin:
-    port: "8082"
-    host: "0.0.0.0"
+    port: "6082"
+    name: "admin"
+    version: "v1"
+    read_timeout: 60
+    write_timeout: 60
+    jwt:
+      secret: "aP9xK5mN8qW2eR7tY4uI3oL6sD1fG9hJ8vB5nM7cX0zA4sF6gH2jK9lZ3qW8eR5t"
+      expire_duration: 8h
+      refresh_duration: 24h
+      issuer: "inpayos-admin"
+      skip_paths:
+        - "/health"
+        - "/ping"
+  cashier_api:
+    port: "6083"
+    name: "cashier_api"
+    version: "v1"
+    read_timeout: 60
+    write_timeout: 60
+  cashier_admin:
+    port: "6084"
+    name: "cashier_admin"
+    version: "v1"
+    read_timeout: 60
+    write_timeout: 60
+    jwt:
+      secret: "cR5tY8uI1oP4sD7fG0hJ3aS6dF9gH2jK5lZ8xC1vB4nM7qW0eR3tY6uI9oP2sD5f"
+      expire_duration: 8h
+      refresh_duration: 24h
+      issuer: "inpayos-cashier-admin"
+      skip_paths:
+        - "/health"
+        - "/ping"
 
-database:
-  dsn: "host=localhost user=inpayos password=password dbname=inpayos port=5432 sslmode=disable TimeZone=Asia/Shanghai"
-  max_idle_conns: 10
-  max_open_conns: 100
+# 写库配置
+write_db:
+  dsn: "postgresql://local:local@localhost:5432/inpayos"
+  max_idle_conns: 5
+  max_open_conns: 25
   conn_max_lifetime: 300s
   conn_max_idle_time: 600s
   debug: true
 
-redis:
-  dsn: "redis://localhost:6379/0"
+# 读库配置
+read_db:
+  dsn: "postgresql://local:local@localhost:5432/inpayos"
+  max_idle_conns: 5
+  max_open_conns: 25
+  conn_max_lifetime: 300s
+  conn_max_idle_time: 600s
+  debug: true
 
+# Redis配置 - 本机安装，无密码
+redis:
+  dsn: "redis://localhost:6379"
+
+# 日志配置
 log:
   level: "info"
+  path: "./logs"
+
+# 邮件配置
+email:
+  service_name: "account"
+  sender: "noreply@inpayos.com"
+  accounts:
+    - name: "default"
+      host: "smtp.gmail.com"
+      port: 587
+      username: "your-email@gmail.com"
+      password: "your-app-password"
+      from: "noreply@inpayos.com"
+      ssl: false
+      priority: 1
+      enabled: true
+
+# SMS配置
+sms:
+  service_name: "twilio"
+  default_account: "default"
+  default_number: "+1234567890"
+
+# 验证码配置
+verify_code:
+  length: 6
+  expiration: 5
+  send_interval: 60
+  max_send_times: 10
+  local_template: true
+
+# 结算配置
+settle: {}
+
+# 任务配置
+task:
+  scan_interval: 3
+  enabled: false
+
+# 代收配置
+payin:
+  expiry_minutes: 30
+
+# 代付配置
+payout:
+  expiry_minutes: 30
+
+
+# 国际化配置
+i18n:
+  locales_dir: "internal/locales"  # 本地开发环境路径
+  default_language: "en"
+  supported_langs: ["en", "zh", "hi"]
+  # 本地化配置
+  locales:
+    en:
+      name: "English"
+      file: "en.yaml"
+      enabled: true
+    zh:
+      name: "简体中文"
+      file: "zh.yaml"
+      enabled: true
+    hi:
+      name: "हिन्दी"
+      file: "hi.yaml"
+      enabled: true

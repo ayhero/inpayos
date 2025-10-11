@@ -44,7 +44,7 @@ func (t SettleRules) ToProtocol() []*protocol.SettleRule {
 }
 
 func (t SettleRule) TableName() string {
-	return "t_settle_rule"
+	return "t_settle_rules"
 }
 
 func (t SettleRule) ToProtocol() *protocol.SettleRule {

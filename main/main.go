@@ -29,7 +29,8 @@ func InitialConfig() error {
 	}
 
 	// 初始化国际化系统
-	i18n.InitI18n("internal/locales")
+	translator := i18n.NewFileTranslator()
+	i18n.SetGlobalTranslator(translator)
 
 	return nil
 }

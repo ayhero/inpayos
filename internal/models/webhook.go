@@ -22,7 +22,7 @@ type WebhookValues struct {
 	Status        *string          `json:"status" gorm:"column:status;type:varchar(16);index;default:'pending'"`
 	Amount        *decimal.Decimal `json:"amount" gorm:"column:amount;type:decimal(20,8)"`
 	Fee           *decimal.Decimal `json:"fee" gorm:"column:fee;type:decimal(20,8)"`
-	Currency      *string          `json:"currency" gorm:"column:currency;type:varchar(8);index"`
+	Ccy           *string          `json:"ccy" gorm:"column:ccy;type:varchar(8);index"`
 	NotifyURL     *string          `json:"notify_url" gorm:"column:notify_url;type:varchar(512)"`
 	NotifyStatus  *string          `json:"notify_status" gorm:"column:notify_status;type:varchar(16);default:'pending'"`
 	NotifyTimes   *int32           `json:"notify_times" gorm:"column:notify_times;default:0"`
@@ -81,8 +81,8 @@ func (v *WebhookValues) SetFee(fee decimal.Decimal) *WebhookValues {
 	return v
 }
 
-func (v *WebhookValues) SetCurrency(currency string) *WebhookValues {
-	v.Currency = &currency
+func (v *WebhookValues) SetCcy(currency string) *WebhookValues {
+	v.Ccy = &currency
 	return v
 }
 
@@ -193,11 +193,11 @@ func (v *WebhookValues) GetFee() decimal.Decimal {
 	return *v.Fee
 }
 
-func (v *WebhookValues) GetCurrency() string {
-	if v.Currency == nil {
+func (v *WebhookValues) GetCcy() string {
+	if v.Ccy == nil {
 		return ""
 	}
-	return *v.Currency
+	return *v.Ccy
 }
 
 func (v *WebhookValues) GetNotifyURL() string {
@@ -209,7 +209,7 @@ func (v *WebhookValues) GetNotifyURL() string {
 
 func (v *WebhookValues) GetNotifyStatus() string {
 	if v.NotifyStatus == nil {
-		return "pending"
+		return ""
 	}
 	return *v.NotifyStatus
 }

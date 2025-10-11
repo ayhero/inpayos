@@ -21,10 +21,10 @@ func (a *OpenApi) Payin(c *gin.Context) {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
 		return
 	}
+	lang := middleware.GetLanguage(c)
 
 	// 执行业务逻辑（代收类型）
-	response, code := a.Transaction.CreatePayin(&req)
-	lang := middleware.GetLanguage(c)
+	response, code := a.Transaction.CreatePayin(c, &req)
 	result := protocol.HandleServiceResult(code, response, lang)
 	c.JSON(http.StatusOK, result)
 }
@@ -55,7 +55,7 @@ func (a *OpenApi) Payout(c *gin.Context) {
 	}
 
 	// 执行业务逻辑（代付类型）
-	response, code := a.Transaction.CreatePayout(&req)
+	response, code := a.Transaction.CreatePayout(c, &req)
 	lang := middleware.GetLanguage(c)
 	result := protocol.HandleServiceResult(code, response, lang)
 	c.JSON(http.StatusOK, result)

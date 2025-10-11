@@ -17,8 +17,7 @@ type ChannelResult struct {
 	ChannelFeeCcy    string           `json:"channel_fee_ccy"`    // 渠道费用币种
 	ChannelFeeAmount *decimal.Decimal `json:"channel_fee_amount"` // 渠道费用金额
 	CompletedAt      int64            `json:"completed_at"`       // 渠道完成时间
-	CreatedAt        int64            `json:"created_at"`         // 渠道创建时间
-	UpdatedAt        int64            `json:"updated_at"`         // 渠道更新时间
+	ExpiredAt        int64            `json:"expired_at"`         // 渠道过期时间
 }
 
 type ChannelPayinRequest struct {

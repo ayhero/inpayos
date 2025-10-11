@@ -20,5 +20,5 @@ type MessageTemplate struct {
 }
 
 func (m *MessageTemplate) TableName() string {
-	return "t_message_template"
+	return "t_message_templates"
 }

@@ -91,7 +91,7 @@ func (a *CashierApi) Payin(c *gin.Context) {
 	}
 
 	// 执行业务逻辑（代收类型）
-	response, code := services.GetMerchantTransactionService().CreatePayin(&req)
+	response, code := services.GetMerchantTransactionService().CreatePayin(c, &req)
 	lang := middleware.GetLanguage(c)
 	result := protocol.HandleServiceResult(code, response, lang)
 	c.JSON(http.StatusOK, result)
@@ -123,7 +123,7 @@ func (a *CashierApi) Payout(c *gin.Context) {
 	}
 
 	// 执行业务逻辑（代付类型）
-	response, code := services.GetMerchantTransactionService().CreatePayout(&req)
+	response, code := services.GetMerchantTransactionService().CreatePayout(c, &req)
 	lang := middleware.GetLanguage(c)
 	result := protocol.HandleServiceResult(code, response, lang)
 	c.JSON(http.StatusOK, result)

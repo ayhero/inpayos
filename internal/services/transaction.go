@@ -2,14 +2,13 @@ package services
 
 import (
 	"context"
-	"errors"
 	"inpayos/internal/channels"
 	"inpayos/internal/log"
 	"inpayos/internal/models"
 	"inpayos/internal/protocol"
-	"inpayos/internal/utils"
 	"sync"
 
+	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
@@ -40,12 +39,12 @@ func GetMerchantTransactionService() *MerchantTransactionService {
 	return transactionService
 }
 
-func (s *MerchantTransactionService) CreatePayin(req *protocol.MerchantPayinRequest) (trx *protocol.Transaction, code protocol.ErrorCode) {
-	return &protocol.Transaction{}, protocol.Success
+func (s *MerchantTransactionService) CreatePayin(ctx *gin.Context, req *protocol.MerchantPayinRequest) (trx *protocol.Transaction, code protocol.ErrorCode) {
+	return s.PayinService.Create(ctx, req)
 }
 
-func (s *MerchantTransactionService) CreatePayout(req *protocol.MerchantPayoutRequest) (trx *protocol.Transaction, code protocol.ErrorCode) {
-	return &protocol.Transaction{}, protocol.Success
+func (s *MerchantTransactionService) CreatePayout(ctx *gin.Context, req *protocol.MerchantPayoutRequest) (trx *protocol.Transaction, code protocol.ErrorCode) {
+	return s.PayoutService.Create(ctx, req)
 }
 
 func (s *MerchantTransactionService) Cancel(req *protocol.MerchantCancelRequest) (trx *protocol.Transaction, code protocol.ErrorCode) {
@@ -72,7 +71,7 @@ func GetChannelRouterByMerchant(req *models.Transaction) *protocol.RouterInfo {
 	return GetChannelByMerchant(in)
 }
 
-func RequestByRouter(ctx context.Context, tx *gorm.DB, trx *models.Transaction, routerInfo *protocol.RouterInfo) (result *protocol.ChannelResult, err error) {
+func RequestByRouter(ctx context.Context, tx *gorm.DB, trx *models.Transaction, routerInfo *protocol.RouterInfo) (result *protocol.ChannelResult, err protocol.ErrorCode) {
 	isAll := routerInfo.Strategy == protocol.RouterStrategyAll
 	for _, account := range routerInfo.ChannelAccounts {
 		trx.SetChannelCode(routerInfo.ChannelCodeLib[account]).SetChannelAccount(account)
@@ -82,7 +81,7 @@ func RequestByRouter(ctx context.Context, tx *gorm.DB, trx *models.Transaction, 
 		case protocol.TrxTypePayout:
 			result, err = RequestChannelPayout(ctx, tx, trx)
 		}
-		if err == nil {
+		if err != protocol.Success {
 			//只要是失败，则继续循环
 			if result.Status == protocol.StatusFailed {
 				continue
@@ -97,52 +96,53 @@ func RequestByRouter(ctx context.Context, tx *gorm.DB, trx *models.Transaction, 
 	return
 }
 
-func RequestChannelPayin(ctx context.Context, tx *gorm.DB, trx *models.Transaction) (result *protocol.ChannelResult, err error) {
+func RequestChannelPayin(ctx context.Context, tx *gorm.DB, trx *models.Transaction) (result *protocol.ChannelResult, err protocol.ErrorCode) {
+	err = protocol.Success
 	if trx.GetChannelAccount() == "" {
-		return nil, errors.New("no channel account")
+		return nil, protocol.InvalidParams
 	}
-	_, ok := channels.GetOpenApiChannelService(trx.GetChannelAccount())
+	err = protocol.Success
+	svc, ok := channels.GetOpenApiChannelService(trx.GetChannelAccount())
 	if !ok {
-		err = errors.New("channel not supported")
+		err = protocol.ChannelNotSupported
 		return
 	}
-	//result = svc.Payin(ctx, trx)
-	// 暂时简化实现，直接返回成功结果
-	// TODO: 实现完整的渠道支付逻辑
-	result = &protocol.ChannelResult{
-		Status:        protocol.StatusSuccess,
-		ChannelStatus: protocol.StatusSuccess,
-		ResCode:       "0000",
-		ResMsg:        "Success",
-		ChannelTrxID:  utils.GenerateID(),
-		Link:          "",
+	in := &channels.ChannelTrxRequest{
+		Transaction: trx,
 	}
-
+	result = svc.Payin(in)
+	// 7. 处理支付结果
+	if result == nil {
+		result = &protocol.ChannelResult{
+			Status:  protocol.StatusPending,
+			ResCode: protocol.ResCodeResponseError,
+		}
+	}
 	log.Get().Infof("RequestChannelPayin: trxID=%s, channelAccount=%s", trx.TrxID, trx.GetChannelAccount())
 	return
 }
 
-func RequestChannelPayout(ctx context.Context, db *gorm.DB, trx *models.Transaction) (result *protocol.ChannelResult, err error) {
+func RequestChannelPayout(ctx context.Context, db *gorm.DB, trx *models.Transaction) (result *protocol.ChannelResult, err protocol.ErrorCode) {
+	err = protocol.Success
 	if trx.GetChannelAccount() == "" {
-		return nil, errors.New("no channel account")
+		return nil, protocol.InvalidParams
 	}
-	_, ok := channels.GetOpenApiChannelService(trx.GetChannelAccount())
+	svc, ok := channels.GetOpenApiChannelService(trx.GetChannelAccount())
 	if !ok {
-		err = errors.New("channel not supported")
+		err = protocol.ChannelNotSupported
 		return
 	}
-
-	// 暂时简化实现，直接返回成功结果
-	// TODO: 实现完整的渠道代付逻辑
-	result = &protocol.ChannelResult{
-		Status:        protocol.StatusSuccess,
-		ChannelStatus: "SUCCESS",
-		ResCode:       "0000",
-		ResMsg:        "Success",
-		ChannelTrxID:  trx.TrxID + "_channel",
-		Link:          "",
+	in := &channels.ChannelTrxRequest{
+		Transaction: trx,
 	}
-
+	result = svc.Payout(in)
+	// 7. 处理支付结果
+	if result == nil {
+		result = &protocol.ChannelResult{
+			Status:  protocol.StatusPending,
+			ResCode: protocol.ResCodeResponseError,
+		}
+	}
 	log.Get().Infof("RequestChannelPayout: trxID=%s, channelAccount=%s", trx.TrxID, trx.GetChannelAccount())
 	return
 }
