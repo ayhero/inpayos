@@ -9,7 +9,7 @@ import (
 // MerchantPayout 代付记录表
 type MerchantPayout struct {
 	ID                    uint64           `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	TrxID                 string           `json:"transaction_id" gorm:"column:transaction_id;type:varchar(64);uniqueIndex"`
+	TrxID                 string           `json:"trx_id" gorm:"column:trx_id;type:varchar(64);uniqueIndex"`
 	TrxType               string           `json:"trx_type" gorm:"column:trx_type;type:varchar(16);index;default:'payin'"`
 	Mid                   string           `json:"mid" gorm:"column:mid;type:varchar(32);index"`
 	UserID                string           `json:"user_id" gorm:"column:user_id;type:varchar(32);index"`
@@ -27,8 +27,8 @@ type MerchantPayout struct {
 	Email                 string           `json:"email" gorm:"column:email;<-:create"`
 	Phone                 string           `json:"phone" gorm:"column:phone;<-:create"`
 	Ccy                   string           `json:"ccy" gorm:"column:ccy;<-:create"`
-	Amount                *decimal.Decimal `json:"amount" gorm:"column:amount;<-:create"`
-	UsdAmount             *decimal.Decimal `json:"usd_amount" gorm:"column:usd_amount;<-:create"`
+	Amount                *decimal.Decimal `json:"amount" gorm:"column:amount;type:decimal(19,4);<-:create"`
+	UsdAmount             *decimal.Decimal `json:"usd_amount" gorm:"column:usd_amount;type:decimal(19,4);<-:create"`
 	AccountNo             string           `json:"account_no" gorm:"column:account_no;<-:create"`
 	AccountName           string           `json:"account_name" gorm:"column:account_name;<-:create"`
 	AccountType           string           `json:"account_type" gorm:"column:account_type;<-:create"`
@@ -45,8 +45,8 @@ type MerchantPayoutValues struct {
 
 	// Refund related fields
 	RefundedCount     *int             `json:"refunded_count" gorm:"column:refunded_count"`
-	RefundedAmount    *decimal.Decimal `json:"refunded_amount" gorm:"column:refunded_amount"`
-	RefundedUsdAmount *decimal.Decimal `json:"refunded_usd_amount" gorm:"column:refunded_usd_amount"`
+	RefundedAmount    *decimal.Decimal `json:"refunded_amount" gorm:"column:refunded_amount;type:decimal(19,4)"`
+	RefundedUsdAmount *decimal.Decimal `json:"refunded_usd_amount" gorm:"column:refunded_usd_amount;type:decimal(19,4)"`
 	LastRefundedAt    *int64           `json:"last_refunded_at" gorm:"column:last_refunded_at"`
 
 	// Settlement related fields
@@ -65,9 +65,9 @@ type MerchantPayoutValues struct {
 
 	// Fee related fields
 	FeeCcy       *string          `json:"fee_ccy" gorm:"column:fee_ccy"`
-	FeeAmount    *decimal.Decimal `json:"fee_amount" gorm:"column:fee_amount"`
-	FeeUsdAmount *decimal.Decimal `json:"fee_usd_amount" gorm:"column:fee_usd_amount"`
-	FeeUsdRate   *decimal.Decimal `json:"fee_usd_rate" gorm:"column:fee_usd_rate"`
+	FeeAmount    *decimal.Decimal `json:"fee_amount" gorm:"column:fee_amount;type:decimal(19,4)"`
+	FeeUsdAmount *decimal.Decimal `json:"fee_usd_amount" gorm:"column:fee_usd_amount;type:decimal(19,4)"`
+	FeeUsdRate   *decimal.Decimal `json:"fee_usd_rate" gorm:"column:fee_usd_rate;type:decimal(19,4)"`
 
 	// Channel related fields
 	ChannelStatus       *string          `json:"channel_status" gorm:"column:channel_status"`
@@ -79,9 +79,9 @@ type MerchantPayoutValues struct {
 	ChannelAccount      *string          `json:"channel_account" gorm:"column:channel_account"`
 	ChannelGroup        *string          `json:"channel_group" gorm:"column:channel_group"`
 	ChannelFeeCcy       *string          `json:"channel_fee_ccy" gorm:"column:channel_fee_ccy"`
-	ChannelFeeAmount    *decimal.Decimal `json:"channel_fee_amount" gorm:"column:channel_fee_amount"`
-	ChannelFeeUsdAmount *decimal.Decimal `json:"channel_fee_usd_amount" gorm:"column:channel_fee_usd_amount"`
-	ChannelFeeUsdRate   *decimal.Decimal `json:"channel_fee_usd_rate" gorm:"column:channel_fee_usd_rate"`
+	ChannelFeeAmount    *decimal.Decimal `json:"channel_fee_amount" gorm:"column:channel_fee_amount;type:decimal(19,4)"`
+	ChannelFeeUsdAmount *decimal.Decimal `json:"channel_fee_usd_amount" gorm:"column:channel_fee_usd_amount;type:decimal(19,4)"`
+	ChannelFeeUsdRate   *decimal.Decimal `json:"channel_fee_usd_rate" gorm:"column:channel_fee_usd_rate;type:decimal(19,4)"`
 
 	// Timing fields
 	ConfirmedAt        *int64  `json:"confirmed_at" gorm:"column:confirmed_at"`

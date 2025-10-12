@@ -24,7 +24,7 @@ type UpdateBalanceRequest struct {
 	Ccy           string          `json:"ccy" binding:"required"`
 	Operation     string          `json:"operation" binding:"required,oneof=add subtract freeze unfreeze margin release_margin"`
 	Amount        decimal.Decimal `json:"amount" binding:"required"`
-	TransactionID string          `json:"transaction_id"`
+	TransactionID string          `json:"trx_id"`
 	BillID        string          `json:"bill_id"`
 	BusinessType  string          `json:"business_type"`
 	Description   string          `json:"description"`
@@ -47,7 +47,7 @@ type FundFlowResponse struct {
 	UserID        string          `json:"user_id"`
 	UserType      string          `json:"user_type"`
 	AccountID     string          `json:"account_id"`
-	TransactionID string          `json:"transaction_id"`
+	TransactionID string          `json:"trx_id"`
 	BillID        string          `json:"bill_id"`
 	FlowType      string          `json:"flow_type"`
 	Amount        decimal.Decimal `json:"amount"`

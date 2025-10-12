@@ -16,7 +16,7 @@ type Webhook struct {
 type WebhookValues struct {
 	UserID        *string          `json:"user_id" gorm:"column:user_id;type:varchar(32);index"`
 	UserType      *string          `json:"user_type" gorm:"column:user_type;type:varchar(16);index"`
-	TransactionID *string          `json:"transaction_id" gorm:"column:transaction_id;type:varchar(64);index"`
+	TransactionID *string          `json:"trx_id" gorm:"column:trx_id;type:varchar(64);index"`
 	BillID        *string          `json:"bill_id" gorm:"column:bill_id;type:varchar(64);index"`
 	Type          *string          `json:"type" gorm:"column:type;type:varchar(16);index"`
 	Status        *string          `json:"status" gorm:"column:status;type:varchar(16);index;default:'pending'"`

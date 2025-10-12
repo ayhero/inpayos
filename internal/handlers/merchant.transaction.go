@@ -160,3 +160,44 @@ func (t *MerchantAdmin) TransactionDetail(c *gin.Context) {
 	transactionInfo := transactions[0].Protocol()
 	c.JSON(http.StatusOK, protocol.NewSuccessResultWithLang(transactionInfo, lang))
 }
+
+// TodayStatsRequest 今日统计请求
+type TodayStatsRequest struct {
+	TrxType string `json:"trx_type" binding:"required"` // 交易类型：payin, payout
+}
+
+// GetTransactionTodayStats godoc
+// @Summary 获取今日交易统计
+// @Description 获取指定交易类型的今日统计数据
+// @Tags 交易统计
+// @Accept json
+// @Produce json
+// @Success 200 {object} protocol.Result{data=services.TodayStats}
+// @Router /transactions/today-stats [post]
+func (t *MerchantAdmin) GetTransactionTodayStats(c *gin.Context) {
+	lang := middleware.GetLanguage(c)
+
+	// 绑定请求参数
+	var req TodayStatsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
+		return
+	}
+
+	// 从上下文获取商户信息
+	merchant := middleware.GetMerchantFromContext(c)
+	if merchant == nil {
+		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.MerchantNotFound, lang))
+		return
+	}
+
+	// 调用服务层获取统计数据
+	stats, code := services.GetTransactionTodayStats(merchant.ID, req.TrxType)
+	if code != protocol.Success {
+		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(code, lang))
+		return
+	}
+
+	// 返回成功结果
+	c.JSON(http.StatusOK, protocol.NewSuccessResultWithLang(stats, lang))
+}

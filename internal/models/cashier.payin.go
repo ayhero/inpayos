@@ -11,7 +11,7 @@ type CashierPayin struct {
 	ID          uint64           `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	Tid         string           `json:"tid" gorm:"column:tid"`
 	ReqID       string           `json:"req_id" gorm:"column:req_id;type:varchar(64);index"`
-	TrxID       string           `json:"transaction_id" gorm:"column:transaction_id;type:varchar(64);uniqueIndex"`
+	TrxID       string           `json:"trx_id" gorm:"column:trx_id;type:varchar(64);uniqueIndex"`
 	TrxType     string           `json:"trx_type" gorm:"column:trx_type;type:varchar(16);index;default:'payin'"`
 	OriTrxID    string           `json:"ori_trx_id" gorm:"column:ori_trx_id;index;<-:create"`
 	OriReqID    string           `json:"ori_req_id" gorm:"column:ori_req_id;index;<-:create"`

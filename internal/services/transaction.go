@@ -2,11 +2,13 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"inpayos/internal/channels"
 	"inpayos/internal/log"
 	"inpayos/internal/models"
 	"inpayos/internal/protocol"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -167,12 +169,7 @@ func ListTransactionByQuery(query *models.TrxQuery) ([]*models.Transaction, int6
 	var err error
 
 	// 创建临时Transaction对象来获取表名
-	tempTrx := &models.Transaction{TrxType: query.TrxType}
-	if tempTrx.TableName() == "" {
-		return nil, 0, protocol.InvalidParams
-	}
-
-	db := models.ReadDB.Model(tempTrx)
+	db := models.GetTransactionQueryByType(query.TrxType)
 	// 应用查询条件
 	db = query.BuildQuery(db)
 
@@ -200,4 +197,81 @@ func AfterPayinSuccess(trx *models.Transaction) {
 	log.Get().Infof("Payin transaction %s succeeded for merchant %s", trx.TrxID, trx.Mid)
 	// 设置结算状态为待结算
 	trx.SetSettleStatus(protocol.StatusPending)
+}
+
+// TodayStats 今日统计数据
+type TodayStats struct {
+	TotalAmount  string  `json:"totalAmount"`  // 总金额
+	TotalCount   int64   `json:"totalCount"`   // 总交易数
+	SuccessCount int64   `json:"successCount"` // 成功交易数
+	SuccessRate  float64 `json:"successRate"`  // 成功率（百分比）
+	PendingCount int64   `json:"pendingCount"` // 待处理交易数
+}
+
+// GetTransactionTodayStats 获取今日交易统计数据
+func GetTransactionTodayStats(merchantID int64, trxType string) (*TodayStats, protocol.ErrorCode) {
+	db := models.GetDB()
+
+	// 获取商户的Mid
+	merchant := &models.Merchant{}
+	err := db.Where("id = ?", merchantID).First(merchant).Error
+	if err != nil {
+		return nil, protocol.InvalidParams
+	}
+
+	// 计算今日时间范围（毫秒时间戳）
+	now := time.Now()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).UnixMilli()
+	todayEnd := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 999, now.Location()).UnixMilli()
+
+	var stats TodayStats
+	var totalAmount float64
+
+	// 根据交易类型选择对应的表和模型
+	if trxType == protocol.TrxTypePayin {
+		// 查询代收统计
+		var payins []models.MerchantPayin
+		db.Where("mid = ? AND created_at >= ? AND created_at <= ?",
+			merchant.Mid, todayStart, todayEnd).Find(&payins)
+
+		stats.TotalCount = int64(len(payins))
+
+		for _, payin := range payins {
+			if payin.Amount != nil {
+				totalAmount += payin.Amount.InexactFloat64()
+			}
+			if payin.Status != nil && *payin.Status == protocol.StatusSuccess {
+				stats.SuccessCount++
+			} else if payin.Status != nil && *payin.Status == protocol.StatusPending {
+				stats.PendingCount++
+			}
+		}
+	} else if trxType == protocol.TrxTypePayout {
+		// 查询代付统计
+		var payouts []models.MerchantPayout
+		db.Where("mid = ? AND created_at >= ? AND created_at <= ?",
+			merchant.Mid, todayStart, todayEnd).Find(&payouts)
+
+		stats.TotalCount = int64(len(payouts))
+
+		for _, payout := range payouts {
+			if payout.Amount != nil {
+				totalAmount += payout.Amount.InexactFloat64()
+			}
+			if payout.Status != nil && *payout.Status == protocol.StatusSuccess {
+				stats.SuccessCount++
+			} else if payout.Status != nil && *payout.Status == protocol.StatusPending {
+				stats.PendingCount++
+			}
+		}
+	}
+
+	// 计算成功率
+	if stats.TotalCount > 0 {
+		stats.SuccessRate = float64(stats.SuccessCount) / float64(stats.TotalCount) * 100
+	}
+
+	stats.TotalAmount = fmt.Sprintf("%.2f", totalAmount)
+
+	return &stats, protocol.Success
 }

@@ -6,7 +6,7 @@ import "github.com/shopspring/decimal"
 type CreateWebhookRequest struct {
 	UserID        string          `json:"user_id"`
 	UserType      string          `json:"user_type"`
-	TransactionID string          `json:"transaction_id"`
+	TransactionID string          `json:"trx_id"`
 	BillID        string          `json:"bill_id"`
 	Type          string          `json:"type"`
 	Status        string          `json:"status"`
@@ -22,7 +22,7 @@ type WebhookResponse struct {
 	WebhookID     string          `json:"webhook_id"`
 	UserID        string          `json:"user_id"`
 	UserType      string          `json:"user_type"`
-	TransactionID string          `json:"transaction_id"`
+	TransactionID string          `json:"trx_id"`
 	BillID        string          `json:"bill_id"`
 	Type          string          `json:"type"`
 	Status        string          `json:"status"`

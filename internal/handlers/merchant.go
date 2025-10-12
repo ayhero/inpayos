@@ -63,8 +63,19 @@ func (t *MerchantAdmin) SetupRouter() *gin.Engine {
 	// 交易相关路由
 	transactions := api.Group("/transactions")
 	{
-		transactions.POST("/list", t.ListTransactions)    // 交易列表
-		transactions.POST("/detail", t.TransactionDetail) // 交易详情
+		transactions.POST("/list", t.ListTransactions)                // 交易列表
+		transactions.POST("/detail", t.TransactionDetail)             // 交易详情
+		transactions.POST("/today-stats", t.GetTransactionTodayStats) // 今日统计
+	}
+
+	// Dashboard相关路由
+	dashboard := api.Group("/dashboard")
+	{
+		dashboard.POST("/today-stats", t.GetTodayStats)             // 今日统计
+		dashboard.POST("/transaction-trend", t.GetTransactionTrend) // 交易趋势
+		dashboard.POST("/settlement-trend", t.GetSettlementTrend)   // 结算趋势
+		dashboard.POST("/overview", t.GetDashboardOverview)         // Dashboard概览
+		dashboard.POST("/account-balance", t.GetAccountBalance)     // 账户余额
 	}
 
 	return router

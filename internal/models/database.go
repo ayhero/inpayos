@@ -79,7 +79,6 @@ func AutoMigrate() error {
 		&Cashier{},
 
 		// 交易相关
-		&Transaction{},
 		&MerchantPayin{},
 		&MerchantPayout{},
 		&Deposit{},

@@ -23,8 +23,8 @@ type CheckoutValues struct {
 	ReturnURL     *string          `gorm:"column:return_url;type:varchar(1024)" json:"return_url"`
 	CancelURL     *string          `gorm:"column:cancel_url;type:varchar(1024)" json:"cancel_url"`
 	NotifyURL     *string          `gorm:"column:notify_url;type:varchar(1024)" json:"notify_url"`
-	Status        *string          `gorm:"column:status;type:varchar(32);default:'created'" json:"status"`     // created, pending, completed, cancelled, expired
-	TransactionID *string          `gorm:"column:transaction_id;type:varchar(64);index" json:"transaction_id"` // 关联的交易ID
+	Status        *string          `gorm:"column:status;type:varchar(32);default:'created'" json:"status"` // created, pending, completed, cancelled, expired
+	TrxID         *string          `gorm:"column:trx_id;type:varchar(64);index" json:"trx_id"`             // 关联的交易ID
 	ChannelCode   *string          `gorm:"column:channel_code;type:varchar(32)" json:"channel_code"`
 	Metadata      protocol.MapData `gorm:"column:metadata;type:text" json:"metadata"` // JSON格式的元数据
 	ErrorCode     *string          `gorm:"column:error_code;type:varchar(32)" json:"error_code"`
@@ -103,12 +103,12 @@ func (cv *CheckoutValues) GetStatus() string {
 	return *cv.Status
 }
 
-// GetTransactionID returns the TransactionID value
-func (cv *CheckoutValues) GetTransactionID() string {
-	if cv.TransactionID == nil {
+// GetTrxID returns the TransactionID value
+func (cv *CheckoutValues) GetTrxID() string {
+	if cv.TrxID == nil {
 		return ""
 	}
-	return *cv.TransactionID
+	return *cv.TrxID
 }
 
 // GetChannelCode returns the ChannelCode value
@@ -205,9 +205,9 @@ func (cv *CheckoutValues) SetStatus(value string) *CheckoutValues {
 	return cv
 }
 
-// SetTransactionID sets the TransactionID value
-func (cv *CheckoutValues) SetTransactionID(value string) *CheckoutValues {
-	cv.TransactionID = &value
+// SetTrxID sets the TransactionID value
+func (cv *CheckoutValues) SetTrxID(value string) *CheckoutValues {
+	cv.TrxID = &value
 	return cv
 }
 
@@ -282,8 +282,8 @@ func (c *MerchantCheckout) SetValues(values *CheckoutValues) *MerchantCheckout {
 	if values.Status != nil {
 		c.CheckoutValues.SetStatus(*values.Status)
 	}
-	if values.TransactionID != nil {
-		c.CheckoutValues.SetTransactionID(*values.TransactionID)
+	if values.TrxID != nil {
+		c.CheckoutValues.SetTrxID(*values.TrxID)
 	}
 	if values.ChannelCode != nil {
 		c.CheckoutValues.SetChannelCode(*values.ChannelCode)

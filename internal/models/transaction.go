@@ -15,7 +15,7 @@ type Transaction struct {
 	CashierID          string           `json:"cashier_id" gorm:"column:cashier_id;type:varchar(32);index"`
 	Mid                string           `json:"mid" gorm:"column:mid;type:varchar(32);index"`
 	UserID             string           `json:"user_id" gorm:"column:user_id;type:varchar(32);index"`
-	TrxID              string           `json:"transaction_id" gorm:"column:transaction_id;type:varchar(64);uniqueIndex"`
+	TrxID              string           `json:"trx_id" gorm:"column:trx_id;type:varchar(64);uniqueIndex"`
 	TrxType            string           `json:"trx_type" gorm:"column:trx_type;type:varchar(32);index"` // 交易类型：payin, payout
 	ReqID              string           `json:"req_id" gorm:"column:req_id;type:varchar(64);index"`
 	OriTrxID           string           `json:"ori_trx_id" gorm:"column:ori_trx_id;index;<-:create"`
@@ -97,17 +97,17 @@ type TransactionValues struct {
 	Version            *int64  `json:"version" gorm:"column:version"`
 }
 
-func (Transaction) TableName() string {
-	if _v, ok := TrxTypeTableMap[protocol.TrxTypePayin]; ok {
-		return _v
-	}
-	return ""
-}
-
 // TrxTypeTableMap 定义交易类型和对应的表名映射关系
 var TrxTypeTableMap = map[string]string{
 	protocol.TrxTypePayin:  "t_merchant_payins",
 	protocol.TrxTypePayout: "t_merchant_payouts",
+}
+
+func GetTransactionQueryByType(trxType string) *gorm.DB {
+	if _v, ok := TrxTypeTableMap[trxType]; ok {
+		return ReadDB.Table(_v)
+	}
+	return ReadDB
 }
 
 // TrxQuery 交易查询参数
@@ -863,7 +863,7 @@ func (tv *TransactionValues) SetSettleStatus(value string) *TransactionValues {
 // CountTransactionByQuery 根据查询条件统计交易数量
 func CountTransactionByQuery(query *TrxQuery) (int64, error) {
 	var count int64
-	db := query.BuildQuery(ReadDB.Model(&Transaction{}))
+	db := query.BuildQuery(GetTransactionQueryByType(query.TrxType))
 	err := db.Count(&count).Error
 	return count, err
 }
@@ -871,7 +871,7 @@ func CountTransactionByQuery(query *TrxQuery) (int64, error) {
 // ListTransactionByQuery 根据查询条件获取交易列表
 func ListTransactionByQuery(query *TrxQuery, offset, limit int) ([]*Transaction, error) {
 	var transactions []*Transaction
-	db := query.BuildQuery(ReadDB)
+	db := query.BuildQuery(GetTransactionQueryByType(query.TrxType))
 	err := db.Offset(offset).Limit(limit).Find(&transactions).Error
 	return transactions, err
 }
@@ -889,7 +889,7 @@ func SaveTransactionValues(db *gorm.DB, trx *Transaction, values *TransactionVal
 		}
 	}()
 	// 执行更新
-	err = db.Model(trx).UpdateColumns(values).Error
+	err = GetTransactionQueryByType(trx.TrxType).Where("trx_id=?", trx.TrxID).UpdateColumns(values).Error
 	return
 }
 
