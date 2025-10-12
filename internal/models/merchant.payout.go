@@ -313,6 +313,88 @@ func (pov *MerchantPayoutValues) GetChannelFeeUsdRate() decimal.Decimal {
 	return *pov.ChannelFeeUsdRate
 }
 
+// GetMetaData returns the MetaData value
+func (pov *MerchantPayoutValues) GetMetaData() *protocol.MapData {
+	return pov.MetaData
+}
+
+// GetRefundedCount returns the RefundedCount value
+func (pov *MerchantPayoutValues) GetRefundedCount() int {
+	if pov.RefundedCount == nil {
+		return 0
+	}
+	return *pov.RefundedCount
+}
+
+// GetRefundedAmount returns the RefundedAmount value
+func (pov *MerchantPayoutValues) GetRefundedAmount() decimal.Decimal {
+	if pov.RefundedAmount == nil {
+		return decimal.Zero
+	}
+	return *pov.RefundedAmount
+}
+
+// GetRefundedUsdAmount returns the RefundedUsdAmount value
+func (pov *MerchantPayoutValues) GetRefundedUsdAmount() decimal.Decimal {
+	if pov.RefundedUsdAmount == nil {
+		return decimal.Zero
+	}
+	return *pov.RefundedUsdAmount
+}
+
+// GetLastRefundedAt returns the LastRefundedAt value
+func (pov *MerchantPayoutValues) GetLastRefundedAt() int64 {
+	if pov.LastRefundedAt == nil {
+		return 0
+	}
+	return *pov.LastRefundedAt
+}
+
+// GetDetail returns the Detail value
+func (pov *MerchantPayoutValues) GetDetail() map[string]any {
+	return pov.Detail
+}
+
+// GetConfirmedAt returns the ConfirmedAt value
+func (pov *MerchantPayoutValues) GetConfirmedAt() int64 {
+	if pov.ConfirmedAt == nil {
+		return 0
+	}
+	return *pov.ConfirmedAt
+}
+
+// GetCompletedAt returns the CompletedAt value
+func (pov *MerchantPayoutValues) GetCompletedAt() int64 {
+	if pov.CompletedAt == nil {
+		return 0
+	}
+	return *pov.CompletedAt
+}
+
+// GetCancelReason returns the CancelReason value
+func (pov *MerchantPayoutValues) GetCancelReason() string {
+	if pov.CancelReason == nil {
+		return ""
+	}
+	return *pov.CancelReason
+}
+
+// GetCancelFailedResult returns the CancelFailedResult value
+func (pov *MerchantPayoutValues) GetCancelFailedResult() string {
+	if pov.CancelFailedResult == nil {
+		return ""
+	}
+	return *pov.CancelFailedResult
+}
+
+// GetVersion returns the Version value
+func (pov *MerchantPayoutValues) GetVersion() int64 {
+	if pov.Version == nil {
+		return 0
+	}
+	return *pov.Version
+}
+
 // SetStatus sets the Status value
 func (pov *MerchantPayoutValues) SetStatus(value string) *MerchantPayoutValues {
 	pov.Status = &value
@@ -475,6 +557,72 @@ func (pov *MerchantPayoutValues) SetChannelFeeUsdRate(value decimal.Decimal) *Me
 	return pov
 }
 
+// SetMetaData sets the MetaData value
+func (pov *MerchantPayoutValues) SetMetaData(value *protocol.MapData) *MerchantPayoutValues {
+	pov.MetaData = value
+	return pov
+}
+
+// SetRefundedCount sets the RefundedCount value
+func (pov *MerchantPayoutValues) SetRefundedCount(value int) *MerchantPayoutValues {
+	pov.RefundedCount = &value
+	return pov
+}
+
+// SetRefundedAmount sets the RefundedAmount value
+func (pov *MerchantPayoutValues) SetRefundedAmount(value decimal.Decimal) *MerchantPayoutValues {
+	pov.RefundedAmount = &value
+	return pov
+}
+
+// SetRefundedUsdAmount sets the RefundedUsdAmount value
+func (pov *MerchantPayoutValues) SetRefundedUsdAmount(value decimal.Decimal) *MerchantPayoutValues {
+	pov.RefundedUsdAmount = &value
+	return pov
+}
+
+// SetLastRefundedAt sets the LastRefundedAt value
+func (pov *MerchantPayoutValues) SetLastRefundedAt(value int64) *MerchantPayoutValues {
+	pov.LastRefundedAt = &value
+	return pov
+}
+
+// SetDetail sets the Detail value
+func (pov *MerchantPayoutValues) SetDetail(value map[string]any) *MerchantPayoutValues {
+	pov.Detail = value
+	return pov
+}
+
+// SetConfirmedAt sets the ConfirmedAt value
+func (pov *MerchantPayoutValues) SetConfirmedAt(value int64) *MerchantPayoutValues {
+	pov.ConfirmedAt = &value
+	return pov
+}
+
+// SetCompletedAt sets the CompletedAt value
+func (pov *MerchantPayoutValues) SetCompletedAt(value int64) *MerchantPayoutValues {
+	pov.CompletedAt = &value
+	return pov
+}
+
+// SetCancelReason sets the CancelReason value
+func (pov *MerchantPayoutValues) SetCancelReason(value string) *MerchantPayoutValues {
+	pov.CancelReason = &value
+	return pov
+}
+
+// SetCancelFailedResult sets the CancelFailedResult value
+func (pov *MerchantPayoutValues) SetCancelFailedResult(value string) *MerchantPayoutValues {
+	pov.CancelFailedResult = &value
+	return pov
+}
+
+// SetVersion sets the Version value
+func (pov *MerchantPayoutValues) SetVersion(value int64) *MerchantPayoutValues {
+	pov.Version = &value
+	return pov
+}
+
 // SetValues sets multiple PayoutValues fields at once
 func (p *MerchantPayout) SetValues(values *MerchantPayoutValues) *MerchantPayout {
 	if values == nil {
@@ -567,6 +715,39 @@ func (p *MerchantPayout) SetValues(values *MerchantPayoutValues) *MerchantPayout
 	}
 	if values.ChannelFeeUsdRate != nil {
 		p.MerchantPayoutValues.SetChannelFeeUsdRate(*values.ChannelFeeUsdRate)
+	}
+	if values.MetaData != nil {
+		p.MerchantPayoutValues.SetMetaData(values.MetaData)
+	}
+	if values.RefundedCount != nil {
+		p.MerchantPayoutValues.SetRefundedCount(*values.RefundedCount)
+	}
+	if values.RefundedAmount != nil {
+		p.MerchantPayoutValues.SetRefundedAmount(*values.RefundedAmount)
+	}
+	if values.RefundedUsdAmount != nil {
+		p.MerchantPayoutValues.SetRefundedUsdAmount(*values.RefundedUsdAmount)
+	}
+	if values.LastRefundedAt != nil {
+		p.MerchantPayoutValues.SetLastRefundedAt(*values.LastRefundedAt)
+	}
+	if values.Detail != nil {
+		p.MerchantPayoutValues.SetDetail(values.Detail)
+	}
+	if values.ConfirmedAt != nil {
+		p.MerchantPayoutValues.SetConfirmedAt(*values.ConfirmedAt)
+	}
+	if values.CompletedAt != nil {
+		p.MerchantPayoutValues.SetCompletedAt(*values.CompletedAt)
+	}
+	if values.CancelReason != nil {
+		p.MerchantPayoutValues.SetCancelReason(*values.CancelReason)
+	}
+	if values.CancelFailedResult != nil {
+		p.MerchantPayoutValues.SetCancelFailedResult(*values.CancelFailedResult)
+	}
+	if values.Version != nil {
+		p.MerchantPayoutValues.SetVersion(*values.Version)
 	}
 
 	return p

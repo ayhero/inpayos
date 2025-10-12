@@ -98,13 +98,16 @@ type TransactionValues struct {
 }
 
 func (Transaction) TableName() string {
-	return "t_transactions"
+	if _v, ok := TrxTypeTableMap[protocol.TrxTypePayin]; ok {
+		return _v
+	}
+	return ""
 }
 
 // TrxTypeTableMap 定义交易类型和对应的表名映射关系
 var TrxTypeTableMap = map[string]string{
-	protocol.TrxTypePayin:  "t_payin",
-	protocol.TrxTypePayout: "t_payouts",
+	protocol.TrxTypePayin:  "t_merchant_payins",
+	protocol.TrxTypePayout: "t_merchant_payouts",
 }
 
 // TrxQuery 交易查询参数
@@ -879,7 +882,7 @@ func SaveTransactionValues(db *gorm.DB, trx *Transaction, values *TransactionVal
 		}
 	}()
 	// 执行更新
-	err = db.Model(trx).Updates(values).Error
+	err = db.Model(trx).UpdateColumns(values).Error
 	return
 }
 
@@ -905,13 +908,12 @@ func (t *Transaction) Protocol() *protocol.Transaction {
 		OriFlowNo: t.OriFlowNo,
 
 		// 交易方式和模式
-		TrxMethod:     t.TrxMethod,
-		TrxMode:       t.TrxMode,
-		TrxApp:        t.TrxApp,
-		Pkg:           t.Pkg,
-		Did:           t.Did,
-		ProductID:     t.ProductID,
-		PaymentMethod: t.TrxMethod, // 兼容性字段
+		TrxMethod: t.TrxMethod,
+		TrxMode:   t.TrxMode,
+		TrxApp:    t.TrxApp,
+		Pkg:       t.Pkg,
+		Did:       t.Did,
+		ProductID: t.ProductID,
 
 		// 用户信息
 		UserIP: t.UserIP,

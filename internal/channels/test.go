@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"inpayos/internal/models"
 	"inpayos/internal/protocol"
+	"inpayos/internal/utils"
+	"slices"
 	"strings"
 	"time"
 )
@@ -71,7 +73,7 @@ func (t *TestChannel) Payin(in *ChannelTrxRequest) *protocol.ChannelResult {
 
 	// 如果是成功状态，设置完成时间
 	if status == protocol.StatusSuccess {
-		result.CompletedAt = time.Now().Unix()
+		result.CompletedAt = utils.TimeNowMilli()
 	}
 
 	return result
@@ -198,12 +200,7 @@ func (t *TestChannel) Query(in *ChannelTrxRequest) *protocol.ChannelResult {
 func (t *TestChannel) isSupportedCurrency(currency string) bool {
 	supportedCurrencies := []string{"USD", "INR", "EUR", "GBP", "JPY", "CNY", "SGD", "HKD"}
 
-	for _, supported := range supportedCurrencies {
-		if currency == supported {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(supportedCurrencies, currency)
 }
 
 // generateChannelTrxID 生成渠道交易ID

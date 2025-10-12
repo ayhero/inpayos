@@ -5,10 +5,10 @@ type Transaction struct {
 	// 基础交易信息
 	ID      int64  `json:"id,omitempty"`
 	Tid     string `json:"tid,omitempty"`
-	TrxID   string `json:"trx_id"`
+	TrxID   string `json:"trx_id,omitempty"`
 	TrxType string `json:"trx_type,omitempty"`
-	Mid     string `json:"mid"`
-	ReqID   string `json:"req_id"`
+	Mid     string `json:"mid,omitempty"`
+	ReqID   string `json:"req_id,omitempty"`
 	UserID  string `json:"user_id,omitempty"`
 
 	// 原始交易信息
@@ -17,23 +17,22 @@ type Transaction struct {
 	OriFlowNo string `json:"ori_flow_no,omitempty"`
 
 	// 交易方式和模式
-	TrxMethod     string `json:"trx_method,omitempty"` // 原 PaymentMethod
-	TrxMode       string `json:"trx_mode,omitempty"`
-	TrxApp        string `json:"trx_app,omitempty"`
-	Pkg           string `json:"pkg,omitempty"`
-	Did           string `json:"did,omitempty"`
-	ProductID     string `json:"product_id,omitempty"`
-	PaymentMethod string `json:"payment_method"` // 保持兼容性
+	TrxMethod string `json:"trx_method,omitempty"`
+	TrxMode   string `json:"trx_mode,omitempty"`
+	TrxApp    string `json:"trx_app,omitempty"`
+	Pkg       string `json:"pkg,omitempty"`
+	Did       string `json:"did,omitempty"`
+	ProductID string `json:"product_id,omitempty"`
 
 	// 用户信息
 	UserIP  string `json:"user_ip,omitempty"`
 	Email   string `json:"email,omitempty"`
 	Phone   string `json:"phone,omitempty"`
-	Country string `json:"country"`
+	Country string `json:"country,omitempty"`
 
 	// 金额信息
-	Ccy          string `json:"ccy"`
-	Amount       string `json:"amount"`
+	Ccy          string `json:"ccy,omitempty"`
+	Amount       string `json:"amount,omitempty"`
 	ActualAmount string `json:"actual_amount,omitempty"`
 	UsdAmount    string `json:"usd_amount,omitempty"`
 
@@ -51,7 +50,7 @@ type Transaction struct {
 	BankName    string `json:"bank_name,omitempty"`
 
 	// 状态信息
-	Status        string `json:"status"`
+	Status        string `json:"status,omitempty"`
 	ChannelStatus string `json:"channel_status,omitempty"`
 	ResCode       string `json:"res_code,omitempty"`
 	ResMsg        string `json:"res_msg,omitempty"`
@@ -93,10 +92,10 @@ type Transaction struct {
 
 	// 时间戳
 	ConfirmedAt int64 `json:"confirmed_at,omitempty"`
-	CompletedAt int64 `json:"completed_at"`
-	ExpiredAt   int64 `json:"expired_at"`
-	CreatedAt   int64 `json:"created_at"`
-	UpdatedAt   int64 `json:"updated_at"`
+	CompletedAt int64 `json:"completed_at,omitempty"`
+	ExpiredAt   int64 `json:"expired_at,omitempty"`
+	CreatedAt   int64 `json:"created_at,omitempty"`
+	UpdatedAt   int64 `json:"updated_at,omitempty"`
 
 	// 扩展信息
 	Metadata MapData        `json:"metadata,omitempty"`

@@ -353,6 +353,48 @@ func (pv *MerchantPayinValues) GetChannelFeeUsdRate() decimal.Decimal {
 	return *pv.ChannelFeeUsdRate
 }
 
+// GetMetaData returns the MetaData value
+func (pv *MerchantPayinValues) GetMetaData() *protocol.MapData {
+	return pv.MetaData
+}
+
+// GetDetail returns the Detail value
+func (pv *MerchantPayinValues) GetDetail() map[string]any {
+	return pv.Detail
+}
+
+// GetCompletedAt returns the CompletedAt value
+func (pv *MerchantPayinValues) GetCompletedAt() int64 {
+	if pv.CompletedAt == nil {
+		return 0
+	}
+	return *pv.CompletedAt
+}
+
+// GetCancelReason returns the CancelReason value
+func (pv *MerchantPayinValues) GetCancelReason() string {
+	if pv.CancelReason == nil {
+		return ""
+	}
+	return *pv.CancelReason
+}
+
+// GetCancelFailedResult returns the CancelFailedResult value
+func (pv *MerchantPayinValues) GetCancelFailedResult() string {
+	if pv.CancelFailedResult == nil {
+		return ""
+	}
+	return *pv.CancelFailedResult
+}
+
+// GetVersion returns the Version value
+func (pv *MerchantPayinValues) GetVersion() int64 {
+	if pv.Version == nil {
+		return 0
+	}
+	return *pv.Version
+}
+
 // SetStatus sets the Status value
 func (pv *MerchantPayinValues) SetStatus(value string) *MerchantPayinValues {
 	pv.Status = &value
@@ -545,6 +587,42 @@ func (pv *MerchantPayinValues) SetChannelFeeUsdRate(value decimal.Decimal) *Merc
 	return pv
 }
 
+// SetMetaData sets the MetaData value
+func (pv *MerchantPayinValues) SetMetaData(value *protocol.MapData) *MerchantPayinValues {
+	pv.MetaData = value
+	return pv
+}
+
+// SetDetail sets the Detail value
+func (pv *MerchantPayinValues) SetDetail(value map[string]any) *MerchantPayinValues {
+	pv.Detail = value
+	return pv
+}
+
+// SetCompletedAt sets the CompletedAt value
+func (pv *MerchantPayinValues) SetCompletedAt(value int64) *MerchantPayinValues {
+	pv.CompletedAt = &value
+	return pv
+}
+
+// SetCancelReason sets the CancelReason value
+func (pv *MerchantPayinValues) SetCancelReason(value string) *MerchantPayinValues {
+	pv.CancelReason = &value
+	return pv
+}
+
+// SetCancelFailedResult sets the CancelFailedResult value
+func (pv *MerchantPayinValues) SetCancelFailedResult(value string) *MerchantPayinValues {
+	pv.CancelFailedResult = &value
+	return pv
+}
+
+// SetVersion sets the Version value
+func (pv *MerchantPayinValues) SetVersion(value int64) *MerchantPayinValues {
+	pv.Version = &value
+	return pv
+}
+
 // SetValues sets multiple PayinValues fields at once
 func (p *MerchantPayin) SetValues(values *MerchantPayinValues) *MerchantPayin {
 	if values == nil {
@@ -651,6 +729,24 @@ func (p *MerchantPayin) SetValues(values *MerchantPayinValues) *MerchantPayin {
 	}
 	if values.ChannelFeeUsdRate != nil {
 		p.MerchantPayinValues.SetChannelFeeUsdRate(*values.ChannelFeeUsdRate)
+	}
+	if values.MetaData != nil {
+		p.MerchantPayinValues.SetMetaData(values.MetaData)
+	}
+	if values.Detail != nil {
+		p.MerchantPayinValues.SetDetail(values.Detail)
+	}
+	if values.CompletedAt != nil {
+		p.MerchantPayinValues.SetCompletedAt(*values.CompletedAt)
+	}
+	if values.CancelReason != nil {
+		p.MerchantPayinValues.SetCancelReason(*values.CancelReason)
+	}
+	if values.CancelFailedResult != nil {
+		p.MerchantPayinValues.SetCancelFailedResult(*values.CancelFailedResult)
+	}
+	if values.Version != nil {
+		p.MerchantPayinValues.SetVersion(*values.Version)
 	}
 
 	return p

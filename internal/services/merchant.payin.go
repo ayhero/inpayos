@@ -38,7 +38,7 @@ func GetMerchantPayinService() *MerchantPayinService {
 }
 
 func (s *MerchantPayinService) Create(ctx *gin.Context, req *protocol.MerchantPayinRequest) (info *protocol.Transaction, code protocol.ErrorCode) {
-
+	code = protocol.Success
 	// 检查是否已存在相同的请求ID
 	payin := models.GetMerchantPayinByReqID(req.Mid, req.ReqID)
 	if payin != nil {
@@ -71,6 +71,7 @@ func (s *MerchantPayinService) Create(ctx *gin.Context, req *protocol.MerchantPa
 		ReturnURL:           req.ReturnURL,
 		MerchantPayinValues: &models.MerchantPayinValues{},
 	}
+	payin.SetVersion(1)
 	payinCfg := config.Get().MerchantPayin
 	payin.SetStatus(protocol.StatusPending).
 		SetExpiredAt(now.Add(time.Duration(payinCfg.ExpiryMinutes) * time.Minute).UnixMilli()) //过期时间
@@ -80,23 +81,23 @@ func (s *MerchantPayinService) Create(ctx *gin.Context, req *protocol.MerchantPa
 		payin.SetNotifyURL(m.GetNotifyURL())
 	}
 
-	trans := payin.ToTransaction()
 	// 获取可用渠道
-	routerInfo := GetChannelRouterByMerchant(trans)
+	routerInfo := GetChannelRouterByMerchant(payin.ToTransaction())
 	if routerInfo == nil {
 		code = protocol.ChannelNotFound
 		return
 	}
 	// 设置渠道信息
 	payin.SetChannelGroup(routerInfo.ChannelGroup)
-	trans.SetChannelGroup(routerInfo.ChannelGroup)
 	values := models.NewTrxValues()
+	var trans *models.Transaction
 	er := models.WriteDB.Transaction(func(tx *gorm.DB) error {
 		// 创建代收订单
 		if err := tx.Create(payin).Error; err != nil {
 			return err
 		}
 		// 执行渠道请求
+		trans = payin.ToTransaction()
 		result, errCode := RequestByRouter(ctx, tx, trans, routerInfo)
 		if errCode != protocol.Success {
 			code = errCode
@@ -115,7 +116,7 @@ func (s *MerchantPayinService) Create(ctx *gin.Context, req *protocol.MerchantPa
 			values.SetExpiredAt(result.ExpiredAt)
 		}
 		values.ChannelFeeAmount = result.ChannelFeeAmount
-		if result.Status == protocol.StatusFailed || result.ChannelStatus == protocol.StatusSuccess {
+		if result.Status == protocol.StatusFailed || result.Status == protocol.StatusSuccess {
 			values.SetCompletedAt(utils.TimeNowMilli())
 		}
 		return nil
@@ -127,5 +128,6 @@ func (s *MerchantPayinService) Create(ctx *gin.Context, req *protocol.MerchantPa
 		log.Get().Errorf("SaveTransactionValues error: %v", _err)
 	}
 	AfterTransactionCreate(trans)
+	info = trans.Protocol()
 	return
 }

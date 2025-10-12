@@ -75,22 +75,27 @@ func RequestByRouter(ctx context.Context, tx *gorm.DB, trx *models.Transaction, 
 	isAll := routerInfo.Strategy == protocol.RouterStrategyAll
 	err = protocol.ChannelNotSupported
 	for _, account := range routerInfo.ChannelAccounts {
-		trx.SetChannelCode(routerInfo.ChannelCodeLib[account]).SetChannelAccount(account)
+		trx.SetChannelCode(routerInfo.ChannelCodeLib[account]).
+			SetChannelAccount(account)
 		switch trx.TrxType {
 		case protocol.TrxTypePayin:
-			result, err = RequestChannelPayin(ctx, tx, trx)
+			result, err = RequestChannelPayin(ctx, trx)
 		case protocol.TrxTypePayout:
-			result, err = RequestChannelPayout(ctx, tx, trx)
+			result, err = RequestChannelPayout(ctx, trx)
 		}
-		if err != protocol.Success && !isAll {
-			//非全部轮询，则终止
+		if err != protocol.Success {
+			continue
+		}
+		if !isAll || result.Status != protocol.StatusFailed {
+			result.ChannelAccountID = trx.GetChannelCode()
+			result.ChannelAccountID = trx.GetChannelAccount()
 			break
 		}
 	}
 	return
 }
 
-func RequestChannelPayin(ctx context.Context, tx *gorm.DB, trx *models.Transaction) (result *protocol.ChannelResult, err protocol.ErrorCode) {
+func RequestChannelPayin(ctx context.Context, trx *models.Transaction) (result *protocol.ChannelResult, err protocol.ErrorCode) {
 	err = protocol.Success
 	if trx.GetChannelAccount() == "" {
 		return nil, protocol.InvalidParams
@@ -116,7 +121,7 @@ func RequestChannelPayin(ctx context.Context, tx *gorm.DB, trx *models.Transacti
 	return
 }
 
-func RequestChannelPayout(ctx context.Context, db *gorm.DB, trx *models.Transaction) (result *protocol.ChannelResult, err protocol.ErrorCode) {
+func RequestChannelPayout(ctx context.Context, trx *models.Transaction) (result *protocol.ChannelResult, err protocol.ErrorCode) {
 	err = protocol.Success
 	if trx.GetChannelAccount() == "" {
 		return nil, protocol.InvalidParams
