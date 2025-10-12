@@ -9,8 +9,8 @@ import (
 
 // DashboardTodayStats 今日统计数据
 type DashboardTodayStats struct {
-	TodayCollection     string `json:"today_collection"`      // 今日代收金额
-	TodayCollectionRate string `json:"today_collection_rate"` // 今日代收增长率
+	TodayPayin     string `json:"today_payin"`      // 今日代收金额
+	TodayPayinRate string `json:"today_payin_rate"` // 今日代收增长率
 	TodayPayout         string `json:"today_payout"`          // 今日代付金额
 	TodayPayoutRate     string `json:"today_payout_rate"`     // 今日代付增长率
 	SuccessRate         string `json:"success_rate"`          // 成功率
@@ -19,9 +19,9 @@ type DashboardTodayStats struct {
 
 // DashboardTransactionTrend 交易趋势数据
 type DashboardTransactionTrend struct {
-	Date       string `json:"date"`       // 日期 (格式: MM-DD)
-	Collection int64  `json:"collection"` // 代收金额
-	Payout     int64  `json:"payout"`     // 代付金额
+	Date   string `json:"date"`   // 日期 (格式: MM-DD)
+	Payin  int64  `json:"payin"`  // 代收金额
+	Payout int64  `json:"payout"` // 代付金额
 }
 
 // DashboardSettlementTrend 结算趋势数据
@@ -89,22 +89,22 @@ func GetTodayStats(merchantID int64, currency string) (*DashboardTodayStats, err
 	yesterdayEnd := time.Date(now.Year(), now.Month(), now.Day()-1, 23, 59, 59, 999, now.Location()).UnixMilli()
 
 	// 获取今日代收数据
-	var todayCollection, yesterdayCollection float64
-	var todayCollectionCount int64
+	var todayPayin, yesterdayPayin float64
+	var todayPayinCount int64
 
 	// 今日代收 - 先不限制时间，查询所有数据
-	fmt.Printf("Querying today collection: mid=%s, start=%d, end=%d\n", merchant.Mid, todayStart, todayEnd)
+	fmt.Printf("Querying today payin: mid=%s, start=%d, end=%d\n", merchant.Mid, todayStart, todayEnd)
 
 	// 临时：查询所有数据不限时间
 	result := db.Model(&models.MerchantPayin{}).
 		Where("mid = ?", merchant.Mid).
 		Select("COALESCE(SUM(amount), 0) as total, COUNT(*) as count").
 		Row()
-	scanErr := result.Scan(&todayCollection, &todayCollectionCount)
+	scanErr := result.Scan(&todayPayin, &todayPayinCount)
 	if scanErr != nil {
-		fmt.Printf("Error scanning today collection: %v\n", scanErr)
+		fmt.Printf("Error scanning today payin: %v\n", scanErr)
 	}
-	fmt.Printf("Today collection result (all time): total=%.2f, count=%d\n", todayCollection, todayCollectionCount)
+	fmt.Printf("Today payin result (all time): total=%.2f, count=%d\n", todayPayin, todayPayinCount)
 
 	// 查询状态分布
 	var statusCount int64
@@ -120,7 +120,7 @@ func GetTodayStats(merchantID int64, currency string) (*DashboardTodayStats, err
 	}
 
 	// 昨日代收 - 临时设为0，专注今日数据
-	yesterdayCollection = 0
+	yesterdayPayin = 0
 
 	// 获取今日代付数据
 	var todayPayout, yesterdayPayout float64
@@ -193,12 +193,12 @@ func GetTodayStats(merchantID int64, currency string) (*DashboardTodayStats, err
 	}
 
 	// 计算增长率
-	collectionRate := calculateRate(todayCollection, yesterdayCollection)
+	payinRate := calculateRate(todayPayin, yesterdayPayin)
 	payoutRate := calculateRate(todayPayout, yesterdayPayout)
 
 	return &DashboardTodayStats{
-		TodayCollection:     fmt.Sprintf("%.2f", todayCollection),
-		TodayCollectionRate: collectionRate,
+		TodayPayin:     fmt.Sprintf("%.2f", todayPayin),
+		TodayPayinRate: payinRate,
 		TodayPayout:         fmt.Sprintf("%.2f", todayPayout),
 		TodayPayoutRate:     payoutRate,
 		SuccessRate:         fmt.Sprintf("%.1f", successRate),
@@ -227,14 +227,14 @@ func GetTransactionTrend(merchantID int64, days int) ([]DashboardTransactionTren
 		date := time.Now().AddDate(0, 0, -i)
 		displayDate := date.Format("01-02")
 
-		var collection, payout float64
+		var payin, payout float64
 
 		// 临时：获取所有代收数据（不限时间）
 		if i == 0 { // 只在第一天显示数据，其他天为0
 			db.Model(&models.MerchantPayin{}).
 				Where("mid = ?", merchant.Mid).
 				Select("COALESCE(SUM(amount), 0)").
-				Row().Scan(&collection)
+				Row().Scan(&payin)
 
 			// 获取所有代付数据（不限时间）
 			db.Model(&models.MerchantPayout{}).
@@ -242,14 +242,14 @@ func GetTransactionTrend(merchantID int64, days int) ([]DashboardTransactionTren
 				Select("COALESCE(SUM(amount), 0)").
 				Row().Scan(&payout)
 		} else {
-			collection = 0
+			payin = 0
 			payout = 0
 		}
 
 		trends = append(trends, DashboardTransactionTrend{
-			Date:       displayDate,
-			Collection: int64(collection),
-			Payout:     int64(payout),
+			Date:   displayDate,
+			Payin:  int64(payin),
+			Payout: int64(payout),
 		})
 	}
 
