@@ -9,12 +9,12 @@ import (
 
 // DashboardTodayStats 今日统计数据
 type DashboardTodayStats struct {
-	TodayPayin     string `json:"today_payin"`      // 今日代收金额
-	TodayPayinRate string `json:"today_payin_rate"` // 今日代收增长率
-	TodayPayout         string `json:"today_payout"`          // 今日代付金额
-	TodayPayoutRate     string `json:"today_payout_rate"`     // 今日代付增长率
-	SuccessRate         string `json:"success_rate"`          // 成功率
-	SuccessRateChange   string `json:"success_rate_change"`   // 成功率变化
+	TodayPayin        string `json:"today_payin"`         // 今日代收金额
+	TodayPayinRate    string `json:"today_payin_rate"`    // 今日代收增长率
+	TodayPayout       string `json:"today_payout"`        // 今日代付金额
+	TodayPayoutRate   string `json:"today_payout_rate"`   // 今日代付增长率
+	SuccessRate       string `json:"success_rate"`        // 成功率
+	SuccessRateChange string `json:"success_rate_change"` // 成功率变化
 }
 
 // DashboardTransactionTrend 交易趋势数据
@@ -197,12 +197,12 @@ func GetTodayStats(merchantID int64, currency string) (*DashboardTodayStats, err
 	payoutRate := calculateRate(todayPayout, yesterdayPayout)
 
 	return &DashboardTodayStats{
-		TodayPayin:     fmt.Sprintf("%.2f", todayPayin),
-		TodayPayinRate: payinRate,
-		TodayPayout:         fmt.Sprintf("%.2f", todayPayout),
-		TodayPayoutRate:     payoutRate,
-		SuccessRate:         fmt.Sprintf("%.1f", successRate),
-		SuccessRateChange:   fmt.Sprintf("%.1f", successRate-yesterdaySuccessRate),
+		TodayPayin:        fmt.Sprintf("%.2f", todayPayin),
+		TodayPayinRate:    payinRate,
+		TodayPayout:       fmt.Sprintf("%.2f", todayPayout),
+		TodayPayoutRate:   payoutRate,
+		SuccessRate:       fmt.Sprintf("%.1f", successRate),
+		SuccessRateChange: fmt.Sprintf("%.1f", successRate-yesterdaySuccessRate),
 	}, nil
 }
 
