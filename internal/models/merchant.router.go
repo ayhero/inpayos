@@ -42,8 +42,9 @@ func (t *MerchantRouter) TableName() string {
 
 type MerchantRouters []*MerchantRouter
 
-func ListRouterByMerchantByProirity(mid, trx_type string) (data MerchantRouters) {
-	err := ReadDB.Where("mid = ? and trx_type=?", mid, trx_type).
+func ListMerchantRouterByMerchant(mid, trx_type string) (data MerchantRouters) {
+	err := ReadDB.Where("trx_type=?", trx_type).
+		Where("mid = '' OR mid IS NULL OR mid = ?", mid).
 		Order("priority desc").
 		Find(&data).Error
 	if err != nil {

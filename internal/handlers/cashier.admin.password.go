@@ -30,7 +30,7 @@ func (t *CashierAdmin) ResetPassword(c *gin.Context) {
 	code := strings.TrimSpace(req.VerificationCode)
 
 	// 验证验证码
-	if !services.VerifyEmailCode(protocol.MsgTypePasswordReset, email, code) {
+	if !services.GetVerifyCodeService().VerifyEmailCode(protocol.MsgTypePasswordReset, email, code) {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
 		return
 	}

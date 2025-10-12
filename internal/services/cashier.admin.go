@@ -99,7 +99,7 @@ func RegisterCashierTeam(req *CashierTeamRegisterRequest) error {
 	}
 
 	// 验证码校验
-	if !VerifyEmailCode(protocol.VerifyCodeTypeRegister, req.Email, req.VerifyCode) {
+	if !GetVerifyCodeService().VerifyEmailCode(protocol.VerifyCodeTypeRegister, req.Email, req.VerifyCode) {
 		return errors.New("invalid verify code")
 	}
 

@@ -1,7 +1,6 @@
 package services
 
 import (
-	"errors"
 	"inpayos/internal/log"
 	"inpayos/internal/models"
 	"inpayos/internal/protocol"
@@ -20,40 +19,40 @@ type MerchantRegisterRequest struct {
 }
 
 // ValidateRegisterRequest 验证注册请求
-func (req *MerchantRegisterRequest) ValidateRegisterRequest() error {
+func (req *MerchantRegisterRequest) ValidateRegisterRequest() protocol.ErrorCode {
 	// 验证昵称长度
 	if len(req.Nickname) > 32 {
-		return errors.New("nickname too long, max length is 32")
+		return protocol.InvalidParams
 	}
 
 	// 验证手机号格式
 	if !IsValidPhone(req.Phone) {
-		return errors.New("invalid phone number format")
+		return protocol.InvalidParams
 	}
 
 	// 验证邮箱域名
 	if !IsValidEmailDomain(req.Email) {
-		return errors.New("email domain not allowed")
+		return protocol.InvalidParams
 	}
 
-	return nil
+	return protocol.Success
 }
 
 // RegisterMerchant 注册商户
-func RegisterMerchant(req *MerchantRegisterRequest) error {
+func RegisterMerchant(req *MerchantRegisterRequest) protocol.ErrorCode {
 	// 参数验证
-	if err := req.ValidateRegisterRequest(); err != nil {
+	if err := req.ValidateRegisterRequest(); err != protocol.Success {
 		return err
 	}
 
 	// 验证码校验
-	if !VerifyEmailCode(protocol.VerifyCodeTypeRegister, req.Email, req.VerifyCode) {
-		return errors.New("invalid verify code")
+	if !GetVerifyCodeService().VerifyCode(protocol.MsgChannelEmail, protocol.VerifyCodeTypeRegister, req.Email, req.VerifyCode) {
+		return protocol.InvalidVerificationCode
 	}
 
 	// 检查邮箱是否已注册
 	if models.CheckMerchantEmail(req.Email) {
-		return errors.New("email already registered")
+		return protocol.InvalidParams
 	}
 
 	// 创建商户
@@ -84,10 +83,10 @@ func RegisterMerchant(req *MerchantRegisterRequest) error {
 	// 保存到数据库
 	if err := models.WriteDB.Create(merchant).Error; err != nil {
 		log.Get().Errorf("Failed to create merchant: %v", err)
-		return errors.New("failed to create merchant")
+		return protocol.InternalError
 	}
 
 	// 发送注册成功邮件
 	//SendRegisterSuccessEmail(req.Email)
-	return nil
+	return protocol.Success
 }

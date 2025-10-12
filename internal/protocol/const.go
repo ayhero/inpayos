@@ -69,7 +69,6 @@ const (
 	VerifyCodeTypeLogin         = "login"          // 登录验证码
 	VerifyCodeTypeResetPassword = "reset_password" // 重置密码验证码
 	VerifyCodeTypeResetG2FA     = "reset_g2fa"     // 重置G2FA验证码
-	VerifyCodeTypeReset         = "reset"          // 重置密码验证码
 )
 
 // 订单类型

@@ -23,7 +23,7 @@ type RouterRequest struct {
 }
 
 func GetChannelByMerchant(req *RouterRequest) (r *protocol.RouterInfo) {
-	routers := models.ListRouterByMerchantByProirity(req.Mid, req.TrxType)
+	routers := models.ListMerchantRouterByMerchant(req.Mid, req.TrxType)
 	if len(routers) == 0 {
 		return
 	}
@@ -36,23 +36,21 @@ func GetChannelByMerchant(req *RouterRequest) (r *protocol.RouterInfo) {
 		if err := ValidateRouter(router, req); err != nil {
 			continue
 		}
-		if router.ChannelAccount != nil && *router.ChannelAccount != "" {
+		if router.GetChannelAccount() != "" {
 			account := models.GetChannelAccountsByAccountID(router.GetChannelAccount())
 			if account != nil {
 				r.ChannelAccounts = append(r.ChannelAccounts, account.GetAccountID())
 				r.ChannelCodeLib[account.GetAccountID()] = account.ChannelCode
 				return
 			}
-		}
-		if router.ChannelCode != nil && *router.ChannelCode != "" {
+		} else if router.GetChannelCode() != "" {
 			account := models.GetActiveChannelAccountByCode(req.Mid, router.GetChannelCode())
 			if account != nil {
 				r.ChannelAccounts = append(r.ChannelAccounts, account.GetAccountID())
 				r.ChannelCodeLib[account.GetAccountID()] = account.ChannelCode
 				return
 			}
-		}
-		if router.ChannelGroup != nil && *router.ChannelGroup != "" {
+		} else if router.GetChannelGroup() != "" {
 			group := models.GetActiveChannelGroupByCode(router.GetChannelGroup())
 			if group != nil {
 				accounts := []string{}
@@ -101,7 +99,7 @@ func ValidateRouter(router *models.MerchantRouter, req *RouterRequest) (err erro
 }
 
 func ValidateAmount(router *models.MerchantRouter, ccy string, amount *decimal.Decimal) (err error) {
-	if router.Ccy != nil && *router.Ccy != "" && *router.Ccy != ccy {
+	if router.Ccy != nil && router.GetCcy() != "" && router.GetCcy() != ccy {
 		err = errors.New("currency not supported")
 		return
 	}
@@ -112,11 +110,11 @@ func ValidateAmount(router *models.MerchantRouter, ccy string, amount *decimal.D
 		err = errors.New("amount not supported")
 		return
 	}
-	if router.MinAmount != nil && router.MinAmount.GreaterThan(*amount) {
+	if router.MinAmount != nil && router.MinAmount.GreaterThan(decimal.Zero) && router.MinAmount.GreaterThan(*amount) {
 		err = errors.New("MinAmount not supported")
 		return
 	}
-	if router.MaxAmount != nil && router.MaxAmount.LessThan(*amount) {
+	if router.MaxAmount != nil && router.MaxAmount.GreaterThan(decimal.Zero) && router.MaxAmount.LessThan(*amount) {
 		err = errors.New("MaxAmount not supported")
 		return
 	}

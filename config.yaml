@@ -7,13 +7,13 @@ server:
   openapi:
     port: "6080"
     name: "openapi"
-    version: "v1"
+    version: ""
     read_timeout: 60
     write_timeout: 60
   merchant:
     port: "6081"
     name: "merchant"
-    version: "v1"
+    version: ""
     read_timeout: 60
     write_timeout: 60
     jwt:
@@ -27,7 +27,7 @@ server:
   admin:
     port: "6082"
     name: "admin"
-    version: "v1"
+    version: ""
     read_timeout: 60
     write_timeout: 60
     jwt:
@@ -41,13 +41,13 @@ server:
   cashier_api:
     port: "6083"
     name: "cashier_api"
-    version: "v1"
+    version: ""
     read_timeout: 60
     write_timeout: 60
   cashier_admin:
     port: "6084"
     name: "cashier_admin"
-    version: "v1"
+    version: ""
     read_timeout: 60
     write_timeout: 60
     jwt:
@@ -134,7 +134,7 @@ payout:
 
 # 国际化配置
 i18n:
-  locales_dir: "internal/locales"  # 本地开发环境路径
+  locales_dir: "../internal/locales"  # 本地开发环境路径
   default_language: "en"
   supported_langs: ["en", "zh", "hi"]
   # 本地化配置

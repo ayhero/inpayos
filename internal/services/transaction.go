@@ -73,6 +73,7 @@ func GetChannelRouterByMerchant(req *models.Transaction) *protocol.RouterInfo {
 
 func RequestByRouter(ctx context.Context, tx *gorm.DB, trx *models.Transaction, routerInfo *protocol.RouterInfo) (result *protocol.ChannelResult, err protocol.ErrorCode) {
 	isAll := routerInfo.Strategy == protocol.RouterStrategyAll
+	err = protocol.ChannelNotSupported
 	for _, account := range routerInfo.ChannelAccounts {
 		trx.SetChannelCode(routerInfo.ChannelCodeLib[account]).SetChannelAccount(account)
 		switch trx.TrxType {
@@ -81,15 +82,8 @@ func RequestByRouter(ctx context.Context, tx *gorm.DB, trx *models.Transaction, 
 		case protocol.TrxTypePayout:
 			result, err = RequestChannelPayout(ctx, tx, trx)
 		}
-		if err != protocol.Success {
-			//只要是失败，则继续循环
-			if result.Status == protocol.StatusFailed {
-				continue
-			}
-			break
-		}
-		//非全部轮询，则终止
-		if !isAll {
+		if err != protocol.Success && !isAll {
+			//非全部轮询，则终止
 			break
 		}
 	}

@@ -32,7 +32,7 @@ func (t *CashierAdmin) BindG2FA(c *gin.Context) {
 	//已经绑定过，重新绑定
 	if cashierTeam.GetG2FA() != "" {
 		// 验证码校验
-		if !services.VerifyEmailCode(protocol.VerifyCodeTypeResetG2FA, cashierTeam.GetEmail(), req.VerifyCode) {
+		if !services.GetVerifyCodeService().VerifyEmailCode(protocol.VerifyCodeTypeResetG2FA, cashierTeam.GetEmail(), req.VerifyCode) {
 			c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
 			return
 		}

@@ -87,6 +87,10 @@ func AutoMigrate() error {
 		&CashierPayin{},
 		&CashierPayout{},
 
+		//渠道相关
+		&ChannelAccount{},
+		&ChannelGroup{},
+
 		// 资金和流水
 		&FundFlow{},
 		&TrxHistory{},

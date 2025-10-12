@@ -1,6 +1,8 @@
 package models
 
 import (
+	"inpayos/internal/protocol"
+
 	"github.com/shopspring/decimal"
 )
 
@@ -329,6 +331,7 @@ func (p *CashierPayin) ToTransaction() *Transaction {
 	transaction := &Transaction{
 		ID:          int64(p.ID), // Convert uint64 to int64
 		Tid:         p.Tid,
+		TrxType:     protocol.TrxTypePayin,
 		CashierID:   p.CashierPayinValues.GetCashierID(),
 		TrxID:       p.TrxID,
 		ReqID:       p.ReqID,

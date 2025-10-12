@@ -129,6 +129,32 @@ const (
 	InvalidBalanceType  ErrorCode = "5404" // 余额类型无效
 )
 
+// 验证相关错误码 (9000-9999)
+const (
+	VerificationCodeRequired   ErrorCode = "9000" // 需要验证码
+	InvalidVerificationCode    ErrorCode = "9001" // 验证码错误
+	VerificationCodeExpired    ErrorCode = "9002" // 验证码过期
+	VerificationLimitReached   ErrorCode = "9003" // 验证次数限制
+	EmailNotVerified           ErrorCode = "9004" // 邮箱未验证
+	PhoneNotVerified           ErrorCode = "9005" // 手机号未验证
+	AccountNotVerified         ErrorCode = "9006" // 账户未验证
+	VerificationFailed         ErrorCode = "9007" // 验证失败
+	IDVerificationRequired     ErrorCode = "9008" // 需要身份验证
+	InvalidIDDocument          ErrorCode = "9009" // 身份证件无效
+	IDVerificationFailed       ErrorCode = "9010" // 身份验证失败
+	KYCRequired                ErrorCode = "9011" // 需要KYC验证
+	KYCFailed                  ErrorCode = "9012" // KYC验证失败
+	BackgroundCheckRequired    ErrorCode = "9013" // 需要背景调查
+	BackgroundCheckFailed      ErrorCode = "9014" // 背景调查失败
+	VerificationRequired       ErrorCode = "9015" // 需要验证
+	TooManyAttempts            ErrorCode = "9016" // 尝试次数过多
+	VerificationCooldown       ErrorCode = "9017" // 验证冷却期
+	SMSServiceError            ErrorCode = "9018" // 短信服务错误
+	EmailServiceError          ErrorCode = "9019" // 邮件服务错误
+	InvalidVerificationMethod  ErrorCode = "9020" // 无效验证方式
+	VerificationCodeSendFailed ErrorCode = "9021" // 验证码发送失败
+)
+
 // 渠道相关错误码 (6000-6999)
 const (
 	ChannelNotFound     ErrorCode = "6000" // 渠道不存在
@@ -291,6 +317,30 @@ func (code ErrorCode) GetMessage() string {
 		ConfigInvalid:      "Invalid configuration",
 		ConfigUpdateFailed: "Configuration update failed",
 		ConfigLoadFailed:   "Configuration load failed",
+
+		// 验证相关错误码
+		VerificationCodeRequired:   "Verification code required",
+		InvalidVerificationCode:    "Invalid verification code",
+		VerificationCodeExpired:    "Verification code expired",
+		VerificationLimitReached:   "Verification limit reached",
+		EmailNotVerified:           "Email not verified",
+		PhoneNotVerified:           "Phone number not verified",
+		AccountNotVerified:         "Account not verified",
+		VerificationFailed:         "Verification failed",
+		IDVerificationRequired:     "ID verification required",
+		InvalidIDDocument:          "Invalid ID document",
+		IDVerificationFailed:       "ID verification failed",
+		KYCRequired:                "KYC verification required",
+		KYCFailed:                  "KYC verification failed",
+		BackgroundCheckRequired:    "Background check required",
+		BackgroundCheckFailed:      "Background check failed",
+		VerificationRequired:       "Verification required",
+		TooManyAttempts:            "Too many attempts",
+		VerificationCooldown:       "Verification cooldown period",
+		SMSServiceError:            "SMS service error",
+		EmailServiceError:          "Email service error",
+		InvalidVerificationMethod:  "Invalid verification method",
+		VerificationCodeSendFailed: "Verification code send failed",
 	}
 
 	if msg, exists := messages[code]; exists {
@@ -347,6 +397,11 @@ func (code ErrorCode) IsWebhookError() bool {
 // IsConfigError 判断是否配置错误 (8000-8999)
 func (code ErrorCode) IsConfigError() bool {
 	return code >= "8000" && code < "9000"
+}
+
+// IsVerificationError 判断是否验证错误 (9000-9999)
+func (code ErrorCode) IsVerificationError() bool {
+	return code >= "9000" && code < "10000"
 }
 
 // ServiceError 服务层错误类型

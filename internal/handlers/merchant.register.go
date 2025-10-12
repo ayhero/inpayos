@@ -26,8 +26,8 @@ func (t *MerchantAdmin) Register(c *gin.Context) {
 	}
 	req.RegIP = c.ClientIP() // 获取注册IP
 	// 调用服务层注册方法
-	if err := services.RegisterMerchant(&req); err != nil {
-		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.SystemError, lang))
+	if err := services.RegisterMerchant(&req); err != protocol.Success {
+		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(err, lang))
 		return
 	}
 

@@ -17,10 +17,10 @@ type ChannelOpenApi interface {
 	Query(in *ChannelTrxRequest) *protocol.ChannelResult
 }
 
-var channel_open_api_service_lib = make(map[string]func(*models.ChannelAccount) ChannelOpenApi)
+var channelAccountLib = make(map[string]func(*models.ChannelAccount) ChannelOpenApi)
 
 func RegisterOpenAiChannelService(channel_account string, svc func(*models.ChannelAccount) ChannelOpenApi) {
-	channel_open_api_service_lib[channel_account] = svc
+	channelAccountLib[channel_account] = svc
 }
 
 // Channels 渠道服务映射
@@ -43,7 +43,7 @@ func LoadChannelOpenApiService() {
 	accounts := models.GetChannelAccounts()
 	for _, account := range accounts {
 		// 检查是否有对应的渠道服务创建器
-		svc_fn, ok := channel_open_api_service_lib[account.ChannelCode]
+		svc_fn, ok := channelAccountLib[account.ChannelCode]
 		if !ok {
 			continue
 		}

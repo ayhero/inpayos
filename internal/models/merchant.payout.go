@@ -596,6 +596,7 @@ func (p *MerchantPayout) ToTransaction() *Transaction {
 	transaction := &Transaction{
 		ID:          int64(p.ID), // Convert uint64 to int64
 		Mid:         p.Mid,
+		TrxType:     protocol.TrxTypePayout,
 		UserID:      p.UserID,
 		TrxID:       p.TrxID,
 		ReqID:       p.ReqID,

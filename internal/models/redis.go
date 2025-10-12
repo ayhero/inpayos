@@ -18,9 +18,13 @@ var (
 )
 
 // InitRedis 初始化Redis连接
-func InitRedis(cfg *config.Config) error {
+func InitRedis() error {
 	// 使用DSN格式连接Redis
-	dsn := cfg.Redis.DSN
+	cfg := config.Get().Redis
+	if cfg == nil {
+		return nil // 允许没有Redis配置
+	}
+	dsn := cfg.DSN
 	if dsn == "" {
 		return fmt.Errorf("redis DSN is empty")
 	}

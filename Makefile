@@ -153,61 +153,109 @@ logs: ## 查看应用日志
 
 health-check: ## 健康检查
 	@echo "💊 执行健康检查..."
-	@echo "尝试OpenAPI端口8080..."
-	@curl -f http://localhost:8080/health 2>/dev/null && echo "✅ OpenAPI端口8080服务正常" || echo "❌ OpenAPI端口8080无响应"
-	@echo "尝试CashierAPI端口8081..."
-	@curl -f http://localhost:8081/health 2>/dev/null && echo "✅ CashierAPI端口8081服务正常" || echo "❌ CashierAPI端口8081无响应"
-	@echo "尝试MerchantAPI端口8082..."
-	@curl -f http://localhost:8082/health 2>/dev/null && echo "✅ MerchantAPI端口8082服务正常" || echo "❌ MerchantAPI端口8082无响应"
-	@echo "尝试CashierAdminAPI端口8083..."
-	@curl -f http://localhost:8083/health 2>/dev/null && echo "✅ CashierAdminAPI端口8083服务正常" || echo "❌ CashierAdminAPI端口8083无响应"
-	@echo "尝试AdminAPI端口8084..."
-	@curl -f http://localhost:8084/health 2>/dev/null && echo "✅ AdminAPI端口8084服务正常" || echo "❌ AdminAPI端口8084无响应"
+	@echo "尝试OpenAPI端口6080..."
+	@curl -f http://localhost:6080/health 2>/dev/null && echo "✅ OpenAPI端口6080服务正常" || echo "❌ OpenAPI端口6080无响应"
+	@echo "尝试Merchant端口6081..."
+	@curl -f http://localhost:6081/health 2>/dev/null && echo "✅ Merchant端口6081服务正常" || echo "❌ Merchant端口6081无响应"
+	@echo "尝试Admin端口6082..."
+	@curl -f http://localhost:6082/health 2>/dev/null && echo "✅ Admin端口6082服务正常" || echo "❌ Admin端口6082无响应"
+	@echo "尝试CashierAPI端口6083..."
+	@curl -f http://localhost:6083/health 2>/dev/null && echo "✅ CashierAPI端口6083服务正常" || echo "❌ CashierAPI端口6083无响应"
+	@echo "尝试CashierAdmin端口6084..."
+	@curl -f http://localhost:6084/health 2>/dev/null && echo "✅ CashierAdmin端口6084服务正常" || echo "❌ CashierAdmin端口6084无响应"
 
-stop: ## 停止当前运行的服务
-	@echo "🛑 停止服务..."
-	@pkill -f "$(BINARY_NAME)" || echo "ℹ️  没有找到运行中的服务"
-	@pkill -f "go run ./main" || echo "ℹ️  没有找到开发模式服务"
+stop: ## 停止当前运行的服务进程
+	@echo "🛑 停止InpayOS服务进程..."
+	@pkill -f "$(BINARY_NAME)" 2>/dev/null || echo "ℹ️  没有找到构建版本服务"
+	@pkill -f "go run ./main" 2>/dev/null || echo "ℹ️  没有找到开发模式服务"
+	@pkill -f "__debug_bin" 2>/dev/null || echo "ℹ️  没有找到调试版本服务"
+	@echo "✅ 服务进程已停止"
 
-stop-all: ## 一键关闭所有五个服务 (OpenAPI、CashierAPI、MerchantAPI、CashierAdminAPI、AdminAPI)
-	@echo "🛑 正在关闭所有InPayOS服务..."
-	@echo "📍 关闭OpenAPI服务 (端口8080)..."
-	@lsof -ti:8080 | xargs kill -9 2>/dev/null || echo "ℹ️  端口8080无进程运行"
-	@echo "📍 关闭CashierAPI服务 (端口8081)..."
-	@lsof -ti:8081 | xargs kill -9 2>/dev/null || echo "ℹ️  端口8081无进程运行"
-	@echo "📍 关闭MerchantAPI服务 (端口8082)..."
-	@lsof -ti:8082 | xargs kill -9 2>/dev/null || echo "ℹ️  端口8082无进程运行"
-	@echo "📍 关闭CashierAdminAPI服务 (端口8083)..."
-	@lsof -ti:8083 | xargs kill -9 2>/dev/null || echo "ℹ️  端口8083无进程运行"
-	@echo "📍 关闭AdminAPI服务 (端口8084)..."
-	@lsof -ti:8084 | xargs kill -9 2>/dev/null || echo "ℹ️  端口8084无进程运行"
+stop-all: ## 强制关闭所有InpayOS服务端口
+	@echo "🛑 正在关闭所有InpayOS服务..."
+	@echo "📍 关闭OpenAPI服务 (端口6080)..."
+	@lsof -ti:6080 | xargs kill -9 2>/dev/null || echo "ℹ️  端口6080无进程运行"
+	@echo "📍 关闭Merchant服务 (端口6081)..."
+	@lsof -ti:6081 | xargs kill -9 2>/dev/null || echo "ℹ️  端口6081无进程运行"
+	@echo "📍 关闭Admin服务 (端口6082)..."
+	@lsof -ti:6082 | xargs kill -9 2>/dev/null || echo "ℹ️  端口6082无进程运行"
+	@echo "📍 关闭CashierAPI服务 (端口6083)..."
+	@lsof -ti:6083 | xargs kill -9 2>/dev/null || echo "ℹ️  端口6083无进程运行"
+	@echo "📍 关闭CashierAdmin服务 (端口6084)..."
+	@lsof -ti:6084 | xargs kill -9 2>/dev/null || echo "ℹ️  端口6084无进程运行"
 	@echo "🧹 清理相关进程..."
 	@pkill -f "inpayos" 2>/dev/null || echo "ℹ️  没有找到inpayos进程"
 	@pkill -f "go run ./main" 2>/dev/null || echo "ℹ️  没有找到go run进程"
+	@pkill -f "__debug_bin" 2>/dev/null || echo "ℹ️  没有找到调试进程"
 	@echo "✅ 所有服务已关闭"
 
 kill-all: ## 强制停止所有相关进程和线程
 	@echo "💀 强制停止所有相关进程..."
-	@pkill -9 -f "inpayos" || echo "ℹ️  没有找到inpayos进程"
-	@pkill -9 -f "go run ./main" || echo "ℹ️  没有找到go run进程"
-	@pkill -9 -f "dlv dap" || echo "ℹ️  没有找到调试进程"
+	@pkill -9 -f "inpayos" 2>/dev/null || echo "ℹ️  没有找到inpayos进程"
+	@pkill -9 -f "go run ./main" 2>/dev/null || echo "ℹ️  没有找到go run进程"
+	@pkill -9 -f "__debug_bin" 2>/dev/null || echo "ℹ️  没有找到调试进程"
+	@pkill -9 -f "dlv dap" 2>/dev/null || echo "ℹ️  没有找到dlv调试进程"
 	@echo "🧹 清理临时文件..."
 	@rm -f /tmp/inpayos-*.pid 2>/dev/null || true
+	@rm -f main/__debug_bin* 2>/dev/null || true
+	@echo "✅ 所有进程已强制停止并清理"
 
 status: ## 检查服务运行状态
-	@echo "📊 检查服务状态..."
-	@echo "=== InPayOS API 进程 ==="
-	@ps aux | grep -E "(inpayos|go run.*main)" | grep -v grep || echo "❌ 没有找到API服务进程"
+	@echo "📊 检查InpayOS服务状态..."
+	@echo "=== InpayOS API 进程 ==="
+	@ps aux | grep -E "(inpayos|go run.*main|__debug_bin)" | grep -v grep || echo "❌ 没有找到API服务进程"
 	@echo ""
 	@echo "=== 调试进程 ==="
-	@ps aux | grep "dlv dap" | grep -v grep || echo "ℹ️  没有调试进程运行"
+	@ps aux | grep -E "(dlv dap|__debug_bin)" | grep -v grep || echo "ℹ️  没有调试进程运行"
 	@echo ""
 	@echo "=== 端口占用情况 ==="
-	@lsof -i :8080 2>/dev/null || echo "ℹ️  端口8080未被占用"
-	@lsof -i :8081 2>/dev/null || echo "ℹ️  端口8081未被占用"
-	@lsof -i :8082 2>/dev/null || echo "ℹ️  端口8082未被占用"
-	@lsof -i :8083 2>/dev/null || echo "ℹ️  端口8083未被占用"
-	@lsof -i :8084 2>/dev/null || echo "ℹ️  端口8084未被占用"
+	@echo "OpenAPI (6080):"
+	@lsof -i :6080 2>/dev/null || echo "  ℹ️  端口6080未被占用"
+	@echo "Merchant (6081):"
+	@lsof -i :6081 2>/dev/null || echo "  ℹ️  端口6081未被占用"
+	@echo "Admin (6082):"
+	@lsof -i :6082 2>/dev/null || echo "  ℹ️  端口6082未被占用"
+	@echo "CashierAPI (6083):"
+	@lsof -i :6083 2>/dev/null || echo "  ℹ️  端口6083未被占用"
+	@echo "CashierAdmin (6084):"
+	@lsof -i :6084 2>/dev/null || echo "  ℹ️  端口6084未被占用"
+
+ports: ## 显示InpayOS相关端口占用情况
+	@echo "🔍 InpayOS端口占用详情..."
+	@echo "=== 端口占用详情 ==="
+	@lsof -i :6080 -i :6081 -i :6082 -i :6083 -i :6084 2>/dev/null || echo "ℹ️  没有进程占用InpayOS端口"
+	@echo ""
+	@echo "=== 端口说明 ==="
+	@echo "  6080 - OpenAPI Service"
+	@echo "  6081 - Merchant Admin Service"
+	@echo "  6082 - Admin Service"
+	@echo "  6083 - Cashier API Service"
+	@echo "  6084 - Cashier Admin Service"
+
+# 单独服务管理命令
+stop-openapi: ## 停止OpenAPI服务 (端口6080)
+	@echo "🛑 停止OpenAPI服务 (端口6080)..."
+	@lsof -ti:6080 | xargs kill -9 2>/dev/null && echo "✅ OpenAPI服务已停止" || echo "ℹ️  OpenAPI服务未运行"
+
+stop-merchant: ## 停止Merchant服务 (端口6081)
+	@echo "🛑 停止Merchant服务 (端口6081)..."
+	@lsof -ti:6081 | xargs kill -9 2>/dev/null && echo "✅ Merchant服务已停止" || echo "ℹ️  Merchant服务未运行"
+
+stop-admin: ## 停止Admin服务 (端口6082)
+	@echo "🛑 停止Admin服务 (端口6082)..."
+	@lsof -ti:6082 | xargs kill -9 2>/dev/null && echo "✅ Admin服务已停止" || echo "ℹ️  Admin服务未运行"
+
+stop-cashier-api: ## 停止CashierAPI服务 (端口6083)
+	@echo "🛑 停止CashierAPI服务 (端口6083)..."
+	@lsof -ti:6083 | xargs kill -9 2>/dev/null && echo "✅ CashierAPI服务已停止" || echo "ℹ️  CashierAPI服务未运行"
+
+stop-cashier-admin: ## 停止CashierAdmin服务 (端口6084)
+	@echo "🛑 停止CashierAdmin服务 (端口6084)..."
+	@lsof -ti:6084 | xargs kill -9 2>/dev/null && echo "✅ CashierAdmin服务已停止" || echo "ℹ️  CashierAdmin服务未运行"
+
+quick-stop: ## 快速停止所有InpayOS服务 (简化版)
+	@echo "⚡ 快速停止所有InpayOS服务..."
+	@lsof -ti:6080,6081,6082,6083,6084 | xargs kill -9 2>/dev/null && echo "✅ 所有服务已停止" || echo "ℹ️  没有运行中的服务"
 
 restart: stop build run ## 重启服务
 

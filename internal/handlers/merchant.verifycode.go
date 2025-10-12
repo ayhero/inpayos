@@ -32,8 +32,8 @@ func (t *MerchantAdmin) SendVerifyCode(c *gin.Context) {
 		return
 	}
 	// 发送验证码
-	if err := services.SendEmailVerifyCode(req.Type, strings.TrimSpace(req.Email)); err != nil {
-		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.SystemError, lang))
+	if err, _ := services.GetVerifyCodeService().SendEmailCode(req.Type, strings.TrimSpace(req.Email), lang); err != protocol.Success {
+		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(err, lang))
 		return
 	}
 
@@ -62,7 +62,7 @@ func (t *MerchantAdmin) VerifyCode(c *gin.Context) {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
 		return
 	}
-	if !services.VerifyEmailCode(req.Type, req.Email, req.Code) {
+	if !services.GetVerifyCodeService().VerifyEmailCode(req.Type, req.Email, req.Code) {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
 		return
 	}

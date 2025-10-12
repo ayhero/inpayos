@@ -115,7 +115,7 @@ func GetAppByID(appID, secretKey string) *MerchantSecret {
 
 	var secret MerchantSecret
 	now := time.Now().UnixMilli()
-	err := WriteDB.Where("app_id = ? AND secret_key = ? AND status = ? AND (expires_at = 0 OR expires_at > ?)", appID, secretKey, "active", now).First(&secret).Error
+	err := WriteDB.Where("app_id = ? AND secret_key = ? AND status = ? AND (expires_at is null or expires_at = 0 OR expires_at > ?)", appID, secretKey, protocol.StatusActive, now).First(&secret).Error
 	if err != nil {
 		return nil
 	}

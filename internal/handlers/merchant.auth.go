@@ -96,7 +96,7 @@ func (s *MerchantAdmin) Auth(c *gin.Context) {
 	}
 
 	// Generate JWT token
-	token, err := middleware.GenerateToken(merchant.Mid, time.Now().Add(72*time.Hour), config.Get().Server.CashierAdmin.Jwt.Secret)
+	token, err := middleware.GenerateToken(merchant.Mid, time.Now().Add(72*time.Hour), config.Get().Server.Merchant.Jwt.Secret)
 	if err != nil {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.SystemError, lang))
 		return

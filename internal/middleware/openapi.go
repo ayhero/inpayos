@@ -3,9 +3,9 @@ package middleware
 import (
 	"inpayos/internal/models"
 	"inpayos/internal/protocol"
+	"inpayos/internal/utils"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -80,12 +80,12 @@ func IsTimestampValid(timestampStr string, allowedSkewSeconds int64) bool {
 	}
 
 	// 获取当前时间戳（秒）
-	now := time.Now().Unix()
+	now := utils.TimeNowMilli()
 
 	// 检查时间戳是否在允许的误差范围内
-	diff := now - timestamp
+	diff := (now - timestamp) / 1000
 	if diff < 0 {
-		diff = -diff
+		return false
 	}
 
 	return diff <= allowedSkewSeconds
