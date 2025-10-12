@@ -55,5 +55,5 @@ func GenerateG2FAKey() string {
 
 // GenerateG2FAQRCode 生成 G2FA 的二维码内容
 func GenerateG2FAQRCode(id, g2faKey string) string {
-	return fmt.Sprintf("otpauth://totp/inpay:%s?secret=%s&issuer=inpay", id, g2faKey)
+	return fmt.Sprintf("otpauth://totp/inpayos:%s?secret=%s&issuer=	", id, g2faKey)
 }

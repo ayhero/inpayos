@@ -38,6 +38,7 @@ func GetMerchantPayoutService() *MerchantPayoutService {
 }
 
 func (s *MerchantPayoutService) Create(ctx *gin.Context, req *protocol.MerchantPayoutRequest) (info *protocol.Transaction, code protocol.ErrorCode) {
+	code = protocol.Success
 	// 检查是否已存在相同的请求ID
 	payout := models.GetMerchantPayoutByReqID(req.Mid, req.ReqID)
 	if payout != nil {
@@ -57,7 +58,7 @@ func (s *MerchantPayoutService) Create(ctx *gin.Context, req *protocol.MerchantP
 		Mid:                  req.Mid,
 		TrxType:              protocol.TrxTypePayout,
 		ReqID:                req.ReqID,
-		TrxID:                utils.GeneratePayinID(),
+		TrxID:                utils.GeneratePayoutID(),
 		Ccy:                  req.Ccy,
 		Amount:               &amount,
 		TrxMethod:            req.TrxMethod,
@@ -70,6 +71,7 @@ func (s *MerchantPayoutService) Create(ctx *gin.Context, req *protocol.MerchantP
 		ReturnURL:            req.ReturnURL,
 		MerchantPayoutValues: &models.MerchantPayoutValues{},
 	}
+	payout.SetVersion(1)
 	payoutCfg := config.Get().MerchantPayout
 	payout.SetStatus(protocol.StatusPending).
 		SetExpiredAt(now.Add(time.Duration(payoutCfg.ExpiryMinutes) * time.Minute).UnixMilli()) //过期时间
@@ -79,24 +81,23 @@ func (s *MerchantPayoutService) Create(ctx *gin.Context, req *protocol.MerchantP
 		payout.SetNotifyURL(m.GetNotifyURL())
 	}
 
-	trans := payout.ToTransaction()
 	// 获取可用渠道
-	routerInfo := GetChannelRouterByMerchant(trans)
+	routerInfo := GetChannelRouterByMerchant(payout.ToTransaction())
 	if routerInfo == nil {
 		code = protocol.ChannelNotFound
 		return
 	}
-
 	// 设置渠道信息
 	payout.SetChannelGroup(routerInfo.ChannelGroup)
-	trans.SetChannelGroup(routerInfo.ChannelGroup)
 	values := models.NewTrxValues()
+	var trans *models.Transaction
 	er := models.WriteDB.Transaction(func(tx *gorm.DB) error {
 		// 创建代收订单
 		if err := tx.Create(payout).Error; err != nil {
 			return err
 		}
 		// 执行渠道请求
+		trans = payout.ToTransaction()
 		result, errCode := RequestByRouter(ctx, tx, trans, routerInfo)
 		if errCode != protocol.Success {
 			code = errCode
@@ -111,8 +112,11 @@ func (s *MerchantPayoutService) Create(ctx *gin.Context, req *protocol.MerchantP
 			SetResCode(result.ResCode).
 			SetResMsg(result.ResMsg).
 			SetChannelFeeCcy(result.ChannelFeeCcy)
+		if result.ExpiredAt > 0 {
+			values.SetExpiredAt(result.ExpiredAt)
+		}
 		values.ChannelFeeAmount = result.ChannelFeeAmount
-		if result.Status == protocol.StatusFailed || result.ChannelStatus == protocol.StatusSuccess {
+		if result.Status == protocol.StatusFailed || result.Status == protocol.StatusSuccess {
 			values.SetCompletedAt(utils.TimeNowMilli())
 		}
 		return nil
@@ -120,10 +124,10 @@ func (s *MerchantPayoutService) Create(ctx *gin.Context, req *protocol.MerchantP
 	if er != nil {
 		return
 	}
-
-	if _err := models.SaveTransactionValues(models.WriteDB, payout.ToTransaction(), values); _err != nil {
+	if _err := models.SaveTransactionValues(models.WriteDB, trans, values); _err != nil {
 		log.Get().Errorf("SaveTransactionValues error: %v", _err)
 	}
-	AfterTransactionCreate(payout.ToTransaction())
+	AfterTransactionCreate(trans)
+	info = trans.Protocol()
 	return
 }

@@ -22,7 +22,7 @@ func (a *OpenApi) Payin(c *gin.Context) {
 		return
 	}
 	lang := middleware.GetLanguage(c)
-
+	req.Mid = middleware.GetMidFromContext(c)
 	// 执行业务逻辑（代收类型）
 	response, code := a.Transaction.CreatePayin(c, &req)
 	result := protocol.HandleServiceResult(code, response, lang)
@@ -37,10 +37,11 @@ func (a *OpenApi) Cancel(c *gin.Context) {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
 		return
 	}
+	lang := middleware.GetLanguage(c)
+	req.Mid = middleware.GetMidFromContext(c)
 
 	// 执行取消逻辑
 	response, code := a.Transaction.Cancel(&req)
-	lang := middleware.GetLanguage(c)
 	result := protocol.HandleServiceResult(code, response, lang)
 	c.JSON(http.StatusOK, result)
 }
@@ -54,9 +55,10 @@ func (a *OpenApi) Payout(c *gin.Context) {
 		return
 	}
 
+	lang := middleware.GetLanguage(c)
+	req.Mid = middleware.GetMidFromContext(c)
 	// 执行业务逻辑（代付类型）
 	response, code := a.Transaction.CreatePayout(c, &req)
-	lang := middleware.GetLanguage(c)
 	result := protocol.HandleServiceResult(code, response, lang)
 	c.JSON(http.StatusOK, result)
 }
@@ -74,13 +76,14 @@ func (a *OpenApi) Query(c *gin.Context) {
 		return
 	}
 
+	lang := middleware.GetLanguage(c)
+	req.Mid = middleware.GetMidFromContext(c)
 	if req.ReqID == "" && req.TrxID == "" {
 		lang := middleware.GetLanguage(c)
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.MissingParams, lang))
 		return
 	}
 	response, code := a.Transaction.Query(&req)
-	lang := middleware.GetLanguage(c)
 	result := protocol.HandleServiceResult(code, response, lang)
 	c.JSON(http.StatusOK, result)
 }

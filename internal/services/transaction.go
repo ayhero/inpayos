@@ -173,6 +173,7 @@ func ListTransactionByQuery(query *models.TrxQuery) ([]*models.Transaction, int6
 	}
 
 	db := models.ReadDB.Model(tempTrx)
+	// 应用查询条件
 	db = query.BuildQuery(db)
 
 	// 统计总数
@@ -188,11 +189,6 @@ func ListTransactionByQuery(query *models.TrxQuery) ([]*models.Transaction, int6
 		Find(&transactions).Error
 	if err != nil {
 		return nil, 0, protocol.DatabaseError
-	}
-
-	// 设置交易类型
-	for i := range transactions {
-		transactions[i].TrxType = query.TrxType
 	}
 
 	return transactions, total, protocol.Success

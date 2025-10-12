@@ -125,6 +125,7 @@ type TrxQuery struct {
 	ChannelGroup   string `json:"channel_group"`   // 渠道组
 	ChannelTrxID   string `json:"channel_trx_id"`  // 渠道交易ID
 
+	StatusList         []string `json:"status_list"`          // 交易状态列表
 	MidList            []string `json:"mid_list"`             // 商户ID列表
 	TrxIDList          []string `json:"trx_id_list"`          // 交易ID列表
 	ReqIDList          []string `json:"req_id_list"`          // 商户订单号列表
@@ -163,6 +164,9 @@ func (q *TrxQuery) GetLimit() int {
 // BuildQuery 构建查询条件
 func (q *TrxQuery) BuildQuery(db *gorm.DB) *gorm.DB {
 	db = db.Where("mid = ?", q.Mid)
+	if q.TrxType != "" {
+		db = db.Where("trx_type = ?", q.TrxType)
+	}
 	if q.CreatedAtStart > 0 {
 		db = db.Where("created_at >= ?", q.CreatedAtStart)
 	}
@@ -177,6 +181,9 @@ func (q *TrxQuery) BuildQuery(db *gorm.DB) *gorm.DB {
 	}
 	if q.Status != "" {
 		db = db.Where("status = ?", q.Status)
+	}
+	if len(q.StatusList) > 0 {
+		db = db.Where("status IN ?", q.StatusList)
 	}
 	if q.SettleStatus != "" {
 		db = db.Where("settle_status = ?", q.SettleStatus)
