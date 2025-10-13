@@ -5,6 +5,17 @@ import (
 	"time"
 )
 
+func TodayZeroTime() time.Time {
+	now := time.Now()
+	year, month, day := now.Date()
+	location := now.Location()
+	return time.Date(year, month, day, 0, 0, 0, 0, location)
+}
+
+func TodayZeroTimeMilli() int64 {
+	return TodayZeroTime().UnixMilli()
+}
+
 // timeNowMilli 返回当前时间的毫秒时间戳
 func TimeNowMilli() int64 {
 	return time.Now().UnixMilli()

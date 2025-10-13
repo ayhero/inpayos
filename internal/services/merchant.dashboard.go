@@ -380,10 +380,3 @@ func calculateRate(current, previous float64) string {
 	}
 	return fmt.Sprintf("%.1f", rate)
 }
-
-// 辅助函数：解析float64字符串
-func parseFloat(s string) float64 {
-	var f float64
-	fmt.Sscanf(s, "%f", &f)
-	return f
-}

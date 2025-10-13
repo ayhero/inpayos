@@ -185,14 +185,9 @@ func (t *MerchantAdmin) GetTransactionTodayStats(c *gin.Context) {
 	}
 
 	// 从上下文获取商户信息
-	merchant := middleware.GetMerchantFromContext(c)
-	if merchant == nil {
-		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.MerchantNotFound, lang))
-		return
-	}
-
+	mid := middleware.GetMidFromContext(c)
 	// 调用服务层获取统计数据
-	stats, code := services.GetTransactionTodayStats(merchant.ID, req.TrxType)
+	stats, code := services.GetTransactionTodayStats(mid, req.TrxType)
 	if code != protocol.Success {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(code, lang))
 		return

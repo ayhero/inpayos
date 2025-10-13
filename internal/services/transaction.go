@@ -2,13 +2,12 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"inpayos/internal/channels"
 	"inpayos/internal/log"
 	"inpayos/internal/models"
 	"inpayos/internal/protocol"
+	"inpayos/internal/utils"
 	"sync"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -209,69 +208,26 @@ type TodayStats struct {
 }
 
 // GetTransactionTodayStats 获取今日交易统计数据
-func GetTransactionTodayStats(merchantID int64, trxType string) (*TodayStats, protocol.ErrorCode) {
-	db := models.GetDB()
-
-	// 获取商户的Mid
-	merchant := &models.Merchant{}
-	err := db.Where("id = ?", merchantID).First(merchant).Error
-	if err != nil {
-		return nil, protocol.InvalidParams
-	}
-
+func GetTransactionTodayStats(mid string, trxType string) (*TodayStats, protocol.ErrorCode) {
 	// 计算今日时间范围（毫秒时间戳）
-	now := time.Now()
-	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).UnixMilli()
-	todayEnd := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 999, now.Location()).UnixMilli()
+	todayStart := utils.TodayZeroTimeMilli()
+	todayEnd := todayStart + 86400000
 
 	var stats TodayStats
-	var totalAmount float64
+	err := models.GetTransactionQueryByType(trxType).
+		Where("mid=?", mid).
+		Where("created_at >= ? AND created_at <= ?", todayStart, todayEnd).
+		Select(`
+			COUNT(*) as total_count,
+			ROUND(COALESCE(SUM(CASE WHEN amount IS NOT NULL THEN amount ELSE 0 END), 0)::numeric, 2) as total_amount,
+			COUNT(CASE WHEN status = 'success' THEN 1 END) as success_count,
+			COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_count,
+			ROUND(COALESCE(CASE WHEN COUNT(*) > 0 THEN COUNT(CASE WHEN status = 'success' THEN 1 END) * 100.0 / COUNT(*) ELSE 0 END, 0)::numeric, 2) as success_rate
+		`).Find(&stats).Error
 
-	// 根据交易类型选择对应的表和模型
-	if trxType == protocol.TrxTypePayin {
-		// 查询代收统计
-		var payins []models.MerchantPayin
-		db.Where("mid = ? AND created_at >= ? AND created_at <= ?",
-			merchant.Mid, todayStart, todayEnd).Find(&payins)
-
-		stats.TotalCount = int64(len(payins))
-
-		for _, payin := range payins {
-			if payin.Amount != nil {
-				totalAmount += payin.Amount.InexactFloat64()
-			}
-			if payin.Status != nil && *payin.Status == protocol.StatusSuccess {
-				stats.SuccessCount++
-			} else if payin.Status != nil && *payin.Status == protocol.StatusPending {
-				stats.PendingCount++
-			}
-		}
-	} else if trxType == protocol.TrxTypePayout {
-		// 查询代付统计
-		var payouts []models.MerchantPayout
-		db.Where("mid = ? AND created_at >= ? AND created_at <= ?",
-			merchant.Mid, todayStart, todayEnd).Find(&payouts)
-
-		stats.TotalCount = int64(len(payouts))
-
-		for _, payout := range payouts {
-			if payout.Amount != nil {
-				totalAmount += payout.Amount.InexactFloat64()
-			}
-			if payout.Status != nil && *payout.Status == protocol.StatusSuccess {
-				stats.SuccessCount++
-			} else if payout.Status != nil && *payout.Status == protocol.StatusPending {
-				stats.PendingCount++
-			}
-		}
+	if err != nil {
+		return nil, protocol.DatabaseError
 	}
-
-	// 计算成功率
-	if stats.TotalCount > 0 {
-		stats.SuccessRate = float64(stats.SuccessCount) / float64(stats.TotalCount) * 100
-	}
-
-	stats.TotalAmount = fmt.Sprintf("%.2f", totalAmount)
 
 	return &stats, protocol.Success
 }

@@ -49,7 +49,7 @@ func MerchantJWTAuth() gin.HandlerFunc {
 		}
 		merchant := models.GetMerchantByMID(claims.UserID)
 		// 临时设置用户信息
-		c.Set(UserIDKey, merchant.ID)
+		c.Set(UserIDKey, merchant.Mid)
 		c.Set(UserKey, merchant)
 		c.Next()
 	}
