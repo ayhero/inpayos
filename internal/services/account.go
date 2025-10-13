@@ -205,3 +205,102 @@ func (s *AccountService) UpdateBalance(req *protocol.UpdateBalanceRequest) error
 		return nil
 	})
 }
+
+// GetAccountList 获取账户列表
+func (s *AccountService) GetAccountList(userID, userType string) ([]*protocol.Account, protocol.ErrorCode) {
+	// 查询账户列表
+	var accounts []*models.Account
+	if err := models.WriteDB.Where("user_id = ? AND user_type = ?", userID, userType).Find(&accounts).Error; err != nil {
+		return nil, protocol.DatabaseError
+	}
+
+	// 转换为响应格式
+	accountInfos := make([]*protocol.Account, len(accounts))
+	for i, account := range accounts {
+		balance := (*protocol.Balance)(nil)
+		if account.Asset != nil {
+			balance = &protocol.Balance{
+				Balance:          account.Asset.Balance.String(),
+				AvailableBalance: account.Asset.AvailableBalance.String(),
+				FrozenBalance:    account.Asset.FrozenBalance.String(),
+				MarginBalance:    account.Asset.MarginBalance.String(),
+				ReserveBalance:   account.Asset.ReserveBalance.String(),
+				Currency:         account.Asset.Ccy,
+				UpdatedAt:        account.Asset.UpdatedAt,
+			}
+		}
+
+		accountInfos[i] = &protocol.Account{
+			AccountID:    account.AccountID,
+			UserID:       account.GetUserID(),
+			UserType:     account.GetUserType(),
+			Currency:     account.GetCcy(),
+			Balance:      balance,
+			Status:       account.GetStatus(),
+			Version:      account.GetVersion(),
+			LastActiveAt: account.GetLastActiveAt(),
+			CreatedAt:    account.CreatedAt,
+			UpdatedAt:    account.UpdatedAt,
+		}
+	}
+
+	return accountInfos, protocol.Success
+}
+
+// ListAccountFlowByQuery 根据查询条件获取账户流水列表
+func (s *AccountService) ListAccountFlowByQuery(userID, userType string, req *protocol.AccountFlowListRequest) ([]*models.FundFlow, int64, protocol.ErrorCode) {
+	// 设置默认分页参数
+	page := req.Page
+	if page <= 0 {
+		page = 1
+	}
+	size := req.Size
+	if size <= 0 {
+		size = 20
+	}
+	if size > 100 {
+		size = 100
+	}
+
+	// 构建查询条件
+	query := models.WriteDB.Model(&models.FundFlow{}).
+		Where("user_id = ? AND user_type = ?", userID, userType)
+
+	// 添加可选查询条件
+	if req.FlowNo != "" {
+		query = query.Where("flow_no = ?", req.FlowNo)
+	}
+	if req.TrxID != "" {
+		query = query.Where("trx_id = ?", req.TrxID)
+	}
+	if req.TrxType != "" {
+		query = query.Where("trx_type = ?", req.TrxType)
+	}
+	if req.Direction != "" {
+		query = query.Where("direction = ?", req.Direction)
+	}
+	if req.Ccy != "" {
+		query = query.Where("ccy = ?", req.Ccy)
+	}
+	if req.CreatedAtStart > 0 {
+		query = query.Where("created_at >= ?", req.CreatedAtStart)
+	}
+	if req.CreatedAtEnd > 0 {
+		query = query.Where("created_at <= ?", req.CreatedAtEnd)
+	}
+
+	// 查询总数
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, protocol.DatabaseError
+	}
+
+	// 分页查询
+	var flows []*models.FundFlow
+	offset := (page - 1) * size
+	if err := query.Order("created_at DESC").Offset(offset).Limit(size).Find(&flows).Error; err != nil {
+		return nil, 0, protocol.DatabaseError
+	}
+
+	return flows, total, protocol.Success
+}

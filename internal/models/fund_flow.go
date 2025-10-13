@@ -1,6 +1,8 @@
 package models
 
 import (
+	"inpayos/internal/protocol"
+
 	"github.com/shopspring/decimal"
 )
 
@@ -28,4 +30,37 @@ type FundFlow struct {
 
 func (t FundFlow) TableName() string {
 	return "t_fund_flows"
+}
+
+// Protocol 转换为协议格式
+func (f *FundFlow) Protocol() *protocol.FundFlow {
+	// 获取变动前后余额
+	var beforeBalance, afterBalance decimal.Decimal
+	if f.BeforeAsset != nil {
+		beforeBalance = f.BeforeAsset.Balance
+	}
+	if f.AfterAsset != nil {
+		afterBalance = f.AfterAsset.Balance
+	}
+
+	return &protocol.FundFlow{
+		ID:             f.ID,
+		FlowNo:         f.FlowNo,
+		OriFlowNo:      f.OriFlowNo,
+		UserID:         f.UserID,
+		UserType:       f.UserType,
+		AccountID:      f.AccountID,
+		AccountVersion: f.AccountVersion,
+		Direction:      f.Direction,
+		TrxID:          f.TrxID,
+		TrxType:        f.TrxType,
+		Ccy:            f.Ccy,
+		Amount:         *f.Amount,
+		BeforeBalance:  beforeBalance,
+		AfterBalance:   afterBalance,
+		Remark:         f.Remark,
+		OperatorId:     f.OperatorId,
+		CreatedAt:      f.CreatedAt,
+		UpdatedAt:      f.UpdatedAt,
+	}
 }

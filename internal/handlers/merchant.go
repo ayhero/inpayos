@@ -78,5 +78,12 @@ func (t *MerchantAdmin) SetupRouter() *gin.Engine {
 		dashboard.POST("/account-balance", t.GetAccountBalance)     // 账户余额
 	}
 
+	// 账户相关路由
+	account := api.Group("/account")
+	{
+		account.GET("/list", t.AccountList)           // 账户列表
+		account.POST("/flow/list", t.AccountFlowList) // 账户流水列表
+	}
+
 	return router
 }
