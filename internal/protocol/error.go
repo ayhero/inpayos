@@ -129,6 +129,17 @@ const (
 	InvalidBalanceType  ErrorCode = "5404" // 余额类型无效
 )
 
+// 账户相关错误码 (5500-5599)
+const (
+	AccountErrorInvalidTrxType            ErrorCode = "5500" // 无效交易类型
+	AccountErrorAccountNotFound           ErrorCode = "5501" // 账户不存在
+	AccountErrorInsufficientBalance       ErrorCode = "5502" // 余额不足
+	AccountErrorInsufficientFrozenBalance ErrorCode = "5503" // 冻结余额不足
+	AccountErrorInsufficientMarginBalance ErrorCode = "5504" // 保证金余额不足
+	AccountErrorUnsupportedTrxType        ErrorCode = "5505" // 不支持的交易类型
+	AccountErrorUpdateFailed              ErrorCode = "5506" // 账户更新失败
+)
+
 // 验证相关错误码 (9000-9999)
 const (
 	VerificationCodeRequired   ErrorCode = "9000" // 需要验证码
@@ -294,6 +305,15 @@ func (code ErrorCode) GetMessage() string {
 		BalanceFrozen:       "Balance frozen",
 		BalanceQueryFailed:  "Balance query failed",
 		InvalidBalanceType:  "Invalid balance type",
+
+		// 账户相关错误码
+		AccountErrorInvalidTrxType:            "Invalid transaction type",
+		AccountErrorAccountNotFound:           "Account not found",
+		AccountErrorInsufficientBalance:       "Insufficient balance",
+		AccountErrorInsufficientFrozenBalance: "Insufficient frozen balance",
+		AccountErrorInsufficientMarginBalance: "Insufficient margin balance",
+		AccountErrorUnsupportedTrxType:        "Unsupported transaction type",
+		AccountErrorUpdateFailed:              "Account update failed",
 
 		// 渠道相关错误码
 		ChannelNotFound:     "Channel not found",

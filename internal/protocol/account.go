@@ -11,6 +11,33 @@ const (
 	CcyJPY = "JPY" // 日元
 )
 
+const (
+	DirectionIn  = "in"  // 进账
+	DirectionOut = "out" // 出账
+)
+
+var (
+	AccountDirectionMap = map[string]string{
+		TrxTypePayin:         DirectionIn,
+		TrxTypePayout:        DirectionOut,
+		TrxTypeRefund:        DirectionIn,
+		TrxTypeDeposit:       DirectionIn,
+		TrxTypeWithdraw:      DirectionOut,
+		TrxTypeFreeze:        DirectionOut,
+		TrxTypeUnfreeze:      DirectionIn,
+		TrxTypeMarginDeposit: DirectionIn,
+		TrxTypeMarginRelease: DirectionOut,
+		TrxTypeFee:           DirectionOut,
+		TrxTypeAdjustment:    DirectionIn,
+		TrxTypeChargeback:    DirectionOut,
+		TrxTypeSettle:        DirectionOut,
+		TrxTypeTransfer:      DirectionOut,
+		TrxTypeDividend:      DirectionIn,
+		TrxTypeRfRecover:     DirectionOut,
+		TrxTypeWdRecover:     DirectionIn,
+	}
+)
+
 // 账户相关请求/响应
 type CreateAccountRequest struct {
 	UserID   string `json:"user_id" binding:"required"`
@@ -19,39 +46,39 @@ type CreateAccountRequest struct {
 }
 
 type UpdateBalanceRequest struct {
-	UserID        string          `json:"user_id" binding:"required"`
-	UserType      string          `json:"user_type" binding:"required"`
-	Ccy           string          `json:"ccy" binding:"required"`
-	Operation     string          `json:"operation" binding:"required,oneof=add subtract freeze unfreeze margin release_margin"`
-	Amount        decimal.Decimal `json:"amount" binding:"required"`
-	TransactionID string          `json:"trx_id"`
-	BillID        string          `json:"bill_id"`
-	BusinessType  string          `json:"business_type"`
-	Description   string          `json:"description"`
+	UserID      string          `json:"user_id" binding:"required"`
+	UserType    string          `json:"user_type" binding:"required"`
+	Ccy         string          `json:"ccy" binding:"required"`
+	Amount      decimal.Decimal `json:"amount" binding:"required"`
+	TrxID       string          `json:"trx_id"`
+	TrxType     string          `json:"trx_type"`
+	ReqID       string          `json:"req_id"`
+	Description string          `json:"description"`
 }
 
-type Balance struct {
-	Balance          string `json:"balance"`
-	AvailableBalance string `json:"available_balance"`
-	FrozenBalance    string `json:"frozen_balance"`
-	MarginBalance    string `json:"margin_balance"`
-	ReserveBalance   string `json:"reserve_balance"`
-	Currency         string `json:"currency"`
-	UpdatedAt        int64  `json:"updated_at"`
+type Assert struct {
+	Balance                string `json:"balance"`
+	AvailableBalance       string `json:"available_balance"`
+	FrozenBalance          string `json:"frozen_balance"`
+	MarginBalance          string `json:"margin_balance"`
+	AvailableMarginBalance string `json:"available_margin_balance"`
+	FrozenMarginBalance    string `json:"frozen_margin_balance"`
+	Ccy                    string `json:"ccy"`
+	UpdatedAt              int64  `json:"updated_at"`
 }
 
 // 账户信息响应
 type Account struct {
-	AccountID    string   `json:"account_id"`
-	UserID       string   `json:"user_id"`
-	UserType     string   `json:"user_type"`
-	Currency     string   `json:"currency"`
-	Balance      *Balance `json:"balance"`
-	Status       int      `json:"status"`
-	Version      int64    `json:"version"`
-	LastActiveAt int64    `json:"last_active_at"`
-	CreatedAt    int64    `json:"created_at"`
-	UpdatedAt    int64    `json:"updated_at"`
+	AccountID    string  `json:"account_id"`
+	UserID       string  `json:"user_id"`
+	UserType     string  `json:"user_type"`
+	Ccy          string  `json:"ccy"`
+	Balance      *Assert `json:"balance"`
+	Status       string  `json:"status"`
+	Version      int64   `json:"version"`
+	LastActiveAt int64   `json:"last_active_at"`
+	CreatedAt    int64   `json:"created_at"`
+	UpdatedAt    int64   `json:"updated_at"`
 }
 
 // 账户流水查询请求

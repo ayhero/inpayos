@@ -1,7 +1,6 @@
 package services
 
 import (
-	"context"
 	"fmt"
 	"inpayos/internal/config"
 	"inpayos/internal/log"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/shopspring/decimal"
+	"github.com/spf13/cast"
 	"gorm.io/gorm"
 )
 
@@ -41,300 +41,23 @@ func SetupSettleService() {
 	}
 }
 
-// GetSettleStrategiesWithPeriodCache 基于结算周期记录使用缓存获取结算策略
-// 这是新的缓存策略，优先从结算周期记录获取策略，实现周期级别的缓存
-func (s *MerchantSettleService) GetSettleStrategiesWithPeriodCache(ctx context.Context, settleLog *models.MerchantSettleLog) []*protocol.SettleStrategy {
-	if settleLog == nil {
-		return nil
-	}
-
-	// 从 context 获取缓存和统计信息
-	cache, stats := protocol.GetCacheFromContext(ctx)
-
-	// 使用结算周期记录的唯一标识作为缓存key
-	// 格式: settleperiod_{商户ID}_{周期}
-	cacheKey := fmt.Sprintf("settleperiod_%d_%d",
-		settleLog.MID,
-		settleLog.Period)
-
-	// 首先检查缓存
-	strategies, exists := cache.Get(cacheKey)
-	if exists {
-		stats.RecordHit()
-		log.Get().Debugf("GetSettleStrategiesWithPeriodCache: cache hit for settle log %s, found %d strategies", settleLog.SettleID, len(strategies))
-		return strategies
-	}
-
-	// 缓存未命中，从结算周期记录或数据库查询
-	stats.RecordMiss()
-	log.Get().Debugf("GetSettleStrategiesWithPeriodCache: cache miss for settle log %s, retrieving strategies", settleLog.SettleID)
-
-	var strategies_result []*protocol.SettleStrategy
-
-	// 优先从结算周期记录中获取预设的策略
-	if len(settleLog.GetStrategyCodes()) > 0 {
-		strategyCodes := settleLog.GetStrategyCodes()
-		log.Get().Debugf("GetSettleStrategiesWithPeriodCache: using preset strategy codes from settle log: %v", strategyCodes)
-		strategies_result = s.GetSettleStrategiesByCodes(strategyCodes, "")
-	} else {
-		// 回退：查询在周期时间有效的合同
-		log.Get().Debugf("GetSettleStrategiesWithPeriodCache: no preset strategies, falling back to contract query for merchant %d at time %d", settleLog.MID, settleLog.TrxStartAt)
-		contract := models.GetValidContractsAtTime(strconv.FormatInt(settleLog.MID, 10), settleLog.TrxStartAt)
-		if contract != nil {
-			strategies_result = s.GenerateStrategiesFromContract(contract)
-		}
-	}
-
-	if len(strategies_result) == 0 {
-		log.Get().Warnf("GetSettleStrategiesWithPeriodCache: no settlement strategies found for settle log %s", settleLog.SettleID)
-		return nil
-	}
-
-	// 存入缓存，使用周期级别的缓存key
-	cache.Set(cacheKey, strategies_result)
-	log.Get().Debugf("GetSettleStrategiesWithPeriodCache: cached %d strategies for settle log %s with key %s", len(strategies_result), settleLog.SettleID, cacheKey)
-
-	return strategies_result
-}
-
-// GetSettleStrategiesWithCache 使用缓存获取结算策略（保留原有逻辑，兼容旧代码）
-// 根据商户合同和交易时间确定适用的结算策略
-// 注意：此函数已不推荐使用，请使用 GetSettleStrategiesWithPeriodCache
-func (s *MerchantSettleService) GetSettleStrategiesWithCache(ctx context.Context, mid string, trxTime int64) []*protocol.SettleStrategy {
-	if mid == "" {
-		return nil
-	}
-
-	// 从 context 获取缓存和统计信息
-	cache, stats := protocol.GetCacheFromContext(ctx)
-
-	// 生成包含交易时间的缓存key
-	cacheKey := fmt.Sprintf("%s_%d", mid, trxTime/86400000) // 按天缓存，避免缓存过于细粒度
-
-	// 首先检查缓存
-	strategies, exists := cache.Get(cacheKey)
-	if exists {
-		stats.RecordHit()
-		log.Get().Debugf("GetSettleStrategiesWithCache: cache hit for merchant %s at time %d, found %d strategies", mid, trxTime, len(strategies))
-		return strategies
-	}
-
-	// 缓存未命中，从数据库查询
-	stats.RecordMiss()
-	log.Get().Debugf("GetSettleStrategiesWithCache: cache miss for merchant %s at time %d, querying database", mid, trxTime)
-
-	// 查询在指定时间有效的合同
-	contract := models.GetValidContractsAtTime(mid, trxTime)
-	if contract == nil {
-		log.Get().Warnf("GetSettleStrategiesWithCache: no valid contracts found for merchant %s at time %d", mid, trxTime)
-		return nil
-	}
-
-	// 根据合同配置生成结算策略
-	strategies = s.GenerateStrategiesFromContract(contract)
-
-	// 如果合同中没有配置结算策略，回退到传统方式
-	if len(strategies) == 0 {
-		log.Get().Warnf("GetSettleStrategiesWithCache: no settlement strategies found in contracts for merchant %s, falling back to traditional query", mid)
-		return nil
-	}
-
-	// 转换为 protocol 类型并存入缓存
-	cache.Set(cacheKey, strategies)
-	log.Get().Debugf("GetSettleStrategiesWithCache: cached %d strategies for merchant %s at time %d", len(strategies), mid, trxTime)
-
-	return strategies
-}
-
-// SettleResult 结算结果统计
-type SettleResult struct {
-	TotalTransactions   int64
-	SuccessTransactions int64
-	FailedTransactions  int64
-	ProcessedPages      int
-	TotalPages          int
-	StartTime           time.Time
-	EndTime             time.Time
-	Duration            time.Duration
-}
-
-// SettleByTimeRange 时间范围结算
-func (s *MerchantSettleService) SettleByTimeRange(ctx context.Context, trx_type string, startAt, endAt int64) *SettleResult {
-	result := &SettleResult{
+// SettleByTimeRange 按完成时间范围进行结算
+func (s *MerchantSettleService) SettleByTimeRange(trx_type string, startAt, endAt int64) *protocol.SettleResult {
+	result := &protocol.SettleResult{
 		StartTime: time.Now(),
 	}
-
 	// 创建包含缓存的 context
-	ctx = protocol.CreateSettleContext(ctx)
-	cache, stats := protocol.GetCacheFromContext(ctx)
-
+	ctx := protocol.NewMerchantSettleContext()
 	defer func() {
 		result.EndTime = time.Now()
 		result.Duration = result.EndTime.Sub(result.StartTime)
-
-		// 输出缓存使用情况
-		hits, misses := stats.GetStats()
-		cacheSize := cache.Size()
-		hitRate := stats.GetHitRate()
-
-		log.Get().Infof("SettleByTimeRange: completed settling %d transactions (success: %d, failed: %d, duration: %v)",
-			result.TotalTransactions, result.SuccessTransactions, result.FailedTransactions, result.Duration)
-		log.Get().Infof("SettleByTimeRange: cache stats - hits: %d, misses: %d, hit rate: %.2f%%, cache size: %d",
-			hits, misses, hitRate, cacheSize)
-	}()
-
-	if startAt <= 0 || endAt <= 0 || startAt >= endAt {
-		log.Get().Error("SettleByTimeRange: invalid time range")
-		return result
-	}
-
-	log.Get().Infof("SettleByTimeRange: settling transactions from %d to %d", startAt, endAt)
-
-	query := &models.TrxQuery{
-		TrxType:        trx_type,
-		SettleStatus:   protocol.StatusPending, // 只处理待结算的交易
-		SettledAtStart: startAt,
-		SettledAtEnd:   endAt,
-	}
-
-	// 获取总数
-	total, err := models.CountTransactionByQuery(query)
-	if err != nil {
-		log.Get().Errorf("SettleByTimeRange: failed to count transactions: %v", err)
-		return result
-	}
-
-	result.TotalTransactions = total
-
-	if total == 0 {
-		log.Get().Warn("SettleByTimeRange: no transactions found in the specified time range")
-		return result
-	}
-
-	log.Get().Infof("SettleByTimeRange: found %d transactions to settle", total)
-
-	// 分页处理配置
-	const pageSize = 500
-	const concurrency = 10
-	const maxConcurrentPages = 5
-	totalPages := int((total + int64(pageSize) - 1) / pageSize)
-	result.TotalPages = totalPages
-
-	// 并发控制
-	semaphore := make(chan struct{}, concurrency)
-	pageSemaphore := make(chan struct{}, maxConcurrentPages)
-	var wg sync.WaitGroup
-	var pageWg sync.WaitGroup
-
-	// 用于收集结算结果的channel
-	resultChan := make(chan bool, int(total))
-
-	// 用于同步处理页面计数的mutex
-	var processedPagesMutex sync.Mutex
-
-	log.Get().Infof("SettleByTimeRange: starting settlement with %d pages", totalPages)
-
-	// 分页查询，每个页面在独立协程中处理
-	for page := 1; page <= totalPages; page++ {
-		pageWg.Add(1)
-		pageSemaphore <- struct{}{}
-
-		go func(currentPage int) {
-			defer func() {
-				<-pageSemaphore
-				pageWg.Done()
-				if r := recover(); r != nil {
-					log.Get().Errorf("SettleByTimeRange: panic during page %d processing: %v", currentPage, r)
-				}
-			}()
-
-			pageQuery := &models.TrxQuery{
-				Mid:            query.Mid,
-				CreatedAtStart: query.CreatedAtStart,
-				CreatedAtEnd:   query.CreatedAtEnd,
-				TrxType:        query.TrxType,
-				SettleStatus:   query.SettleStatus,
-			}
-
-			offset := (currentPage - 1) * pageSize
-			trxs, err := models.ListTransactionByQuery(pageQuery, offset, pageSize)
-			if err != nil {
-				log.Get().Errorf("SettleByTimeRange: failed to list transactions for page %d: %v", currentPage, err)
-				return
-			}
-
-			if len(trxs) == 0 {
-				log.Get().Warnf("SettleByTimeRange: no transactions found on page %d", currentPage)
-				return
-			}
-
-			processedPagesMutex.Lock()
-			result.ProcessedPages++
-			processedPagesMutex.Unlock()
-
-			log.Get().Infof("SettleByTimeRange: processing page %d/%d with %d transactions", currentPage, totalPages, len(trxs))
-
-			// 为当前页的每个交易分发线程
-			for _, trx := range trxs {
-				wg.Add(1)
-				semaphore <- struct{}{}
-				go func(transaction *models.Transaction) {
-					defer func() {
-						<-semaphore
-						wg.Done()
-					}()
-					success := s.SettleTransaction(ctx, transaction)
-					resultChan <- success
-				}(trx)
-			}
-		}(page)
-	}
-
-	// 等待所有页面处理完成
-	pageWg.Wait()
-	// 等待所有交易处理完成
-	wg.Wait()
-	close(resultChan)
-
-	// 收集结果
-	for success := range resultChan {
-		if success {
-			result.SuccessTransactions++
-		} else {
-			result.FailedTransactions++
-		}
-	}
-
-	return result
-}
-
-// SettleByCompletedTime 按交易完成时间进行结算
-func (s *MerchantSettleService) SettleByCompletedTime(ctx context.Context, trx_type string, startAt, endAt int64) *SettleResult {
-	result := &SettleResult{
-		StartTime: time.Now(),
-	}
-
-	// 创建包含缓存的 context
-	ctx = protocol.CreateSettleContext(ctx)
-	cache, stats := protocol.GetCacheFromContext(ctx)
-
-	defer func() {
-		result.EndTime = time.Now()
-		result.Duration = result.EndTime.Sub(result.StartTime)
-
-		// 输出缓存使用情况
-		hits, misses := stats.GetStats()
-		cacheSize := cache.Size()
-		hitRate := stats.GetHitRate()
 
 		log.Get().Infof("SettleByCompletedTime: completed settling %d transactions (success: %d, failed: %d, duration: %v)",
-			result.TotalTransactions, result.SuccessTransactions, result.FailedTransactions, result.Duration)
-		log.Get().Infof("SettleByCompletedTime: cache stats - hits: %d, misses: %d, hit rate: %.2f%%, cache size: %d",
-			hits, misses, hitRate, cacheSize)
+			result.TotalCount, result.SuccessCount, result.FailedCount, result.Duration)
 	}()
 
 	if startAt <= 0 || endAt <= 0 || startAt >= endAt {
-		log.Get().Error("SettleByCompletedTime: invalid time range")
+		result.Result = "invalid time range"
 		return result
 	}
 
@@ -344,23 +67,18 @@ func (s *MerchantSettleService) SettleByCompletedTime(ctx context.Context, trx_t
 		TrxType:          trx_type,
 		Status:           protocol.StatusSuccess, // 只处理成功的交易
 		SettleStatus:     protocol.StatusPending, // 只处理待结算的交易
-		CompletedAtStart: startAt,
+		CompletedAtStart: startAt,                //以完成时间为准
 		CompletedAtEnd:   endAt,
 	}
 
 	// 获取总数
-	total, err := models.CountTransactionByQuery(query)
-	if err != nil {
-		log.Get().Errorf("SettleByCompletedTime: failed to count transactions: %v", err)
-		return result
-	}
-
-	result.TotalTransactions = total
-
+	total := models.CountTransactionByQuery(query)
 	if total == 0 {
-		log.Get().Warn("SettleByCompletedTime: no transactions found in the specified time range")
+		result.Result = "no transactions to settle"
 		return result
 	}
+
+	result.TotalCount = total
 
 	log.Get().Infof("SettleByCompletedTime: found %d transactions to settle", total)
 
@@ -382,8 +100,6 @@ func (s *MerchantSettleService) SettleByCompletedTime(ctx context.Context, trx_t
 
 	// 用于同步处理页面计数的mutex
 	var processedPagesMutex sync.Mutex
-
-	log.Get().Infof("SettleByCompletedTime: starting settlement with %d pages", totalPages)
 
 	// 分页查询，每个页面在独立协程中处理
 	for page := 1; page <= totalPages; page++ {
@@ -421,7 +137,7 @@ func (s *MerchantSettleService) SettleByCompletedTime(ctx context.Context, trx_t
 					}()
 
 					// 处理单个交易的结算，使用新的流程
-					success := s.SettleTransactionWithPeriod(ctx, transaction)
+					success := s.SettleTransaction(ctx, transaction)
 					resultChan <- success
 				}(trx)
 			}
@@ -435,74 +151,50 @@ func (s *MerchantSettleService) SettleByCompletedTime(ctx context.Context, trx_t
 	close(resultChan)
 
 	// 收集结果
-	for success := range resultChan {
-		if success {
-			result.SuccessTransactions++
+	for isSuccess := range resultChan {
+		if isSuccess {
+			result.SuccessCount++
 		} else {
-			result.FailedTransactions++
+			result.FailedCount++
 		}
 	}
 
 	return result
 }
 
-// SettleTransaction 结算单个交易并返回是否成功
-func (s *MerchantSettleService) SettleTransaction(ctx context.Context, trx *models.Transaction) (isSuccess bool) {
+// SettleTransaction 处理单个交易结算
+func (s *MerchantSettleService) SettleTransaction(ctx *protocol.MerchantSettleContext, trx *models.Transaction) (isSuccess bool) {
 	isSuccess = false
 	defer func() {
 		if r := recover(); r != nil {
-			log.Get().Errorf("SettleTransaction: panic during settlement of transaction %s: %v", trx.TrxID, r)
+			log.Get().Errorf("SettleTransactionWithPeriod: panic while settling transaction %s: %v", trx.TrxID, r)
 		}
 	}()
 
 	if trx == nil {
-		log.Get().Error("SettleTransaction: transaction is nil")
+		log.Get().Error("SettleTransactionWithPeriod: transaction is nil")
 		return
 	}
 
 	mid := trx.Mid
-	log.Get().Infof("SettleTransaction: processing transaction %s for merchant %s", trx.TrxID, mid)
+	log.Get().Infof("SettleTransactionWithPeriod: processing transaction %s for merchant %s", trx.TrxID, mid)
 
-	newSettle := true
-	// 0. Check if transaction already has settlement record
-	settleTransaction, err := models.GetExistingSettleRecord(trx.TrxID)
+	// 1. 获取或创建结算周期记录（最优先级）
+	settleLog, err := s.GetOrCreateTransactionSettleLog(trx, ctx.SettledAt)
 	if err != nil {
-		log.Get().Errorf("SettleTransaction: failed to check existing settlement for transaction %s: %v", trx.TrxID, err)
+		log.Get().Errorf("SettleTransactionWithPeriod: %v", err)
 		return
 	}
 
-	if settleTransaction != nil {
-		newSettle = false
-	} else {
-		// 创建新的结算交易记录时需要settleLogID，这个方法需要重构
-		// 暂时使用空字符串，后续会修复
-		settleTransaction = NewSettleTransaction(trx, "")
-	}
+	// 2. 使用周期级别缓存获取结算策略
+	strategies := s.GetSettleStrategies(ctx, settleLog)
 
-	// Check settlement status
-	status := settleTransaction.GetStatus()
-	switch status {
-	case protocol.StatusSuccess:
-		log.Get().Infof("SettleTransaction: transaction %s already settled successfully (settle_id: %s)", trx.TrxID, settleTransaction.SettleID)
-		return true
-	case protocol.StatusPending:
-		log.Get().Infof("SettleTransaction: transaction %s settlement is pending (settle_id: %s)", trx.TrxID, settleTransaction.SettleID)
-		return false
-	case protocol.StatusFailed:
-		log.Get().Infof("SettleTransaction: transaction %s has failed settlement record (settle_id: %s), will retry", trx.TrxID, settleTransaction.SettleID)
-	default:
-		log.Get().Warnf("SettleTransaction: transaction %s has unknown settlement status %s (settle_id: %s), will retry", trx.TrxID, status, settleTransaction.SettleID)
-	}
-
-	// 使用 context 缓存获取结算策略，传入交易时间
-	trxTime := trx.CreatedAt // 使用交易创建时间来确定适用的合同
-	strategies := s.GetSettleStrategiesWithCache(ctx, mid, trxTime)
 	if len(strategies) == 0 {
-		log.Get().Warnf("SettleTransaction: no settlement strategies found for merchant %s", mid)
+		log.Get().Warnf("SettleTransactionWithPeriod: no settlement strategies found for transaction %s", trx.TrxID)
 		return
 	}
 
-	// 2. Find matching strategy based on transaction properties
+	// 3. 找到匹配的策略
 	var matchedStrategy *protocol.SettleStrategy
 	for _, strategy := range strategies {
 		if s.IsStrategyMatched(trx, strategy) {
@@ -512,20 +204,20 @@ func (s *MerchantSettleService) SettleTransaction(ctx context.Context, trx *mode
 	}
 
 	if matchedStrategy == nil {
-		log.Get().Warnf("SettleTransaction: no matching strategy found for transaction %s", trx.TrxID)
+		log.Get().Warnf("SettleTransactionWithPeriod: no matching strategy found for transaction %s", trx.TrxID)
 		return
 	}
 
-	log.Get().Infof("SettleTransaction: matched strategy %d for transaction %s", matchedStrategy.ID, trx.TrxID)
+	log.Get().Infof("SettleTransactionWithPeriod: matched strategy %d for transaction %s", matchedStrategy.ID, trx.TrxID)
 
-	// 3. Get settlement rules from strategy
+	// 4. 获取结算规则
 	settleRules := matchedStrategy.Rules
 	if len(settleRules) == 0 {
-		log.Get().Warnf("SettleTransaction: no settlement rules found in strategy %d", matchedStrategy.ID)
+		log.Get().Warnf("SettleTransactionWithPeriod: no settlement rules found in strategy %d", matchedStrategy.ID)
 		return
 	}
 
-	// 4. Find the best matching rule
+	// 5. 找到适用的规则
 	var matchedRule *protocol.SettleRule
 	for _, rule := range settleRules {
 		if s.IsRuleApplicable(trx, rule) {
@@ -535,19 +227,36 @@ func (s *MerchantSettleService) SettleTransaction(ctx context.Context, trx *mode
 	}
 
 	if matchedRule == nil {
-		log.Get().Warnf("SettleTransaction: no applicable settlement rule found for transaction %s", trx.TrxID)
+		log.Get().Warnf("SettleTransactionWithPeriod: no applicable settlement rule found for transaction %s", trx.TrxID)
 		return
 	}
 
-	log.Get().Infof("SettleTransaction: selected rule %s for transaction %s", matchedRule.RuleID, trx.TrxID)
+	log.Get().Infof("SettleTransactionWithPeriod: selected rule %s for transaction %s", matchedRule.RuleID, trx.TrxID)
 
-	// 5. Calculate settlement amounts and fees
+	// 7. 检查交易是否已有结算记录
+	settleTransaction := models.GetExistingSettleRecord(trx.TrxID)
+	newSettle := false
+	updateSettle := false
+	if settleTransaction == nil {
+		// 8. 创建新的结算交易记录，直接关联结算周期记录
+		settleTransaction = models.NewSettleTransaction(trx, settleLog.SettleID)
+		newSettle = true
+	} else if settleTransaction.GetStatus() != protocol.StatusSuccess {
+		// 8. 只有当结算状态为非成功的，才进行更新
+		updateSettle = true
+		settleTransaction.SetSettleLogID(settleLog.SettleID)
+	} else {
+		isSuccess = true
+		return // 已成功结算，无需重复处理
+	}
+	// 6. 计算结算金额和手续费
 	settlementResult := s.CalculateSettlement(trx, matchedRule)
 	if settlementResult == nil {
-		log.Get().Errorf("SettleTransaction: failed to calculate settlement for transaction %s", trx.TrxID)
+		log.Get().Errorf("SettleTransactionWithPeriod: failed to calculate settlement for transaction %s", trx.TrxID)
 		return
 	}
 
+	// 9. 设置结算计算结果
 	settleTransaction.MerchantSettleTransactionValues = &models.MerchantSettleTransactionValues{
 		SettleAmount:    &settlementResult.SettleAmount,
 		SettleUsdAmount: &settlementResult.SettleUsdAmount,
@@ -561,50 +270,89 @@ func (s *MerchantSettleService) SettleTransaction(ctx context.Context, trx *mode
 		SettleStrategy:  matchedStrategy,
 		SettleRule:      matchedRule,
 	}
+	settleTransaction.SetStatus(protocol.StatusSuccess).
+		SetSettledAt(utils.TimeNowMilli())
 
+	// 10. 在事务中保存结算记录和更新交易状态
 	err = models.WriteDB.Transaction(func(tx *gorm.DB) error {
-		// 6. Create or update settlement transaction record
+		// 保存或更新结算交易记录
 		if newSettle {
-			// 创建新的结算记录
 			if err := tx.Create(settleTransaction).Error; err != nil {
 				return err
 			}
-		} else {
-			// 更新现有的失败记录
+		}
+		if updateSettle {
 			if err := tx.Model(settleTransaction).UpdateColumns(settleTransaction.MerchantSettleTransactionValues).Error; err != nil {
 				return err
 			}
 		}
 		return nil
 	})
-
+	if newSettle || updateSettle {
+		// 更新交易状态
+		values := models.NewTrxValues().
+			SetSettleID(settleLog.SettleID).
+			SetSettledAt(settleTransaction.GetSettledAt()).
+			SetSettleStatus(protocol.StatusSuccess)
+		if err := models.SaveTransactionValues(models.WriteDB, trx, values); err != nil {
+			log.Get().Errorf("SettleTransactionWithPeriod: failed to update transaction %s: %v", trx.TrxID, err)
+		}
+	}
 	if err != nil {
-		log.Get().Errorf("SettleTransaction: failed to settle transaction %s: %v", trx.TrxID, err)
+		log.Get().Errorf("SettleTransactionWithPeriod: failed to settle transaction %s: %v", trx.TrxID, err)
 		return
 	}
-	values := models.NewTrxValues().
-		SetSettleID(settleTransaction.SettleID).
-		SetSettledAt(settleTransaction.CreatedAt)
-	// 7. Update transaction status to settled
-	if err := models.SaveTransactionValues(models.WriteDB, trx, values); err != nil {
-		log.Get().Errorf("SettleTransaction: failed to update transaction %s status: %v", trx.TrxID, err)
-	}
-	log.Get().Infof("SettleTransaction: successfully settled transaction %s with amount %s",
-		trx.TrxID, settlementResult.SettleAmount.String())
+	log.Get().Infof("SettleTransactionWithPeriod: successfully settled transaction %s with amount %s, settle_log_id: %s",
+		trx.TrxID, settlementResult.SettleAmount.String(), settleLog.SettleID)
+
 	return true
 }
 
-// SettlementResult represents the result of settlement calculation
-type SettlementResult struct {
-	SettleAmount    decimal.Decimal
-	SettleUsdAmount decimal.Decimal
-	Fee             decimal.Decimal
-	UsdFee          decimal.Decimal
-	FixedFee        decimal.Decimal
-	FixedUsdFee     decimal.Decimal
-	Rate            decimal.Decimal
-	UsdRate         decimal.Decimal
-	FeeCcy          string
+// GetSettleStrategies 基于结算周期记录使用缓存获取结算策略
+func (s *MerchantSettleService) GetSettleStrategies(ctx *protocol.MerchantSettleContext, settleLog *models.MerchantSettleLog) []*protocol.SettleStrategy {
+	if settleLog == nil {
+		return nil
+	}
+
+	// 使用结算周期记录的唯一标识作为缓存key
+	// 格式: settle.period_{商户ID}_{周期}
+	cacheKey := fmt.Sprintf("settle.period_%v_%v_%v",
+		settleLog.MID,
+		settleLog.PeriodType,
+		settleLog.Period)
+
+	// 首先检查缓存
+	strategies := ctx.Get(cacheKey)
+	if len(strategies) > 0 {
+		log.Get().Debugf("GetSettleStrategiesWithPeriodCache: cache hit for settle log %s, found %d strategies", settleLog.SettleID, len(strategies))
+		return strategies
+	}
+	log.Get().Debugf("GetSettleStrategiesWithPeriodCache: cache miss for settle log %s, retrieving strategies", settleLog.SettleID)
+
+	// 优先从结算周期记录中获取预设的策略
+	if len(settleLog.GetStrategyCodes()) > 0 {
+		strategyCodes := settleLog.GetStrategyCodes()
+		log.Get().Debugf("GetSettleStrategiesWithPeriodCache: using preset strategy codes from settle log: %v", strategyCodes)
+		strategies = s.GetSettleStrategiesByCodes(strategyCodes)
+	} else {
+		// 回退：查询在周期时间有效的合同
+		log.Get().Debugf("GetSettleStrategiesWithPeriodCache: no preset strategies, falling back to contract query for merchant %d at time %d", settleLog.MID, settleLog.TrxStartAt)
+		contract := models.GetValidContractsAtTime(strconv.FormatInt(settleLog.MID, 10), settleLog.TrxStartAt)
+		if contract != nil {
+			strategies = s.GenerateStrategiesFromContract(contract)
+		}
+	}
+
+	if len(strategies) == 0 {
+		log.Get().Warnf("GetSettleStrategiesWithPeriodCache: no settlement strategies found for settle log %s", settleLog.SettleID)
+		return nil
+	}
+
+	// 存入缓存，使用周期级别的缓存key
+	ctx.Set(cacheKey, strategies)
+	log.Get().Debugf("GetSettleStrategiesWithPeriodCache: cached %d strategies for settle log %s with key %s", len(strategies), settleLog.SettleID, cacheKey)
+
+	return strategies
 }
 
 // IsStrategyMatched 检查交易是否匹配指定的结算策略
@@ -664,12 +412,12 @@ func (s *MerchantSettleService) IsRuleApplicable(trx *models.Transaction, rule *
 }
 
 // CalculateSettlement 计算结算金额和费用
-func (s *MerchantSettleService) CalculateSettlement(trx *models.Transaction, rule *protocol.SettleRule) *SettlementResult {
+func (s *MerchantSettleService) CalculateSettlement(trx *models.Transaction, rule *protocol.SettleRule) *protocol.SettlementResult {
 	if trx == nil || rule == nil {
 		return nil
 	}
 
-	result := &SettlementResult{
+	result := &protocol.SettlementResult{
 		FeeCcy: trx.Ccy,
 	}
 
@@ -713,46 +461,6 @@ func (s *MerchantSettleService) CalculateSettlement(trx *models.Transaction, rul
 	return result
 }
 
-// NewSettleTransaction 创建新的结算交易记录，挂靠到结算周期记录
-func NewSettleTransaction(trx *models.Transaction, settleLogID string) *models.MerchantSettleTransaction {
-	settleTransaction := &models.MerchantSettleTransaction{
-		TrxID:                           trx.TrxID,
-		SettleID:                        utils.GenerateSettleTrxID(),
-		SettleLogID:                     &settleLogID, // 直接关联结算周期记录
-		MID:                             trx.Mid,
-		TrxType:                         trx.TrxType,
-		TrxCcy:                          trx.Ccy,
-		TrxAmount:                       trx.Amount,
-		TrxUsdAmount:                    trx.UsdAmount,
-		TrxAt:                           trx.CreatedAt,
-		SettleCcy:                       trx.Ccy,
-		MerchantSettleTransactionValues: &models.MerchantSettleTransactionValues{},
-	}
-	settleTransaction.SetStatus(protocol.StatusPending)
-	return settleTransaction
-}
-
-// NewSettleTransactionRecord 创建包含完整信息的结算交易记录
-func NewSettleTransactionRecord(trx *models.Transaction, settleLogID string, strategy *protocol.SettleStrategy, rule *protocol.SettleRule, result *SettlementResult) *models.MerchantSettleTransaction {
-	settleTransaction := NewSettleTransaction(trx, settleLogID)
-
-	settleTransaction.MerchantSettleTransactionValues = &models.MerchantSettleTransactionValues{
-		SettleAmount:    &result.SettleAmount,
-		SettleUsdAmount: &result.SettleUsdAmount,
-		FeeCcy:          &result.FeeCcy,
-		Fee:             &result.Fee,
-		UsdFee:          &result.UsdFee,
-		FixedFee:        &result.FixedFee,
-		FixedUsdFee:     &result.FixedUsdFee,
-		Rate:            &result.Rate,
-		UsdRate:         &result.UsdRate,
-		SettleStrategy:  strategy,
-		SettleRule:      rule,
-	}
-
-	return settleTransaction
-}
-
 // GenerateStrategiesFromContract 根据合同配置生成结算策略
 func (s *MerchantSettleService) GenerateStrategiesFromContract(contract *models.Contract) []*protocol.SettleStrategy {
 	if contract == nil {
@@ -768,24 +476,20 @@ func (s *MerchantSettleService) GenerateStrategiesFromContract(contract *models.
 	// 遍历合同，收集所有的策略代码
 	// 收集充值结算策略代码
 	if contract.SettleConfig.Payin != nil {
-		for _, setting := range contract.SettleConfig.Payin {
-			for _, code := range setting.Strategies {
-				if !codeLib[code] {
-					payinCodes = append(payinCodes, code)
-					codeLib[code] = true
-				}
+		for _, code := range contract.SettleConfig.Payin.Strategies {
+			if !codeLib[code] {
+				payinCodes = append(payinCodes, code)
+				codeLib[code] = true
 			}
 		}
 	}
 
 	// 收集提现结算策略代码
 	if contract.SettleConfig.Payout != nil {
-		for _, setting := range contract.SettleConfig.Payout {
-			for _, code := range setting.Strategies {
-				if !codeLib[code] {
-					payoutCodes = append(payoutCodes, code)
-					codeLib[code] = true
-				}
+		for _, code := range contract.SettleConfig.Payout.Strategies {
+			if !codeLib[code] {
+				payoutCodes = append(payoutCodes, code)
+				codeLib[code] = true
 			}
 		}
 	}
@@ -820,7 +524,7 @@ func (s *MerchantSettleService) GenerateStrategiesFromContract(contract *models.
 }
 
 // GetSettleStrategiesByCodes 根据策略代码获取结算策略
-func (s *MerchantSettleService) GetSettleStrategiesByCodes(strategyCodes []string, trxType string) []*protocol.SettleStrategy {
+func (s *MerchantSettleService) GetSettleStrategiesByCodes(strategyCodes []string) []*protocol.SettleStrategy {
 	if len(strategyCodes) == 0 {
 		return nil
 	}
@@ -828,12 +532,9 @@ func (s *MerchantSettleService) GetSettleStrategiesByCodes(strategyCodes []strin
 	strategies := []*protocol.SettleStrategy{}
 	strategyList := models.GetSettleStrategiesByCodes(strategyCodes)
 	if len(strategyList) > 0 {
-		for _, strategy := range strategyList {
-			protocolStrategy := strategy.Protocol()
-			if protocolStrategy.TrxType == "" {
-				protocolStrategy.TrxType = trxType
-			}
-			strategies = append(strategies, protocolStrategy)
+		for _, item := range strategyList {
+			strategy := item.Protocol()
+			strategies = append(strategies, strategy)
 		}
 	}
 
@@ -841,211 +542,279 @@ func (s *MerchantSettleService) GetSettleStrategiesByCodes(strategyCodes []strin
 }
 
 // GetOrCreateTransactionSettleLog 获取或创建交易对应的结算周期记录
-func (s *MerchantSettleService) GetOrCreateTransactionSettleLog(trx *models.Transaction) (*models.MerchantSettleLog, error) {
+func (s *MerchantSettleService) GetOrCreateTransactionSettleLog(trx *models.Transaction, settleAt int64) (*models.MerchantSettleLog, error) {
 	mid := trx.Mid
 	trxTime := trx.CreatedAt
 
-	// 1. 获取合同配置以确定结算周期
+	// 1. 以交易时间获得有效合同
 	contract := models.GetValidContractsAtTime(mid, trxTime)
 	if contract == nil {
 		return nil, fmt.Errorf("no valid contracts found for merchant %s at time %d", mid, trxTime)
 	}
 
-	// 2. 获取结算配置
-	var settlePeriodType string = "D1" // 默认按天结算
-	var settleCcy string = trx.Ccy
-	var settleStrategies []string
-
-	// 从合同配置获取结算周期类型和策略
-	if contract.SettleConfig != nil {
-		if trx.TrxType == "payin" && len(contract.SettleConfig.Payin) > 0 {
-			settlePeriodType = contract.SettleConfig.Payin[0].Type
-			if contract.SettleConfig.Payin[0].Ccy != "" {
-				settleCcy = contract.SettleConfig.Payin[0].Ccy
-			}
-			settleStrategies = contract.SettleConfig.Payin[0].Strategies
-		} else if trx.TrxType == "payout" && len(contract.SettleConfig.Payout) > 0 {
-			settlePeriodType = contract.SettleConfig.Payout[0].Type
-			if contract.SettleConfig.Payout[0].Ccy != "" {
-				settleCcy = contract.SettleConfig.Payout[0].Ccy
-			}
-			settleStrategies = contract.SettleConfig.Payout[0].Strategies
-		}
+	// 2. 从合同配置获取结算周期类型和策略
+	if contract.SettleConfig == nil {
+		return nil, fmt.Errorf("invalid contract settle config for merchant %s", mid)
 	}
-
-	// 3. 根据交易时间和结算周期类型计算结算周期
-	period := models.GetSettlePeriodFromTime(trx.CreatedAt, settlePeriodType)
+	settleConfig := contract.SettleConfig.GetSetting(trx.TrxType)
 
 	// 4. 获取或创建结算周期记录
-	settleLog, isNewLog, err := models.GetOrCreateSettleLog(mid, period, trx.TrxType, settlePeriodType, settleCcy, settleStrategies)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get or create settle log: %v", err)
-	}
-
-	if isNewLog {
-		log.Get().Infof("GetOrCreateTransactionSettleLog: created new settle log %s for merchant %s, period %d", settleLog.SettleID, mid, period)
-	} else {
-		log.Get().Infof("GetOrCreateTransactionSettleLog: using existing settle log %s for merchant %s, period %d", settleLog.SettleID, mid, period)
+	settleLog := models.GetOrCreateSettleLog(mid, trx.GetCompletedAt(), settleAt, settleConfig)
+	if settleLog == nil {
+		return nil, fmt.Errorf("failed to get or create settle log")
 	}
 
 	return settleLog, nil
 }
 
-// SettleTransactionWithPeriod 使用结算周期记录处理单个交易结算
-func (s *MerchantSettleService) SettleTransactionWithPeriod(ctx context.Context, trx *models.Transaction) (isSuccess bool) {
-	isSuccess = false
+// ProcessSettleLogAccounting 处理单个结算记录的记账操作
+func (s *MerchantSettleService) ProcessSettleLogAccounting(settleLog *models.MerchantSettleLog) error {
+	if settleLog == nil {
+		return fmt.Errorf("settle log is nil")
+	}
+
+	// 获取结算金额
+	settleAmount := settleLog.GetSettleAmount()
+	if settleAmount.IsZero() {
+		log.Get().Warnf("ProcessSettleLogAccounting: settle amount is zero for settle_id %s", settleLog.SettleID)
+		return nil
+	}
+
+	// 调用账户服务更新余额
+	accountService := GetAccountService()
+	balanceReq := &protocol.UpdateBalanceRequest{
+		UserID:      cast.ToString(settleLog.MID),
+		UserType:    protocol.UserTypeMerchant,
+		Ccy:         settleLog.SettleCcy,
+		TrxType:     protocol.TrxTypeDeposit, // 结算入账使用充值类型
+		Amount:      settleAmount,
+		TrxID:       settleLog.SettleID, // 使用结算ID作为交易ID
+		Description: fmt.Sprintf("结算周期记账，周期: %d, 类型: %s", settleLog.Period, settleLog.PeriodType),
+	}
+
+	errCode := accountService.UpdateBalance(balanceReq)
+	if errCode != protocol.Success {
+		return fmt.Errorf("failed to update merchant balance for settle_id %s: %s", settleLog.SettleID, errCode)
+	}
+
+	// 更新结算记录的完成时间，标记为已记账
+	err := models.WriteDB.Model(settleLog).Updates(map[string]interface{}{
+		"completed_at": time.Now().UnixMilli(),
+		"updated_at":   time.Now().UnixMilli(),
+	}).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to update settle log completed_at for settle_id %s: %v", settleLog.SettleID, err)
+	}
+
+	log.Get().Infof("ProcessSettleLogAccounting: successfully processed accounting for settle_id %s, merchant %d, amount %s %s",
+		settleLog.SettleID, settleLog.MID, settleAmount.String(), settleLog.SettleCcy)
+
+	return nil
+}
+
+// ProcessBatchSettleAccounting 批量处理结算记账
+func (s *MerchantSettleService) ProcessBatchSettleAccounting(currentTime int64) *protocol.SettleAccountingResult {
+	result := &protocol.SettleAccountingResult{
+		StartTime: time.Now(),
+	}
+
 	defer func() {
-		if r := recover(); r != nil {
-			log.Get().Errorf("SettleTransactionWithPeriod: panic while settling transaction %s: %v", trx.TrxID, r)
-			isSuccess = false
-		}
+		result.EndTime = time.Now()
+		result.Duration = result.EndTime.Sub(result.StartTime)
 	}()
 
-	if trx == nil {
-		log.Get().Error("SettleTransactionWithPeriod: transaction is nil")
-		return
-	}
-
-	mid := trx.Mid
-	log.Get().Infof("SettleTransactionWithPeriod: processing transaction %s for merchant %s", trx.TrxID, mid)
-
-	// 1. 获取或创建结算周期记录（最优先级）
-	settleLog, err := s.GetOrCreateTransactionSettleLog(trx)
+	// 获取待记账的结算记录
+	settleLogs, err := models.GetPendingAccountingSettleLogs(currentTime)
 	if err != nil {
-		log.Get().Errorf("SettleTransactionWithPeriod: %v", err)
-		return
+
+		return result
 	}
 
-	// 2. 使用周期级别缓存获取结算策略
-	strategies := s.GetSettleStrategiesWithPeriodCache(ctx, settleLog)
+	result.TotalCount = int64(len(settleLogs))
 
-	if len(strategies) == 0 {
-		log.Get().Warnf("SettleTransactionWithPeriod: no settlement strategies found for transaction %s", trx.TrxID)
-		return
+	if result.TotalCount == 0 {
+		result.Result = "no pending accounting settle logs"
+		return result
 	}
 
-	// 3. 找到匹配的策略
-	var matchedStrategy *protocol.SettleStrategy
-	for _, strategy := range strategies {
-		if s.IsStrategyMatched(trx, strategy) {
-			matchedStrategy = strategy
-			break
+	log.Get().Infof("ProcessBatchSettleAccounting: found %d pending accounting settle logs", result.TotalCount)
+
+	// 逐个处理记账
+	for _, settleLog := range settleLogs {
+		err := s.ProcessSettleLogAccounting(settleLog)
+		if err != nil {
+			result.FailedCount++
+			continue
 		}
+		result.SuccessCount++
 	}
 
-	if matchedStrategy == nil {
-		log.Get().Warnf("SettleTransactionWithPeriod: no matching strategy found for transaction %s", trx.TrxID)
-		return
+	log.Get().Infof("ProcessBatchSettleAccounting: completed processing %d settle logs (success: %d, failed: %d, duration: %v)",
+		result.TotalCount, result.SuccessCount, result.FailedCount, result.Duration)
+
+	return result
+}
+
+// FixTransactionSettleID 修复交易记录的settle_id字段
+// 对于结算交易记录中对应的交易记录settle_id为空的情况，更新为对应的settle_log_id
+// 使用并发处理，最多5个批次，每批次最多10笔交易
+func (s *MerchantSettleService) FixTransactionSettleID(startTime, endTime int64) *protocol.SettleFixResult {
+	result := &protocol.SettleFixResult{
+		StartTime: time.Now(),
 	}
 
-	log.Get().Infof("SettleTransactionWithPeriod: matched strategy %d for transaction %s", matchedStrategy.ID, trx.TrxID)
+	defer func() {
+		result.EndTime = time.Now()
+		result.Duration = result.EndTime.Sub(result.StartTime)
+	}()
 
-	// 4. 获取结算规则
-	settleRules := matchedStrategy.Rules
-	if len(settleRules) == 0 {
-		log.Get().Warnf("SettleTransactionWithPeriod: no settlement rules found in strategy %d", matchedStrategy.ID)
-		return
+	// 获取总记录数
+	count := models.CountSettleTransactionsByTimeRange(startTime, endTime)
+	if count == 0 {
+		result.Result = "no settle transactions found in time range"
+		return result
 	}
 
-	// 5. 找到适用的规则
-	var matchedRule *protocol.SettleRule
-	for _, rule := range settleRules {
-		if s.IsRuleApplicable(trx, rule) {
-			matchedRule = rule
-			break
-		}
-	}
+	result.TotalCount = count
+	log.Get().Infof("FixTransactionSettleID: found %d settle transactions to process", result.TotalCount)
 
-	if matchedRule == nil {
-		log.Get().Warnf("SettleTransactionWithPeriod: no applicable settlement rule found for transaction %s", trx.TrxID)
-		return
-	}
+	// 并发控制参数
+	const maxBatches = 5                               // 最多5个批次同时进行
+	const batchSize = 10                               // 每批次最多10笔交易
+	const transactionsPerPage = maxBatches * batchSize // 每页处理的交易数量
 
-	log.Get().Infof("SettleTransactionWithPeriod: selected rule %s for transaction %s", matchedRule.RuleID, trx.TrxID)
+	// 计算总页数
+	totalPages := int((count + int64(transactionsPerPage) - 1) / int64(transactionsPerPage))
 
-	// 6. 计算结算金额和手续费
-	settlementResult := s.CalculateSettlement(trx, matchedRule)
-	if settlementResult == nil {
-		log.Get().Errorf("SettleTransactionWithPeriod: failed to calculate settlement for transaction %s", trx.TrxID)
-		return
-	}
+	// 用于收集处理结果
+	var resultMutex sync.Mutex
 
-	// 7. 检查交易是否已有结算记录
-	existingSettleRecord, err := models.GetExistingSettleRecord(trx.TrxID)
-	if err != nil {
-		log.Get().Errorf("SettleTransactionWithPeriod: failed to check existing settlement for transaction %s: %v", trx.TrxID, err)
-		return
-	}
+	// 逐页处理
+	for page := 0; page < totalPages; page++ {
+		offset := page * transactionsPerPage
+		limit := transactionsPerPage
 
-	newSettle := existingSettleRecord == nil
-	var settleTransaction *models.MerchantSettleTransaction
-
-	if newSettle {
-		// 8. 创建新的结算交易记录，直接关联结算周期记录
-		settleTransaction = NewSettleTransaction(trx, settleLog.SettleID)
-	} else {
-		settleTransaction = existingSettleRecord
-		// 更新关联的结算周期记录
-		settleTransaction.SetSettleLogID(settleLog.SettleID)
-	}
-
-	// 9. 设置结算计算结果
-	settleTransaction.MerchantSettleTransactionValues = &models.MerchantSettleTransactionValues{
-		SettleAmount:    &settlementResult.SettleAmount,
-		SettleUsdAmount: &settlementResult.SettleUsdAmount,
-		FeeCcy:          &settlementResult.FeeCcy,
-		Fee:             &settlementResult.Fee,
-		UsdFee:          &settlementResult.UsdFee,
-		FixedFee:        &settlementResult.FixedFee,
-		FixedUsdFee:     &settlementResult.FixedUsdFee,
-		Rate:            &settlementResult.Rate,
-		UsdRate:         &settlementResult.UsdRate,
-		SettleStrategy:  matchedStrategy,
-		SettleRule:      matchedRule,
-	}
-	settleTransaction.SetStatus(protocol.StatusSuccess)
-	settleTransaction.SetSettledAt(time.Now().UnixMilli())
-
-	// 10. 在事务中保存结算记录和更新交易状态
-	err = models.WriteDB.Transaction(func(tx *gorm.DB) error {
-		// 保存或更新结算交易记录
-		if newSettle {
-			if err := tx.Create(settleTransaction).Error; err != nil {
-				return fmt.Errorf("failed to create settlement transaction: %v", err)
-			}
-		} else {
-			if err := tx.Save(settleTransaction).Error; err != nil {
-				return fmt.Errorf("failed to update settlement transaction: %v", err)
-			}
+		// 获取当前页的结算交易记录（只查询必要字段）
+		settleTransactions := models.ListSettleTransactionsWithLimitedFields(startTime, endTime, offset, limit)
+		if len(settleTransactions) == 0 {
+			continue
 		}
 
-		// 更新结算周期记录的统计信息
-		if err := models.UpdateSettleLogWithTransaction(settleLog.SettleID, trx,
-			settlementResult.SettleAmount, settlementResult.SettleUsdAmount,
-			settlementResult.Fee, settlementResult.UsdFee); err != nil {
-			return fmt.Errorf("failed to update settle log: %v", err)
+		log.Get().Infof("FixTransactionSettleID: processing page %d with %d transactions", page+1, len(settleTransactions))
+
+		// 将当前页的交易分批处理
+		batches := s.createBatches(settleTransactions, batchSize)
+
+		// 使用WaitGroup控制批次并发
+		var batchWG sync.WaitGroup
+		batchSemaphore := make(chan struct{}, maxBatches) // 限制并发批次数
+
+		for batchIndex, batch := range batches {
+			batchWG.Add(1)
+			batchSemaphore <- struct{}{} // 获取批次信号量
+
+			go func(batchNum int, transactions []*models.MerchantSettleTransaction) {
+				defer func() {
+					<-batchSemaphore // 释放批次信号量
+					batchWG.Done()
+				}()
+
+				log.Get().Debugf("FixTransactionSettleID: starting batch %d with %d transactions", batchNum+1, len(transactions))
+
+				batchSuccessCount := int64(0)
+				batchFailedCount := int64(0)
+
+				// 在批次内并发处理每个交易
+				var transactionWG sync.WaitGroup
+				transactionSemaphore := make(chan struct{}, batchSize) // 限制批次内并发数
+
+				for _, settleTransaction := range transactions {
+					transactionWG.Add(1)
+					transactionSemaphore <- struct{}{}
+
+					go func(st *models.MerchantSettleTransaction) {
+						defer func() {
+							<-transactionSemaphore
+							transactionWG.Done()
+						}()
+
+						err := s.ProcessTransactionSettleIDFix(st)
+						if err != nil {
+							log.Get().Errorf("FixTransactionSettleID: failed to process transaction %s: %v", st.TrxID, err)
+							batchFailedCount++
+						} else {
+							batchSuccessCount++
+						}
+					}(settleTransaction)
+				}
+
+				// 等待批次内所有交易处理完成
+				transactionWG.Wait()
+
+				// 更新总体结果（加锁保护）
+				resultMutex.Lock()
+				result.SuccessCount += batchSuccessCount
+				result.FailedCount += batchFailedCount
+				resultMutex.Unlock()
+
+				log.Get().Debugf("FixTransactionSettleID: completed batch %d (success: %d, failed: %d)",
+					batchNum+1, batchSuccessCount, batchFailedCount)
+
+			}(batchIndex, batch)
 		}
 
-		// 更新交易状态
-		values := models.NewTrxValues().
-			SetSettleID(settleTransaction.SettleID).
-			SetSettledAt(settleTransaction.GetSettledAt()).
-			SetSettleStatus(protocol.StatusSuccess)
+		// 等待当前页的所有批次完成
+		batchWG.Wait()
+		log.Get().Infof("FixTransactionSettleID: completed page %d", page+1)
+	}
 
-		if err := models.SaveTransactionValues(tx, trx, values); err != nil {
-			return fmt.Errorf("failed to update transaction status: %v", err)
-		}
+	log.Get().Infof("FixTransactionSettleID: completed processing %d transactions (success: %d, failed: %d, duration: %v)",
+		result.TotalCount, result.SuccessCount, result.FailedCount, result.Duration)
 
+	return result
+}
+
+// createBatches 将交易列表分割成批次
+func (s *MerchantSettleService) createBatches(transactions []*models.MerchantSettleTransaction, batchSize int) [][]*models.MerchantSettleTransaction {
+	var batches [][]*models.MerchantSettleTransaction
+
+	for i := 0; i < len(transactions); i += batchSize {
+		end := min(i+batchSize, len(transactions))
+		batches = append(batches, transactions[i:end])
+	}
+
+	return batches
+}
+
+// ProcessTransactionSettleIDFix 处理单个交易记录的settle_id修复
+func (s *MerchantSettleService) ProcessTransactionSettleIDFix(settleTransaction *models.MerchantSettleTransaction) error {
+	if settleTransaction == nil {
+		return fmt.Errorf("settle transaction is nil")
+	}
+
+	// 更新交易记录的settle_id为对应的settle_log_id
+	if settleTransaction.GetSettleLogID() == "" {
+		log.Get().Warnf("ProcessTransactionSettleIDFix: settle_log_id is empty for transaction %s", settleTransaction.TrxID)
 		return nil
-	})
-
-	if err != nil {
-		log.Get().Errorf("SettleTransactionWithPeriod: failed to settle transaction %s: %v", trx.TrxID, err)
-		return
 	}
 
-	log.Get().Infof("SettleTransactionWithPeriod: successfully settled transaction %s with amount %s, settle_log_id: %s",
-		trx.TrxID, settlementResult.SettleAmount.String(), settleLog.SettleID)
+	// 查询对应的交易记录
+	var transaction models.Transaction
+	err := models.ReadDB.Where("trx_id = ? && (settle_id is null OR settle_id = '')", settleTransaction.TrxID).First(&transaction).Error
+	if err != nil || transaction.GetSettleID() != "" {
+		return nil // 交易不存在或不需要更新
+	}
 
-	return true
+	// 更新交易的settle_id
+	values := models.NewTrxValues().SetSettleID(settleTransaction.GetSettleLogID())
+	err = models.SaveTransactionValues(models.WriteDB, &transaction, values)
+	if err != nil {
+		return fmt.Errorf("failed to update transaction settle_id for %s: %v", settleTransaction.TrxID, err)
+	}
+
+	log.Get().Infof("ProcessTransactionSettleIDFix: successfully updated settle_id for transaction %s to %s",
+		settleTransaction.TrxID, settleTransaction.GetSettleLogID())
+
+	return nil
 }

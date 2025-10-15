@@ -71,17 +71,24 @@ const (
 	VerifyCodeTypeResetG2FA     = "reset_g2fa"     // 重置G2FA验证码
 )
 
-// 订单类型
 const (
-	TrxTypePayin     = "payin"      // 代收订单
-	TrxTypePayout    = "payout"     // 代付订单
-	TrxTypeWithdraw  = "withdraw"   // 提现订单
-	TrxTypeRefund    = "refund"     // 退款订单
-	TrxTypeRecharge  = "recharge"   // 充值订单
-	TrxTypeFreeze    = "freeze"     // 冻结订单
-	TrxTypeUnfreeze  = "unfreeze"   // 解冻订单
-	TrxTypeRfRecover = "rf_recover" // 退款回撤订单
-	TrxTypeWdRecover = "wd_recover" // 提现回撤订单
+	TrxTypePayin         = "payin"          // 代收订单
+	TrxTypePayout        = "payout"         // 代付订单
+	TrxTypeWithdraw      = "withdraw"       // 提现订单
+	TrxTypeRefund        = "refund"         // 退款订单
+	TrxTypeDeposit       = "deposit"        // 充值订单
+	TrxTypeMarginDeposit = "margin_deposit" // 保证金充值订单
+	TrxTypeMarginRelease = "margin_release" // 保证金释放订单
+	TrxTypeTransfer      = "transfer"       // 转账订单
+	TrxTypeDividend      = "dividend"       // 分红订单
+	TrxTypeFee           = "fee"            // 手续费订单
+	TrxTypeAdjustment    = "adjustment"     // 余额调整订单
+	TrxTypeChargeback    = "chargeback"     // 退单订单
+	TrxTypeSettle        = "settle"         // 结算订单
+	TrxTypeFreeze        = "freeze"         // 冻结订单
+	TrxTypeUnfreeze      = "unfreeze"       // 解冻订单
+	TrxTypeRfRecover     = "rf_recover"     // 退款回撤订单
+	TrxTypeWdRecover     = "wd_recover"     // 提现回撤订单
 )
 
 const (

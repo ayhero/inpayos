@@ -35,10 +35,10 @@ type SettleRuleValues struct {
 
 type SettleRules []*SettleRule
 
-func (t SettleRules) ToProtocol() []*protocol.SettleRule {
+func (t SettleRules) Protocol() []*protocol.SettleRule {
 	rules := make([]*protocol.SettleRule, 0, len(t))
 	for _, rule := range t {
-		rules = append(rules, rule.ToProtocol())
+		rules = append(rules, rule.Protocol())
 	}
 	return rules
 }
@@ -47,7 +47,7 @@ func (t SettleRule) TableName() string {
 	return "t_settle_rules"
 }
 
-func (t SettleRule) ToProtocol() *protocol.SettleRule {
+func (t SettleRule) Protocol() *protocol.SettleRule {
 	return &protocol.SettleRule{
 		RuleID:      t.RuleID,
 		MinAmount:   t.MinAmount,

@@ -44,6 +44,11 @@ func init() {
 }
 
 const (
+	StatisticsRecent     = "statistics.recent"
+	StatisticsHistorical = "statistics.historical"
+)
+
+const (
 	IDX_RECENT      = "recent"
 	IDX_LAST        = "last"
 	IDX_TIME_MINUTE = "mm"

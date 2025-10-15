@@ -9,5 +9,8 @@ func InitializeMerchantServices() error {
 	GetCashierService()
 	GetCheckoutService()
 	GetMerchantTransactionService()
+
+	RegisterSettleTasks()
+	RegisterSummaryTasks()
 	return nil
 }

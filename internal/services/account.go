@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"inpayos/internal/log"
 	"inpayos/internal/models"
 	"inpayos/internal/protocol"
 	"inpayos/internal/utils"
@@ -44,22 +45,23 @@ func (s *AccountService) CreateAccount(req *protocol.CreateAccountRequest) (*mod
 	// 创建新账户
 	account := models.NewAccount()
 	account.AccountID = utils.GenerateAccountID()
-	account.AccountValues.SetUserID(req.UserID).
-		SetUserType(req.UserType).
-		SetCcy(req.Ccy).
-		SetStatus(1).
+	account.UserID = req.UserID
+	account.UserType = req.UserType
+	account.Ccy = req.Ccy
+	account.SetStatus(protocol.StatusActive).
 		SetVersion(1).
 		SetLastActiveAt(time.Now().UnixMilli())
 
 	// 初始化资产
 	asset := &models.Asset{
-		Balance:          decimal.Zero,
-		AvailableBalance: decimal.Zero,
-		FrozenBalance:    decimal.Zero,
-		MarginBalance:    decimal.Zero,
-		ReserveBalance:   decimal.Zero,
-		Ccy:              req.Ccy,
-		UpdatedAt:        time.Now().UnixMilli(),
+		Balance:                decimal.Zero,
+		AvailableBalance:       decimal.Zero,
+		FrozenBalance:          decimal.Zero,
+		MarginBalance:          decimal.Zero,
+		AvailableMarginBalance: decimal.Zero,
+		FrozenMarginBalance:    decimal.Zero,
+		Ccy:                    req.Ccy,
+		UpdatedAt:              time.Now().UnixMilli(),
 	}
 	account.AccountValues.SetAsset(asset)
 
@@ -72,179 +74,135 @@ func (s *AccountService) CreateAccount(req *protocol.CreateAccountRequest) (*mod
 	return account, nil
 }
 
-func (s AccountService) GetMerchantAccountBalance(merchantID string) (balance *protocol.Balance, code protocol.ErrorCode) {
-	return &protocol.Balance{}, protocol.Success
-}
-
-// GetBalance 获取账户余额
-func (s *AccountService) GetBalance(userID, userType, currency string) (*protocol.Balance, error) {
-	account, err := models.GetAccountByUserIDAndCurrency(userID, userType, currency)
-	if err != nil {
-		return nil, fmt.Errorf("account not found: %w", err)
+func (s AccountService) GetMerchantAccountBalance(merchantID string) (balance []*protocol.Account) {
+	acct := models.GetAccountsByUserID(merchantID, protocol.UserTypeMerchant)
+	if acct == nil {
+		return []*protocol.Account{}
 	}
-
-	if account.Asset == nil {
-		return &protocol.Balance{
-			Balance:          "0",
-			AvailableBalance: "0",
-			FrozenBalance:    "0",
-			MarginBalance:    "0",
-			ReserveBalance:   "0",
-			Currency:         currency,
-			UpdatedAt:        account.UpdatedAt,
-		}, nil
-	}
-
-	return &protocol.Balance{
-		Balance:          account.Asset.Balance.String(),
-		AvailableBalance: account.Asset.AvailableBalance.String(),
-		FrozenBalance:    account.Asset.FrozenBalance.String(),
-		MarginBalance:    account.Asset.MarginBalance.String(),
-		ReserveBalance:   account.Asset.ReserveBalance.String(),
-		Currency:         account.Asset.Ccy,
-		UpdatedAt:        account.Asset.UpdatedAt,
-	}, nil
+	return acct.Protocol()
 }
 
 // UpdateBalance 更新账户余额
-func (s *AccountService) UpdateBalance(req *protocol.UpdateBalanceRequest) error {
-	return models.WriteDB.Transaction(func(tx *gorm.DB) error {
+func (s *AccountService) UpdateBalance(req *protocol.UpdateBalanceRequest) (err_code protocol.ErrorCode) {
+
+	direction, ok := protocol.AccountDirectionMap[req.TrxType]
+	if !ok {
+		return protocol.AccountErrorInvalidTrxType
+	}
+	err := models.WriteDB.Transaction(func(tx *gorm.DB) error {
 		// 锁定账户
 		account, err := models.GetAccountForUpdate(tx, req.UserID, req.UserType, req.Ccy)
 		if err != nil {
-			return fmt.Errorf("account not found: %w", err)
+			err_code = protocol.AccountErrorAccountNotFound
+			return err
 		}
-
 		// 初始化资产如果为空
 		if account.Asset == nil {
 			account.Asset = &models.Asset{
-				Balance:          decimal.Zero,
-				AvailableBalance: decimal.Zero,
-				FrozenBalance:    decimal.Zero,
-				MarginBalance:    decimal.Zero,
-				ReserveBalance:   decimal.Zero,
-				Ccy:              req.Ccy,
-				UpdatedAt:        time.Now().UnixMilli(),
+				Balance:             decimal.Zero,
+				FrozenBalance:       decimal.Zero,
+				MarginBalance:       decimal.Zero,
+				FrozenMarginBalance: decimal.Zero,
+				Ccy:                 req.Ccy,
+				UpdatedAt:           time.Now().UnixMilli(),
 			}
 		}
-
 		// 记录操作前余额
-		//beforeBalance := account.Asset.Balance
+		beforeAssert := *account.Asset
+		afterAssert := account.Asset
+		afterAssert.UpdatedAt = utils.TimeNowMilli()
 
+		values := &models.AccountValues{
+			Asset: afterAssert,
+		}
 		// 执行余额操作
-		switch req.Operation {
-		case "add":
-			account.Asset.Balance = account.Asset.Balance.Add(req.Amount)
-			account.Asset.AvailableBalance = account.Asset.AvailableBalance.Add(req.Amount)
-		case "subtract":
-			if account.Asset.AvailableBalance.LessThan(req.Amount) {
+		switch req.TrxType {
+		case protocol.TrxTypePayin:
+			afterAssert.Balance = afterAssert.Balance.Add(req.Amount)
+		case protocol.TrxTypePayout:
+			if afterAssert.Balance.LessThan(req.Amount) {
+				err_code = protocol.AccountErrorInsufficientBalance
 				return fmt.Errorf("insufficient available balance")
 			}
-			account.Asset.Balance = account.Asset.Balance.Sub(req.Amount)
-			account.Asset.AvailableBalance = account.Asset.AvailableBalance.Sub(req.Amount)
-		case "freeze":
-			if account.Asset.AvailableBalance.LessThan(req.Amount) {
+			direction = protocol.DirectionOut
+			afterAssert.Balance = afterAssert.Balance.Sub(req.Amount)
+			afterAssert.Balance = afterAssert.Balance.Sub(req.Amount)
+		case protocol.TrxTypeFreeze:
+			if afterAssert.Balance.LessThan(req.Amount) {
+				err_code = protocol.AccountErrorInsufficientBalance
 				return fmt.Errorf("insufficient available balance to freeze")
 			}
-			account.Asset.AvailableBalance = account.Asset.AvailableBalance.Sub(req.Amount)
-			account.Asset.FrozenBalance = account.Asset.FrozenBalance.Add(req.Amount)
-		case "unfreeze":
-			if account.Asset.FrozenBalance.LessThan(req.Amount) {
+			direction = protocol.DirectionOut
+			afterAssert.Balance = afterAssert.Balance.Sub(req.Amount)
+			afterAssert.FrozenBalance = afterAssert.FrozenBalance.Add(req.Amount)
+		case protocol.TrxTypeUnfreeze:
+			if afterAssert.FrozenBalance.LessThan(req.Amount) {
+				err_code = protocol.AccountErrorInsufficientFrozenBalance
 				return fmt.Errorf("insufficient frozen balance to unfreeze")
 			}
-			account.Asset.FrozenBalance = account.Asset.FrozenBalance.Sub(req.Amount)
-			account.Asset.AvailableBalance = account.Asset.AvailableBalance.Add(req.Amount)
-		case "margin":
-			if account.Asset.AvailableBalance.LessThan(req.Amount) {
+			afterAssert.FrozenBalance = afterAssert.FrozenBalance.Sub(req.Amount)
+			afterAssert.Balance = afterAssert.Balance.Add(req.Amount)
+		case protocol.TrxTypeMarginDeposit:
+			if afterAssert.Balance.LessThan(req.Amount) {
+				err_code = protocol.AccountErrorInsufficientBalance
 				return fmt.Errorf("insufficient available balance for margin")
 			}
-			account.Asset.AvailableBalance = account.Asset.AvailableBalance.Sub(req.Amount)
-			account.Asset.MarginBalance = account.Asset.MarginBalance.Add(req.Amount)
-		case "release_margin":
-			if account.Asset.MarginBalance.LessThan(req.Amount) {
+			afterAssert.MarginBalance = afterAssert.MarginBalance.Add(req.Amount)
+		case protocol.TrxTypeMarginRelease:
+			if afterAssert.MarginBalance.LessThan(req.Amount) {
+				err_code = protocol.AccountErrorInsufficientMarginBalance
 				return fmt.Errorf("insufficient margin balance to release")
 			}
-			account.Asset.MarginBalance = account.Asset.MarginBalance.Sub(req.Amount)
-			account.Asset.AvailableBalance = account.Asset.AvailableBalance.Add(req.Amount)
+			direction = protocol.DirectionOut
+			afterAssert.MarginBalance = afterAssert.MarginBalance.Sub(req.Amount)
 		default:
-			return fmt.Errorf("unsupported operation: %s", req.Operation)
+			err_code = protocol.AccountErrorUnsupportedTrxType
+			return fmt.Errorf("unsupported trx_type: %s", req.TrxType)
 		}
 
 		// 更新账户信息
-		account.Asset.UpdatedAt = time.Now().UnixMilli()
-		account.AccountValues.SetLastActiveAt(time.Now().UnixMilli())
-		account.AccountValues.SetVersion(account.GetVersion() + 1)
-
-		// 保存账户
-		if err := tx.Save(account).Error; err != nil {
-			return fmt.Errorf("failed to update account: %w", err)
-		}
+		afterAssert.AvailableBalance = afterAssert.Balance.Sub(afterAssert.FrozenBalance)
+		values.SetVersion(account.GetVersion() + 1)
 
 		// 创建资金流水记录
-		fundFlow := &models.FundFlow{}
-		fundFlow.FlowNo = utils.GenerateFlowID()
-		/*
-			fundFlow.SetUserID(req.UserID).
-				SetUserType(req.UserType).
-				SetAccountID(account.AccountID).
-				SetTransactionID(req.TransactionID).
-				SetBillID(req.BillID).
-				SetFlowType(req.Operation).
-				SetAmount(req.Amount).
-				SetCurrency(req.Currency).
-				SetBeforeBalance(beforeBalance).
-				SetAfterBalance(account.Asset.Balance).
-				SetBusinessType(req.BusinessType).
-				SetDescription(req.Description).
-				SetFlowAt(time.Now().UnixMilli())
-		*/
+		fundFlow := &models.FundFlow{
+			FlowNo:         utils.GenerateFlowNo(),
+			Direction:      direction,
+			UserID:         req.UserID,
+			UserType:       req.UserType,
+			AccountID:      account.AccountID,
+			AccountVersion: account.GetVersion(),
+			TrxID:          req.TrxID,
+			TrxType:        req.TrxType,
+			Ccy:            req.Ccy,
+			Amount:         &req.Amount,
+			BeforeAsset:    &beforeAssert,
+			AfterAsset:     afterAssert,
+			CreatedAt:      utils.TimeNowMilli(),
+		}
 		if err := tx.Create(fundFlow).Error; err != nil {
-			return fmt.Errorf("failed to create fund flow: %w", err)
+			return err
+		}
+		// 保存账户
+		if err := tx.Model(account).UpdateColumns(values).Error; err != nil {
+			err_code = protocol.AccountErrorUpdateFailed
+			return err
 		}
 
 		return nil
 	})
+	if err != nil {
+		log.Get().Error("UpdateBalance error:", err)
+	}
+	return protocol.Success
 }
 
 // GetAccountList 获取账户列表
 func (s *AccountService) GetAccountList(userID, userType string) ([]*protocol.Account, protocol.ErrorCode) {
 	// 查询账户列表
-	var accounts []*models.Account
-	if err := models.WriteDB.Where("user_id = ? AND user_type = ?", userID, userType).Find(&accounts).Error; err != nil {
-		return nil, protocol.DatabaseError
-	}
-
+	accounts := models.GetAccountsByUserID(userID, userType)
 	// 转换为响应格式
-	accountInfos := make([]*protocol.Account, len(accounts))
-	for i, account := range accounts {
-		balance := (*protocol.Balance)(nil)
-		if account.Asset != nil {
-			balance = &protocol.Balance{
-				Balance:          account.Asset.Balance.String(),
-				AvailableBalance: account.Asset.AvailableBalance.String(),
-				FrozenBalance:    account.Asset.FrozenBalance.String(),
-				MarginBalance:    account.Asset.MarginBalance.String(),
-				ReserveBalance:   account.Asset.ReserveBalance.String(),
-				Currency:         account.Asset.Ccy,
-				UpdatedAt:        account.Asset.UpdatedAt,
-			}
-		}
-
-		accountInfos[i] = &protocol.Account{
-			AccountID:    account.AccountID,
-			UserID:       account.GetUserID(),
-			UserType:     account.GetUserType(),
-			Currency:     account.GetCcy(),
-			Balance:      balance,
-			Status:       account.GetStatus(),
-			Version:      account.GetVersion(),
-			LastActiveAt: account.GetLastActiveAt(),
-			CreatedAt:    account.CreatedAt,
-			UpdatedAt:    account.UpdatedAt,
-		}
-	}
-
-	return accountInfos, protocol.Success
+	return accounts.Protocol(), protocol.Success
 }
 
 // ListAccountFlowByQuery 根据查询条件获取账户流水列表
@@ -256,7 +214,7 @@ func (s *AccountService) ListAccountFlowByQuery(userID, userType string, req *pr
 	}
 	size := req.Size
 	if size <= 0 {
-		size = 20
+		size = 10
 	}
 	if size > 100 {
 		size = 100

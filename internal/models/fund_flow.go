@@ -10,6 +10,7 @@ import (
 type FundFlow struct {
 	ID             uint64           `gorm:"primaryKey;autoIncrement" json:"id"`
 	FlowNo         string           `gorm:"type:varchar(64);uniqueIndex;not null" json:"flow_no"`              // 流水号
+	Type           string           `gorm:"type:varchar(20);not null" json:"type"`                             // 流水类型: 代收结算-payin_settle, 代付结算-payout_settle, 保证金变动-margin_change, 提现-withdraw, 手续费-fee, 调账-adjust
 	OriFlowNo      string           `gorm:"type:varchar(64);index" json:"ori_flow_no"`                         // 原始流水号(关联流水记录)
 	UserID         string           `gorm:"type:varchar(32);index;not null" json:"user_id"`                    // 用户ID
 	UserType       string           `gorm:"type:varchar(16);index;not null" json:"user_type"`                  // 用户类型: merchant-商户, cashier-收款员, system-系统，cashier-team-收款员团队

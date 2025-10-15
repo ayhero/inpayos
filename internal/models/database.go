@@ -106,9 +106,10 @@ func AutoMigrate() error {
 		&ChannelGroup{},
 
 		// 结算相关
-		&SettleRule{},
+		&MerchantSettleLog{},
 		&MerchantSettleTransaction{},
 		&MerchantSettleHistory{},
+		&SettleRule{},
 
 		// 通知和消息
 		&Webhook{},

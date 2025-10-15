@@ -1,6 +1,7 @@
 package models
 
 import (
+	"inpayos/internal/log"
 	"inpayos/internal/protocol"
 
 	"github.com/shopspring/decimal"
@@ -861,11 +862,14 @@ func (tv *TransactionValues) SetSettleStatus(value string) *TransactionValues {
 }
 
 // CountTransactionByQuery 根据查询条件统计交易数量
-func CountTransactionByQuery(query *TrxQuery) (int64, error) {
+func CountTransactionByQuery(query *TrxQuery) int64 {
 	var count int64
 	db := query.BuildQuery(GetTransactionQueryByType(query.TrxType))
-	err := db.Count(&count).Error
-	return count, err
+	if err := db.Count(&count).Error; err != nil {
+		log.Get().Errorf("CountTransactionByQuery: %v", err)
+		return 0
+	}
+	return count
 }
 
 // ListTransactionByQuery 根据查询条件获取交易列表

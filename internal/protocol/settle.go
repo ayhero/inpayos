@@ -1,11 +1,76 @@
 package protocol
 
 import (
-	"context"
+	"inpayos/internal/utils"
 	"sync"
+	"time"
 
 	"github.com/shopspring/decimal"
 )
+
+const (
+	MerchantSettle                 = "merchant.settle"
+	MerchantSettleProcess          = "merchant.settle.process"
+	MerchantSettleAccounting       = "merchant.settle.accounting"
+	MerchantTransactionSettleIDFix = "merchant.transaction.settle.id.fix"
+)
+
+const (
+	T0 = "T+0" // T+0 立即结算
+	T1 = "T+1" // T+1 次日结算
+	T2 = "T+2" // T+2 两日结算
+	T3 = "T+3" // T+3 三日结算
+	W1 = "W+1" // W+1 下周结算
+	M1 = "M+1" // M+1 下月结算
+)
+
+// SettleAccountingResult 结算记账结果统计
+type SettleAccountingResult struct {
+	TotalCount   int64
+	SuccessCount int64
+	FailedCount  int64
+	StartTime    time.Time
+	EndTime      time.Time
+	Duration     time.Duration
+	Result       string
+}
+
+// SettleFixResult 交易settle_id修复结果统计
+type SettleFixResult struct {
+	StartTime    time.Time     `json:"start_time"`
+	EndTime      time.Time     `json:"end_time"`
+	Duration     time.Duration `json:"duration"`
+	TotalCount   int64         `json:"total_count"`
+	SuccessCount int64         `json:"success_count"`
+	FailedCount  int64         `json:"failed_count"`
+	Result       string        `json:"result"`
+}
+
+// SettleResult 结算结果统计
+type SettleResult struct {
+	TotalCount     int64
+	SuccessCount   int64
+	FailedCount    int64
+	ProcessedPages int
+	TotalPages     int
+	StartTime      time.Time
+	EndTime        time.Time
+	Duration       time.Duration
+	Result         string
+}
+
+// SettlementResult represents the result of settlement calculation
+type SettlementResult struct {
+	SettleAmount    decimal.Decimal
+	SettleUsdAmount decimal.Decimal
+	Fee             decimal.Decimal
+	UsdFee          decimal.Decimal
+	FixedFee        decimal.Decimal
+	FixedUsdFee     decimal.Decimal
+	Rate            decimal.Decimal
+	UsdRate         decimal.Decimal
+	FeeCcy          string
+}
 
 type SettleStrategy struct {
 	ID        int64       `json:"id" gorm:"primaryKey;autoIncrement;comment:自增ID"`
@@ -50,147 +115,92 @@ type SettleRule struct {
 
 type SettleRules []*SettleRule
 
-// 结算策略缓存的 context key
-type contextKey string
-
-const (
-	settleStrategyCacheKey contextKey = "settle_strategy_cache"
-	cacheStatsKey          contextKey = "cache_stats"
-)
-
-// SettleStrategyCache 结算策略缓存
-type SettleStrategyCache struct {
-	strategies map[string][]*SettleStrategy
-	mutex      sync.RWMutex
+// MerchantSettleContext 结算策略缓存（使用 sync.Map 实现线程安全）
+type MerchantSettleContext struct {
+	strategies sync.Map // map[string][]*SettleStrategy
+	SettledAt  int64    // 当前结算时间
 }
 
-// CacheStats 缓存统计信息
-type CacheStats struct {
-	hits   int64
-	misses int64
-	mutex  sync.RWMutex
-}
-
-// NewSettleStrategyCache 创建新的结算策略缓存
-func NewSettleStrategyCache() *SettleStrategyCache {
-	return &SettleStrategyCache{
-		strategies: make(map[string][]*SettleStrategy),
+// NewMerchantSettleContext 创建新的结算策略缓存
+func NewMerchantSettleContext() *MerchantSettleContext {
+	return &MerchantSettleContext{
+		strategies: sync.Map{},
+		SettledAt:  utils.TimeNowMilli(),
 	}
-}
-
-// NewCacheStats 创建新的缓存统计
-func NewCacheStats() *CacheStats {
-	return &CacheStats{}
 }
 
 // Get 从缓存中获取策略
-func (c *SettleStrategyCache) Get(mid string) ([]*SettleStrategy, bool) {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	strategies, exists := c.strategies[mid]
-	return strategies, exists
+func (c *MerchantSettleContext) Get(mid string) []*SettleStrategy {
+	value, exists := c.strategies.Load(mid)
+	if !exists {
+		return nil
+	}
+	strategies, ok := value.([]*SettleStrategy)
+	if !ok {
+		return nil
+	}
+	return strategies
 }
 
 // Set 将策略存入缓存
-func (c *SettleStrategyCache) Set(mid string, strategies []*SettleStrategy) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	c.strategies[mid] = strategies
+func (c *MerchantSettleContext) Set(mid string, strategies []*SettleStrategy) {
+	c.strategies.Store(mid, strategies)
 }
 
 // Size 获取缓存大小
-func (c *SettleStrategyCache) Size() int {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	return len(c.strategies)
+func (c *MerchantSettleContext) Size() int {
+	count := 0
+	c.strategies.Range(func(key, value interface{}) bool {
+		count++
+		return true
+	})
+	return count
 }
 
 // Clear 清空缓存
-func (c *SettleStrategyCache) Clear() {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	c.strategies = make(map[string][]*SettleStrategy)
+func (c *MerchantSettleContext) Clear() {
+	c.strategies.Range(func(key, value interface{}) bool {
+		c.strategies.Delete(key)
+		return true
+	})
 }
 
 // Delete 从缓存中删除指定 mid 的策略
-func (c *SettleStrategyCache) Delete(mid string) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	delete(c.strategies, mid)
+func (c *MerchantSettleContext) Delete(mid string) {
+	c.strategies.Delete(mid)
 }
 
 // Keys 获取缓存中所有的 mid
-func (c *SettleStrategyCache) Keys() []string {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	keys := make([]string, 0, len(c.strategies))
-	for key := range c.strategies {
-		keys = append(keys, key)
-	}
+func (c *MerchantSettleContext) Keys() []string {
+	keys := make([]string, 0)
+	c.strategies.Range(func(key, value interface{}) bool {
+		if mid, ok := key.(string); ok {
+			keys = append(keys, mid)
+		}
+		return true
+	})
 	return keys
 }
 
-// RecordHit 记录缓存命中
-func (s *CacheStats) RecordHit() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.hits++
-}
-
-// RecordMiss 记录缓存未命中
-func (s *CacheStats) RecordMiss() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.misses++
-}
-
-// Reset 重置缓存统计
-func (s *CacheStats) Reset() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.hits = 0
-	s.misses = 0
-}
-
-// GetStats 获取统计信息
-func (s *CacheStats) GetStats() (hits, misses int64) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-	return s.hits, s.misses
-}
-
-// GetHitRate 获取缓存命中率
-func (s *CacheStats) GetHitRate() float64 {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-	if s.hits+s.misses == 0 {
-		return 0
+// LoadOrStore 原子性地加载或存储策略
+func (c *MerchantSettleContext) LoadOrStore(mid string, strategies []*SettleStrategy) ([]*SettleStrategy, bool) {
+	value, loaded := c.strategies.LoadOrStore(mid, strategies)
+	if loaded {
+		if existingStrategies, ok := value.([]*SettleStrategy); ok {
+			return existingStrategies, true
+		}
 	}
-	return float64(s.hits) / float64(s.hits+s.misses) * 100
+	return strategies, false
 }
 
-// CreateSettleContext 创建包含缓存的 context
-func CreateSettleContext(ctx context.Context) context.Context {
-	cache := NewSettleStrategyCache()
-	stats := NewCacheStats()
-
-	ctx = context.WithValue(ctx, settleStrategyCacheKey, cache)
-	ctx = context.WithValue(ctx, cacheStatsKey, stats)
-
-	return ctx
-}
-
-// GetCacheFromContext 从 context 中获取缓存和统计信息
-func GetCacheFromContext(ctx context.Context) (*SettleStrategyCache, *CacheStats) {
-	cache, _ := ctx.Value(settleStrategyCacheKey).(*SettleStrategyCache)
-	stats, _ := ctx.Value(cacheStatsKey).(*CacheStats)
-
-	if cache == nil {
-		cache = NewSettleStrategyCache()
-	}
-	if stats == nil {
-		stats = NewCacheStats()
-	}
-
-	return cache, stats
+// Range 遍历所有缓存项
+func (c *MerchantSettleContext) Range(fn func(mid string, strategies []*SettleStrategy) bool) {
+	c.strategies.Range(func(key, value interface{}) bool {
+		if mid, ok := key.(string); ok {
+			if strategies, ok := value.([]*SettleStrategy); ok {
+				return fn(mid, strategies)
+			}
+		}
+		return true
+	})
 }

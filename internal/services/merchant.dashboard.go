@@ -322,7 +322,7 @@ func GetAccountBalance(merchantID int64) ([]DashboardAccountBalance, error) {
 
 	var balances []DashboardAccountBalance
 	for _, account := range accounts {
-		if account.Asset == nil || account.Ccy == nil {
+		if account.Asset == nil || account.Ccy == "" {
 			continue
 		}
 
@@ -332,7 +332,7 @@ func GetAccountBalance(merchantID int64) ([]DashboardAccountBalance, error) {
 		availableAmt := account.Asset.AvailableBalance.InexactFloat64()
 
 		balances = append(balances, DashboardAccountBalance{
-			Currency:     *account.Ccy,
+			Currency:     account.Ccy,
 			Balance:      fmt.Sprintf("%.2f", balance),
 			FrozenAmt:    fmt.Sprintf("%.2f", frozenAmt),
 			AvailableAmt: fmt.Sprintf("%.2f", availableAmt),

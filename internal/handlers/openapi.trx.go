@@ -94,13 +94,8 @@ func (a *OpenApi) Query(c *gin.Context) {
 
 // Balance 查询账户余额
 func (a *OpenApi) Balance(c *gin.Context) {
-	accountService := services.GetAccountService()
-	mid := middleware.GetMidFromContext(c)
-	balance, code := accountService.GetMerchantAccountBalance(mid)
 	lang := middleware.GetLanguage(c)
-	if code != protocol.Success {
-		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(code, lang))
-		return
-	}
-	c.JSON(http.StatusOK, protocol.NewSuccessResultWithLang(balance, lang))
+	mid := middleware.GetMidFromContext(c)
+	accounts := services.GetAccountService().GetMerchantAccountBalance(mid)
+	c.JSON(http.StatusOK, protocol.NewSuccessResultWithLang(accounts, lang))
 }

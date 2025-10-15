@@ -4,14 +4,12 @@ import (
 	"inpayos/internal/protocol"
 
 	"github.com/shopspring/decimal"
-	"gorm.io/gorm"
 )
 
 type MerchantSettleTransaction struct {
 	ID                               int64            `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	TrxID                            string           `json:"trx_id" gorm:"column:trx_id;index;uniqueIndex:idx_trx_settle"`       // TrxID 交易ID
 	SettleID                         string           `json:"settle_id" gorm:"column:settle_id;index;uniqueIndex:idx_trx_settle"` // SettleID 结算ID
-	SettleLogID                      *string          `json:"settle_log_id" gorm:"column:settle_log_id;index"`                    // SettleLogID 结算周期记录ID
 	MID                              string           `json:"mid" gorm:"column:mid;index"`                                        // MerchantID 商户ID
 	TrxType                          string           `json:"trx_type" gorm:"column:trx_type"`                                    // TrxType 交易类型
 	TrxCcy                           string           `json:"trx_ccy" gorm:"column:trx_ccy"`                                      // TrxCcy 交易币种
@@ -25,6 +23,8 @@ type MerchantSettleTransaction struct {
 }
 
 type MerchantSettleTransactionValues struct {
+	SettleLogID     *string                  `json:"settle_log_id" gorm:"column:settle_log_id;index"`                         // SettleLogID 结算周期记录ID
+	FlowNo          *string                  `json:"flow_no" gorm:"column:flow_no;index"`                                     // FlowNo 流水号
 	SettleAmount    *decimal.Decimal         `json:"settle_amount" gorm:"column:settle_amount"`                               // TrxSettleAmount 结算金额
 	SettleUsdAmount *decimal.Decimal         `json:"settle_usd_amount" gorm:"column:settle_usd_amount"`                       // TrxSettleUsdAmount 结算美元金额
 	SettledAt       *int64                   `json:"settled_at" gorm:"column:settled_at"`                                     // SettledAt 结算时间
@@ -134,6 +134,18 @@ func (v *MerchantSettleTransactionValues) GetStatus() string {
 	}
 	return *v.Status
 }
+func (v *MerchantSettleTransactionValues) GetFlowNo() string {
+	if v.FlowNo == nil {
+		return ""
+	}
+	return *v.FlowNo
+}
+func (v *MerchantSettleTransactionValues) GetSettleStrategy() *protocol.SettleStrategy {
+	return v.SettleStrategy
+}
+func (v *MerchantSettleTransactionValues) GetSettleRule() *protocol.SettleRule {
+	return v.SettleRule
+}
 
 // Setters for MerchantSettleTransactionValues
 func (v *MerchantSettleTransactionValues) SetSettleAmount(amount decimal.Decimal) *MerchantSettleTransactionValues {
@@ -180,15 +192,27 @@ func (v *MerchantSettleTransactionValues) SetStatus(status string) *MerchantSett
 	v.Status = &status
 	return v
 }
+func (v *MerchantSettleTransactionValues) SetFlowNo(flowNo string) *MerchantSettleTransactionValues {
+	v.FlowNo = &flowNo
+	return v
+}
+func (v *MerchantSettleTransactionValues) SetSettleStrategy(strategy *protocol.SettleStrategy) *MerchantSettleTransactionValues {
+	v.SettleStrategy = strategy
+	return v
+}
+func (v *MerchantSettleTransactionValues) SetSettleRule(rule *protocol.SettleRule) *MerchantSettleTransactionValues {
+	v.SettleRule = rule
+	return v
+}
 
 // SetSettleLogID sets the settle log ID
-func (t *MerchantSettleTransaction) SetSettleLogID(settleLogID string) *MerchantSettleTransaction {
+func (t *MerchantSettleTransactionValues) SetSettleLogID(settleLogID string) *MerchantSettleTransactionValues {
 	t.SettleLogID = &settleLogID
 	return t
 }
 
 // GetSettleLogID gets the settle log ID
-func (t *MerchantSettleTransaction) GetSettleLogID() string {
+func (t *MerchantSettleTransactionValues) GetSettleLogID() string {
 	if t.SettleLogID == nil {
 		return ""
 	}
@@ -205,6 +229,9 @@ func (t *MerchantSettleTransaction) SetValues(values *MerchantSettleTransactionV
 		t.MerchantSettleTransactionValues = &MerchantSettleTransactionValues{}
 	}
 
+	if values.FlowNo != nil {
+		t.FlowNo = values.FlowNo
+	}
 	if values.SettleAmount != nil {
 		t.SettleAmount = values.SettleAmount
 	}
@@ -235,25 +262,67 @@ func (t *MerchantSettleTransaction) SetValues(values *MerchantSettleTransactionV
 	if values.UsdRate != nil {
 		t.UsdRate = values.UsdRate
 	}
+	if values.SettleStrategy != nil {
+		t.SettleStrategy = values.SettleStrategy
+	}
+	if values.SettleRule != nil {
+		t.SettleRule = values.SettleRule
+	}
 	if values.Status != nil {
 		t.Status = values.Status
 	}
 }
 
 // GetExistingSettleRecord 获取现有的结算记录
-func GetExistingSettleRecord(trxID string) (*MerchantSettleTransaction, error) {
+func GetExistingSettleRecord(trxID string) *MerchantSettleTransaction {
 	if trxID == "" {
-		return nil, nil
+		return nil
 	}
 
 	var settleRecord MerchantSettleTransaction
 	err := ReadDB.Where("trx_id = ?", trxID).First(&settleRecord).Error
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, nil // 没有找到记录不是错误
-		}
-		return nil, err
+		return nil
 	}
 
-	return &settleRecord, nil
+	return &settleRecord
+}
+
+func CountSettleTransactionsByTimeRange(startTime, endTime int64) int64 {
+	var count int64
+	err := ReadDB.Model(&MerchantSettleTransaction{}).Where(`
+		settle_log_id IS NOT NULL AND settle_log_id != '' AND 
+		created_at BETWEEN ? AND ?
+	`, startTime, endTime).Count(&count).Error
+	if err != nil {
+		return 0
+	}
+	return count
+}
+
+func ListSettleTransactionsByTimeRange(startTime, endTime int64) []*MerchantSettleTransaction {
+	var settleTransactions []*MerchantSettleTransaction
+	err := ReadDB.Where(`
+		settle_log_id IS NOT NULL AND settle_log_id != '' AND 
+		created_at BETWEEN ? AND ?
+	`, startTime, endTime).Find(&settleTransactions).Error
+	if err != nil {
+		return nil
+	}
+	return settleTransactions
+}
+
+// ListSettleTransactionsWithLimitedFields 查询结算交易记录（限制字段，支持分页）
+// 只查询必要字段：settle_id, settle_log_id, trx_id, trx_type
+func ListSettleTransactionsWithLimitedFields(startTime, endTime int64, offset, limit int) []*MerchantSettleTransaction {
+	var settleTransactions []*MerchantSettleTransaction
+	err := ReadDB.Select("settle_id, settle_log_id, trx_id, trx_type, created_at").Where(`
+		settle_log_id IS NOT NULL AND settle_log_id != '' AND 
+		created_at BETWEEN ? AND ?
+	`, startTime, endTime).Offset(offset).Limit(limit).Find(&settleTransactions).Error
+
+	if err != nil {
+		return nil
+	}
+	return settleTransactions
 }

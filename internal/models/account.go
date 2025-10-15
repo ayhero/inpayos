@@ -1,6 +1,8 @@
 package models
 
 import (
+	"inpayos/internal/protocol"
+
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -14,34 +16,45 @@ type Account struct {
 	ID        uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	AccountID string `json:"account_id" gorm:"column:account_id;type:varchar(32);uniqueIndex"`
 	Salt      string `json:"salt" gorm:"column:salt;type:varchar(256)"`
+	UserID    string `json:"user_id" gorm:"column:user_id;type:varchar(32);uniqueIndex:uk_userid_usertype_ccy"`
+	UserType  string `json:"user_type" gorm:"column:user_type;type:varchar(16);uniqueIndex:uk_userid_usertype_ccy"`
+	Ccy       string `json:"ccy" gorm:"column:ccy;type:varchar(16);uniqueIndex:uk_userid_usertype_ccy"`
 	*AccountValues
 	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
+	UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
 }
 
 type AccountValues struct {
-	UserID       *string `json:"user_id" gorm:"column:user_id;type:varchar(32);uniqueIndex:uk_userid_usertype_ccy"`
-	UserType     *string `json:"user_type" gorm:"column:user_type;type:varchar(16);uniqueIndex:uk_userid_usertype_ccy"`
-	Ccy          *string `json:"ccy" gorm:"column:ccy;type:varchar(16);uniqueIndex:uk_userid_usertype_ccy"`
 	Asset        *Asset  `json:"asset" gorm:"column:asset;serializer:json;type:json"`
-	Status       *int    `json:"status" gorm:"column:status;type:int;default:1"`
+	Status       *string `json:"status" gorm:"column:status;type:varchar(16);default:''"`
 	Version      *int64  `json:"version" gorm:"column:version;type:bigint;default:1"`
 	LastActiveAt *int64  `json:"last_active_at" gorm:"column:last_active_at;type:bigint"`
-	UpdatedAt    int64   `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"`
 }
 
 func (Account) TableName() string {
 	return "t_accounts"
 }
 
+type Accounts []*Account
+
+func (t Accounts) Protocol() []*protocol.Account {
+	result := make([]*protocol.Account, 0, len(t))
+	for _, account := range t {
+		result = append(result, account.Protocol())
+	}
+	return result
+}
+
 // Asset 资产模型，支持多资金属性
 type Asset struct {
-	Balance          decimal.Decimal `json:"balance"`           // 总余额
-	AvailableBalance decimal.Decimal `json:"available_balance"` // 可用余额
-	FrozenBalance    decimal.Decimal `json:"frozen_balance"`    // 冻结余额
-	MarginBalance    decimal.Decimal `json:"margin_balance"`    // 保证金余额
-	ReserveBalance   decimal.Decimal `json:"reserve_balance"`   // 预留余额
-	Ccy              string          `json:"ccy"`               // 币种
-	UpdatedAt        int64           `json:"updated_at"`        // 更新时间
+	Balance                decimal.Decimal `json:"balance"`                  // 总余额
+	AvailableBalance       decimal.Decimal `json:"available_balance"`        // 可用余额
+	FrozenBalance          decimal.Decimal `json:"frozen_balance"`           // 冻结余额
+	MarginBalance          decimal.Decimal `json:"margin_balance"`           // 保证金余额
+	AvailableMarginBalance decimal.Decimal `json:"available_margin_balance"` // 可用保证金余额
+	FrozenMarginBalance    decimal.Decimal `json:"frozen_margin_balance"`    // 冻结保证金余额
+	Ccy                    string          `json:"ccy"`                      // 币种
+	UpdatedAt              int64           `json:"updated_at"`               // 更新时间
 }
 
 // NewAccount 创建新账户
@@ -51,19 +64,48 @@ func NewAccount() *Account {
 	}
 }
 
+func (t *Asset) Protocol() *protocol.Assert {
+	if t == nil {
+		return nil
+	}
+	return &protocol.Assert{
+		Balance:                t.Balance.String(),
+		AvailableBalance:       t.Balance.Sub(t.FrozenBalance).String(),
+		FrozenBalance:          t.FrozenBalance.String(),
+		MarginBalance:          t.MarginBalance.String(),
+		AvailableMarginBalance: t.MarginBalance.Sub(t.FrozenMarginBalance).String(),
+		FrozenMarginBalance:    t.FrozenMarginBalance.String(),
+		Ccy:                    t.Ccy,
+		UpdatedAt:              t.UpdatedAt,
+	}
+}
+
+func (t *Account) Protocol() *protocol.Account {
+	if t == nil {
+		return nil
+	}
+	info := &protocol.Account{
+		AccountID:    t.AccountID,
+		UserID:       t.UserID,
+		UserType:     t.UserType,
+		Ccy:          t.Ccy,
+		Balance:      t.Asset.Protocol(),
+		Status:       t.GetStatus(),
+		Version:      t.GetVersion(),
+		LastActiveAt: t.GetLastActiveAt(),
+		CreatedAt:    t.CreatedAt,
+		UpdatedAt:    t.UpdatedAt,
+	}
+	if t.Asset != nil {
+		info.Balance = t.Asset.Protocol()
+	}
+	return info
+}
+
 // SetValues 设置AccountValues
 func (a *AccountValues) SetValues(values *AccountValues) {
 	if values == nil {
 		return
-	}
-	if values.UserID != nil {
-		a.UserID = values.UserID
-	}
-	if values.UserType != nil {
-		a.UserType = values.UserType
-	}
-	if values.Ccy != nil {
-		a.Ccy = values.Ccy
 	}
 	if values.Asset != nil {
 		a.Asset = values.Asset
@@ -79,31 +121,9 @@ func (a *AccountValues) SetValues(values *AccountValues) {
 	}
 }
 
-// Getter方法
-func (a *AccountValues) GetUserID() string {
-	if a.UserID == nil {
-		return ""
-	}
-	return *a.UserID
-}
-
-func (a *AccountValues) GetUserType() string {
-	if a.UserType == nil {
-		return ""
-	}
-	return *a.UserType
-}
-
-func (a *AccountValues) GetCcy() string {
-	if a.Ccy == nil {
-		return ""
-	}
-	return *a.Ccy
-}
-
-func (a *AccountValues) GetStatus() int {
+func (a *AccountValues) GetStatus() string {
 	if a.Status == nil {
-		return 0
+		return ""
 	}
 	return *a.Status
 }
@@ -122,28 +142,12 @@ func (a *AccountValues) GetLastActiveAt() int64 {
 	return *a.LastActiveAt
 }
 
-// Setter方法(支持链式调用)
-func (a *AccountValues) SetUserID(userID string) *AccountValues {
-	a.UserID = &userID
-	return a
-}
-
-func (a *AccountValues) SetUserType(userType string) *AccountValues {
-	a.UserType = &userType
-	return a
-}
-
-func (a *AccountValues) SetCcy(ccy string) *AccountValues {
-	a.Ccy = &ccy
-	return a
-}
-
 func (a *AccountValues) SetAsset(asset *Asset) *AccountValues {
 	a.Asset = asset
 	return a
 }
 
-func (a *AccountValues) SetStatus(status int) *AccountValues {
+func (a *AccountValues) SetStatus(status string) *AccountValues {
 	a.Status = &status
 	return a
 }
@@ -197,18 +201,18 @@ func GetAccountForUpdate(tx *gorm.DB, userID, userType, currency string) (*Accou
 	return &account, nil
 }
 
-func GetAccountsByUserID(userID, userType string) ([]*Account, error) {
-	var accounts []*Account
+func GetAccountsByUserID(userID, userType string) Accounts {
+	var accounts Accounts
 	err := WriteDB.Where("user_id = ? AND user_type = ?", userID, userType).Find(&accounts).Error
 	if err != nil {
-		return nil, err
+		return nil
 	}
-	return accounts, nil
+	return accounts
 }
 
-func GetAccountsByIDs(ids []uint64) ([]*Account, error) {
+func GetAccountsByIDs(ids []string) ([]*Account, error) {
 	var accounts []*Account
-	err := WriteDB.Where("id IN ?", ids).Find(&accounts).Error
+	err := WriteDB.Where("account_id IN ?", ids).Find(&accounts).Error
 	if err != nil {
 		return nil, err
 	}

@@ -65,8 +65,8 @@ func GeneratePayoutID() string {
 	return fmt.Sprintf("%v%v", ID_PREFIX_PAYOUT, GenerateID())
 }
 
-// GenerateFlowID 生成流水ID
-func GenerateFlowID() string {
+// GenerateFlowNo 生成流水ID
+func GenerateFlowNo() string {
 	return fmt.Sprintf("%v%v", ID_PREFIX_FUNDFLOW, GenerateID())
 }
 

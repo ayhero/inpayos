@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"inpayos/internal/log"
+	"inpayos/internal/models"
 	"inpayos/internal/protocol"
 	"inpayos/internal/task"
 	"time"
@@ -60,9 +61,44 @@ var (
 
 func init() {
 	// 注册近期统计任务处理器
-	task.RegisterHandler("statistics.recent", HandleRecentStats)
+	task.RegisterHandler(protocol.StatisticsRecent, HandleRecentStats)
 	// 注册历史统计任务处理器
-	task.RegisterHandler("statistics.historical", HandleHistoricalStats)
+	task.RegisterHandler(protocol.StatisticsHistorical, HandleHistoricalStats)
+}
+
+func RegisterSummaryTasks() {
+	log.Get().Info("注册统计任务...")
+
+	// 定义统计相关的系统任务
+	tasks := []*models.Task{
+		{
+			TaskID:     "statistics_recent",
+			Type:       protocol.StatisticsRecent,
+			HandlerKey: protocol.StatisticsRecent,
+			Name:       "近期统计数据更新",
+			TaskValues: &models.TaskValues{
+				Cron:    &[]string{"@every 30s"}[0], // 每30秒执行一次
+				Timeout: &[]int{60}[0],              // 1分钟超时
+				Status:  &[]string{protocol.StatusEnabled}[0],
+				Params:  map[string]any{},
+			},
+		},
+		{
+			TaskID:     "statistics_historical",
+			Type:       protocol.StatisticsHistorical,
+			HandlerKey: protocol.StatisticsHistorical,
+			Name:       "历史统计数据更新",
+			TaskValues: &models.TaskValues{
+				Cron:    &[]string{"@every 1h"}[0], // 每小时执行一次
+				Timeout: &[]int{1800}[0],           // 30分钟超时
+				Status:  &[]string{protocol.StatusEnabled}[0],
+				Params:  map[string]any{},
+			},
+		},
+	}
+
+	task.InitTasks(tasks)
+	log.Get().Infof("统计任务注册完成，共 %d 个任务", len(tasks))
 }
 
 // HandleRecentStats 处理近期统计任务
