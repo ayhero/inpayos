@@ -4,82 +4,46 @@ import (
 	"errors"
 	"fmt"
 	"inpayos/internal/models"
+	"inpayos/internal/protocol"
 	"time"
 )
 
-// DashboardTodayStats 今日统计数据
-type DashboardTodayStats struct {
-	TodayPayin        string `json:"today_payin"`         // 今日代收金额
-	TodayPayinRate    string `json:"today_payin_rate"`    // 今日代收增长率
-	TodayPayout       string `json:"today_payout"`        // 今日代付金额
-	TodayPayoutRate   string `json:"today_payout_rate"`   // 今日代付增长率
-	SuccessRate       string `json:"success_rate"`        // 成功率
-	SuccessRateChange string `json:"success_rate_change"` // 成功率变化
-}
-
-// DashboardTransactionTrend 交易趋势数据
-type DashboardTransactionTrend struct {
-	Date   string `json:"date"`   // 日期 (格式: MM-DD)
-	Payin  int64  `json:"payin"`  // 代收金额
-	Payout int64  `json:"payout"` // 代付金额
-}
-
-// DashboardSettlementTrend 结算趋势数据
-type DashboardSettlementTrend struct {
-	Week   string  `json:"week"`   // 周期 (第X周)
-	Amount float64 `json:"amount"` // 结算金额
-}
-
-// DashboardAccountBalance 账户余额
-type DashboardAccountBalance struct {
-	Currency     string `json:"currency"`      // 币种
-	Balance      string `json:"balance"`       // 余额
-	FrozenAmt    string `json:"frozen_amt"`    // 冻结金额
-	AvailableAmt string `json:"available_amt"` // 可用金额
-}
-
-// DashboardOverview Dashboard概览数据
-type DashboardOverview struct {
-	TodayStats       *DashboardTodayStats        `json:"today_stats"`       // 今日统计
-	TransactionTrend []DashboardTransactionTrend `json:"transaction_trend"` // 交易趋势
-}
-
-// GetTodayStats 获取今日统计数据
-func GetTodayStats(mid string, currency string) (*DashboardTodayStats, error) {
-	if mid == "" {
-		return nil, errors.New("invalid merchant ID")
+// GetCashierTeamTodayStats 获取今日统计数据
+func GetCashierTeamTodayStats(tid string, currency string) (*DashboardTodayStats, error) {
+	if tid == "" {
+		return nil, errors.New("invalid cashier team")
 	}
 
-	fmt.Printf("GetTodayStats called with merchantID: %d\n", mid)
+	fmt.Printf("GetTodayStats called with merchantID: %v\n", tid)
 
 	db := models.GetDB()
 
-	// 检查数据库中是否有任何MerchantPayin记录
+	// 检查数据库中是否有任何CashierPayin记录
 	var totalPayinCount int64
-	db.Model(&models.MerchantPayin{}).Count(&totalPayinCount)
+	db.Model(&models.CashierPayin{}).Count(&totalPayinCount)
 	fmt.Printf("Total payins in database: %d\n", totalPayinCount)
 
-	// 检查数据库中是否有任何MerchantPayout记录
+	// 检查数据库中是否有任何CashierPayout记录
 	var totalPayoutCount int64
-	db.Model(&models.MerchantPayout{}).Count(&totalPayoutCount)
+	db.Model(&models.CashierPayout{}).Count(&totalPayoutCount)
 	fmt.Printf("Total payouts in database: %d\n", totalPayoutCount)
 
-	// 首先获取商户的Mid
-	merchant := &models.Merchant{}
-	err := db.Where("mid = ?", mid).First(merchant).Error
+	// 首先获取商户的Tid
+	team := &models.CashierTeam{}
+	err := db.Where("tid = ?", tid).First(team).Error
 	if err != nil {
 		return nil, fmt.Errorf("merchant not found: %v", err)
 	}
-	fmt.Printf("Found merchant: ID=%d, Mid=%s\n", merchant.ID, merchant.Mid)
+	fmt.Printf("Found merchant: ID=%d, Tid=%s\n", team.ID, team.Tid)
 
 	// 检查特定商户的记录
 	var merchantPayinCount int64
-	db.Model(&models.MerchantPayin{}).Where("mid = ?", merchant.Mid).Count(&merchantPayinCount)
-	fmt.Printf("Payins for merchant %s: %d\n", merchant.Mid, merchantPayinCount)
+	db.Model(&models.CashierPayin{}).Where("tid = ?", team.Tid).Count(&merchantPayinCount)
+	fmt.Printf("Payins for merchant %s: %d\n", team.Tid, merchantPayinCount)
 
 	var merchantPayoutCount int64
-	db.Model(&models.MerchantPayout{}).Where("mid = ?", merchant.Mid).Count(&merchantPayoutCount)
-	fmt.Printf("Payouts for merchant %s: %d\n", merchant.Mid, merchantPayoutCount)
+	db.Model(&models.CashierPayout{}).Where("tid = ?", team.Tid).Count(&merchantPayoutCount)
+	fmt.Printf("Payouts for merchant %s: %d\n", team.Tid, merchantPayoutCount)
 
 	// 计算今日和昨日的时间范围（毫秒时间戳）
 	now := time.Now()
@@ -93,11 +57,11 @@ func GetTodayStats(mid string, currency string) (*DashboardTodayStats, error) {
 	var todayPayinCount int64
 
 	// 今日代收 - 先不限制时间，查询所有数据
-	fmt.Printf("Querying today payin: mid=%s, start=%d, end=%d\n", merchant.Mid, todayStart, todayEnd)
+	fmt.Printf("Querying today payin: tid=%s, start=%d, end=%d\n", team.Tid, todayStart, todayEnd)
 
 	// 临时：查询所有数据不限时间
-	result := db.Model(&models.MerchantPayin{}).
-		Where("mid = ?", merchant.Mid).
+	result := db.Model(&models.CashierPayin{}).
+		Where("tid = ?", team.Tid).
 		Select("COALESCE(SUM(amount), 0) as total, COUNT(*) as count").
 		Row()
 	scanErr := result.Scan(&todayPayin, &todayPayinCount)
@@ -108,12 +72,12 @@ func GetTodayStats(mid string, currency string) (*DashboardTodayStats, error) {
 
 	// 查询状态分布
 	var statusCount int64
-	db.Model(&models.MerchantPayin{}).Where("mid = ? AND status = ?", merchant.Mid, "success").Count(&statusCount)
+	db.Model(&models.CashierPayin{}).Where("tid = ? AND status = ?", team.Tid, protocol.StatusSuccess).Count(&statusCount)
 	fmt.Printf("Success status payins: %d\n", statusCount)
 
 	// 查询最新的几条记录看时间戳
-	var recentPayins []models.MerchantPayin
-	db.Where("mid = ?", merchant.Mid).Order("created_at DESC").Limit(3).Find(&recentPayins)
+	var recentPayins []models.CashierPayin
+	db.Where("tid = ?", team.Tid).Order("created_at DESC").Limit(3).Find(&recentPayins)
 	for i, payin := range recentPayins {
 		fmt.Printf("Recent payin %d: ID=%d, Amount=%.2f, Status=%s, CreatedAt=%d\n",
 			i+1, payin.ID, payin.Amount, payin.Status, payin.CreatedAt)
@@ -127,8 +91,8 @@ func GetTodayStats(mid string, currency string) (*DashboardTodayStats, error) {
 	var todayPayoutCount int64
 
 	// 今日代付 - 查询所有数据不限时间
-	db.Model(&models.MerchantPayout{}).
-		Where("mid = ?", merchant.Mid).
+	db.Model(&models.CashierPayout{}).
+		Where("tid = ?", team.Tid).
 		Select("COALESCE(SUM(amount), 0) as total, COUNT(*) as count").
 		Row().Scan(&todayPayout, &todayPayoutCount)
 	fmt.Printf("Today payout result (all time): total=%.2f, count=%d\n", todayPayout, todayPayoutCount)
@@ -141,21 +105,21 @@ func GetTodayStats(mid string, currency string) (*DashboardTodayStats, error) {
 
 	// 今日总交易数 = 代收总数 + 代付总数
 	var todayPayinTotal, todayPayoutTotal int64
-	db.Model(&models.MerchantPayin{}).
-		Where("mid = ? AND created_at >= ? AND created_at <= ?", merchant.Mid, todayStart, todayEnd).
+	db.Model(&models.CashierPayin{}).
+		Where("tid = ? AND created_at >= ? AND created_at <= ?", team.Tid, todayStart, todayEnd).
 		Count(&todayPayinTotal)
-	db.Model(&models.MerchantPayout{}).
-		Where("mid = ? AND created_at >= ? AND created_at <= ?", merchant.Mid, todayStart, todayEnd).
+	db.Model(&models.CashierPayout{}).
+		Where("tid = ? AND created_at >= ? AND created_at <= ?", team.Tid, todayStart, todayEnd).
 		Count(&todayPayoutTotal)
 	todayTotal = todayPayinTotal + todayPayoutTotal
 
 	// 今日成功交易数 = 代收成功数 + 代付成功数
 	var todayPayinSuccess, todayPayoutSuccess int64
-	db.Model(&models.MerchantPayin{}).
-		Where("mid = ? AND created_at >= ? AND created_at <= ? AND status = ?", merchant.Mid, todayStart, todayEnd, "success").
+	db.Model(&models.CashierPayin{}).
+		Where("tid = ? AND created_at >= ? AND created_at <= ? AND status = ?", team.Tid, todayStart, todayEnd, "success").
 		Count(&todayPayinSuccess)
-	db.Model(&models.MerchantPayout{}).
-		Where("mid = ? AND created_at >= ? AND created_at <= ? AND status = ?", merchant.Mid, todayStart, todayEnd, "success").
+	db.Model(&models.CashierPayout{}).
+		Where("tid = ? AND created_at >= ? AND created_at <= ? AND status = ?", team.Tid, todayStart, todayEnd, "success").
 		Count(&todayPayoutSuccess)
 	todaySuccess = todayPayinSuccess + todayPayoutSuccess
 
@@ -169,21 +133,21 @@ func GetTodayStats(mid string, currency string) (*DashboardTodayStats, error) {
 
 	// 昨日总交易数
 	var yesterdayPayinTotal, yesterdayPayoutTotal int64
-	db.Model(&models.MerchantPayin{}).
-		Where("mid = ? AND created_at >= ? AND created_at <= ?", merchant.Mid, yesterdayStart, yesterdayEnd).
+	db.Model(&models.CashierPayin{}).
+		Where("tid = ? AND created_at >= ? AND created_at <= ?", team.Tid, yesterdayStart, yesterdayEnd).
 		Count(&yesterdayPayinTotal)
-	db.Model(&models.MerchantPayout{}).
-		Where("mid = ? AND created_at >= ? AND created_at <= ?", merchant.Mid, yesterdayStart, yesterdayEnd).
+	db.Model(&models.CashierPayout{}).
+		Where("tid = ? AND created_at >= ? AND created_at <= ?", team.Tid, yesterdayStart, yesterdayEnd).
 		Count(&yesterdayPayoutTotal)
 	yesterdayTotal = yesterdayPayinTotal + yesterdayPayoutTotal
 
 	// 昨日成功交易数
 	var yesterdayPayinSuccess, yesterdayPayoutSuccess int64
-	db.Model(&models.MerchantPayin{}).
-		Where("mid = ? AND created_at >= ? AND created_at <= ? AND status = ?", merchant.Mid, yesterdayStart, yesterdayEnd, "success").
+	db.Model(&models.CashierPayin{}).
+		Where("tid = ? AND created_at >= ? AND created_at <= ? AND status = ?", team.Tid, yesterdayStart, yesterdayEnd, protocol.StatusSuccess).
 		Count(&yesterdayPayinSuccess)
-	db.Model(&models.MerchantPayout{}).
-		Where("mid = ? AND created_at >= ? AND created_at <= ? AND status = ?", merchant.Mid, yesterdayStart, yesterdayEnd, "success").
+	db.Model(&models.CashierPayout{}).
+		Where("tid = ? AND created_at >= ? AND created_at <= ? AND status = ?", team.Tid, yesterdayStart, yesterdayEnd, protocol.StatusSuccess).
 		Count(&yesterdayPayoutSuccess)
 	yesterdaySuccess = yesterdayPayinSuccess + yesterdayPayoutSuccess
 
@@ -206,10 +170,60 @@ func GetTodayStats(mid string, currency string) (*DashboardTodayStats, error) {
 	}, nil
 }
 
+// GetTransactionTrend 获取交易趋势数据
+func GetCashierTeamTransactionTrend(tid string, days int) ([]DashboardTransactionTrend, error) {
+	if tid == "" {
+		return nil, errors.New("invalid cashier team")
+	}
+
+	db := models.GetDB()
+
+	// 获取商户的Tid
+	team := &models.CashierTeam{}
+	err := db.Where("tid = ?", tid).First(team).Error
+	if err != nil {
+		return nil, fmt.Errorf("merchant not found: %v", err)
+	}
+
+	var trends []DashboardTransactionTrend
+
+	for i := days - 1; i >= 0; i-- {
+		date := time.Now().AddDate(0, 0, -i)
+		displayDate := date.Format("01-02")
+
+		var payin, payout float64
+
+		// 临时：获取所有代收数据（不限时间）
+		if i == 0 { // 只在第一天显示数据，其他天为0
+			db.Model(&models.CashierPayin{}).
+				Where("tid = ?", team.Tid).
+				Select("COALESCE(SUM(amount), 0)").
+				Row().Scan(&payin)
+
+			// 获取所有代付数据（不限时间）
+			db.Model(&models.CashierPayout{}).
+				Where("tid = ?", team.Tid).
+				Select("COALESCE(SUM(amount), 0)").
+				Row().Scan(&payout)
+		} else {
+			payin = 0
+			payout = 0
+		}
+
+		trends = append(trends, DashboardTransactionTrend{
+			Date:   displayDate,
+			Payin:  int64(payin),
+			Payout: int64(payout),
+		})
+	}
+
+	return trends, nil
+}
+
 // GetAccountBalance 获取账户余额
-func GetAccountBalance(merchantID int64) ([]DashboardAccountBalance, error) {
+func GetCashierTeamAccountBalance(merchantID int64) ([]DashboardAccountBalance, error) {
 	if merchantID == 0 {
-		return nil, errors.New("invalid merchant ID")
+		return nil, errors.New("invalid cashier team")
 	}
 
 	db := models.GetDB()
@@ -242,33 +256,17 @@ func GetAccountBalance(merchantID int64) ([]DashboardAccountBalance, error) {
 }
 
 // GetDashboardOverview 获取Dashboard概览数据
-func GetDashboardOverview(mid string) (*DashboardOverview, error) {
-	if mid == "" {
-		return nil, errors.New("invalid merchant ID")
+func GetCashierTeamDashboardOverview(tid string) (*DashboardOverview, error) {
+	if tid == "" {
+		return nil, errors.New("invalid cashier team")
 	}
 
 	// 获取今日统计
-	todayStats, err := GetTodayStats(mid, "")
+	todayStats, err := GetCashierTeamTodayStats(tid, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get today stats: %v", err)
 	}
-
 	return &DashboardOverview{
 		TodayStats: todayStats,
 	}, nil
-}
-
-// 辅助函数：计算增长率
-func calculateRate(current, previous float64) string {
-	if previous == 0 {
-		if current > 0 {
-			return "+100.0"
-		}
-		return "0.0"
-	}
-	rate := (current - previous) / previous * 100
-	if rate >= 0 {
-		return fmt.Sprintf("+%.1f", rate)
-	}
-	return fmt.Sprintf("%.1f", rate)
 }

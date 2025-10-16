@@ -100,11 +100,9 @@ func (t *MerchantAdmin) SetupRouter() *gin.Engine {
 	// Dashboard相关路由
 	dashboard := api.Group("/dashboard")
 	{
-		dashboard.POST("/today-stats", t.GetTodayStats)             // 今日统计
-		dashboard.POST("/transaction-trend", t.GetTransactionTrend) // 交易趋势
-		dashboard.POST("/settlement-trend", t.GetSettlementTrend)   // 结算趋势
-		dashboard.POST("/overview", t.GetDashboardOverview)         // Dashboard概览
-		dashboard.POST("/account-balance", t.GetAccountBalance)     // 账户余额
+		dashboard.POST("/today-stats", t.GetTodayStats)         // 今日统计
+		dashboard.POST("/overview", t.GetDashboardOverview)     // Dashboard概览
+		dashboard.POST("/account-balance", t.GetAccountBalance) // 账户余额
 	}
 
 	// 账户相关路由
