@@ -75,6 +75,8 @@ const (
 const (
 	TrxTypePayin         = "payin"          // 代收订单
 	TrxTypePayout        = "payout"         // 代付订单
+	TrxTypeCashierPayin  = "cashier_payin"  // 出纳代收订单
+	TrxTypeCashierPayout = "cashier_payout" // 出纳代付订单
 	TrxTypeWithdraw      = "withdraw"       // 提现订单
 	TrxTypeRefund        = "refund"         // 退款订单
 	TrxTypeDeposit       = "deposit"        // 充值订单

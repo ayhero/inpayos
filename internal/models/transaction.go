@@ -100,8 +100,10 @@ type TransactionValues struct {
 
 // TrxTypeTableMap 定义交易类型和对应的表名映射关系
 var TrxTypeTableMap = map[string]string{
-	protocol.TrxTypePayin:  "t_merchant_payins",
-	protocol.TrxTypePayout: "t_merchant_payouts",
+	protocol.TrxTypePayin:         "t_merchant_payins",
+	protocol.TrxTypePayout:        "t_merchant_payouts",
+	protocol.TrxTypeCashierPayin:  "t_cashier_payins",
+	protocol.TrxTypeCashierPayout: "t_cashier_payouts",
 }
 
 func GetTransactionQueryByType(trxType string) *gorm.DB {
@@ -114,6 +116,8 @@ func GetTransactionQueryByType(trxType string) *gorm.DB {
 // TrxQuery 交易查询参数
 type TrxQuery struct {
 	Mid            string `json:"mid"`             // 商户ID
+	CashierID      string `json:"cashier_id"`      // 收银员ID
+	Tid            string `json:"tid"`             // 系统交易ID
 	TrxType        string `json:"trx_type"`        // 交易类型
 	TrxID          string `json:"trx_id"`          // 交易ID
 	ReqID          string `json:"req_id"`          // 商户订单号
@@ -128,6 +132,8 @@ type TrxQuery struct {
 
 	StatusList         []string `json:"status_list"`          // 交易状态列表
 	MidList            []string `json:"mid_list"`             // 商户ID列表
+	CashierIDList      []string `json:"cashier_id_list"`      // 收银员ID列表
+	TidList            []string `json:"tid_list"`             // 系统交易ID列表
 	TrxIDList          []string `json:"trx_id_list"`          // 交易ID列表
 	ReqIDList          []string `json:"req_id_list"`          // 商户订单号列表
 	FlowNoList         []string `json:"flow_no_list"`         // 流水号列表
@@ -165,6 +171,12 @@ func (q *TrxQuery) GetLimit() int {
 // BuildQuery 构建查询条件
 func (q *TrxQuery) BuildQuery(db *gorm.DB) *gorm.DB {
 	db = db.Where("mid = ?", q.Mid)
+	if q.CashierID != "" {
+		db = db.Where("cashier_id = ?", q.CashierID)
+	}
+	if len(q.CashierIDList) > 0 {
+		db = db.Where("cashier_id IN ?", q.CashierIDList)
+	}
 	if q.TrxType != "" {
 		db = db.Where("trx_type = ?", q.TrxType)
 	}
@@ -173,6 +185,12 @@ func (q *TrxQuery) BuildQuery(db *gorm.DB) *gorm.DB {
 	}
 	if q.CreatedAtEnd > 0 {
 		db = db.Where("created_at <= ?", q.CreatedAtEnd)
+	}
+	if q.Tid != "" {
+		db = db.Where("tid = ?", q.Tid)
+	}
+	if len(q.TidList) > 0 {
+		db = db.Where("tid IN ?", q.TidList)
 	}
 	if q.TrxID != "" {
 		db = db.Where("trx_id = ?", q.TrxID)

@@ -3,5 +3,943 @@
     "info": {
         "contact": {}
     },
-    "paths": {}
+    "paths": {
+        "/auth": {
+            "post": {
+                "description": "处理登陆认证并返回token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CashierAdmin"
+                ],
+                "summary": "登陆授权认证",
+                "parameters": [
+                    {
+                        "description": "认证请求参数",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers.AuthRequest"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/info": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "获取当前登录收银员的详细信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CashierAdmin"
+                ],
+                "summary": "获取收银员信息",
+                "responses": {
+                    "200": {
+                        "description": "获取成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/inpayos_internal_protocol.Result"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/inpayos_internal_protocol.CashierTeam"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "认证失败",
+                        "schema": {
+                            "$ref": "#/definitions/inpayos_internal_protocol.Result"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误",
+                        "schema": {
+                            "$ref": "#/definitions/inpayos_internal_protocol.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/logout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "收银员登出接口",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CashierAdmin"
+                ],
+                "summary": "收银员登出",
+                "responses": {
+                    "200": {
+                        "description": "登出成功",
+                        "schema": {
+                            "$ref": "#/definitions/inpayos_internal_protocol.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/merchant/g2fa/bind": {
+            "post": {
+                "description": "绑定收银员的二次验证",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CashierAdmin"
+                ],
+                "summary": "收银员绑定G2FA",
+                "parameters": [
+                    {
+                        "description": "绑定信息",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers.BindG2FAReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "返回结果",
+                        "schema": {
+                            "$ref": "#/definitions/inpayos_internal_protocol.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/merchant/g2fa/new": {
+            "post": {
+                "description": "为收银员生成新的G2FA密钥",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CashierAdmin"
+                ],
+                "summary": "生成新的G2FA密钥",
+                "responses": {
+                    "200": {
+                        "description": "返回结果",
+                        "schema": {
+                            "$ref": "#/definitions/inpayos_internal_protocol.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/password/change": {
+            "post": {
+                "description": "商户登录后修改密码",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CashierAdmin"
+                ],
+                "summary": "修改密码",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "修改密码请求",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers.ChangePasswordReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "返回结果",
+                        "schema": {
+                            "$ref": "#/definitions/inpayos_internal_protocol.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/password/reset": {
+            "post": {
+                "description": "通过邮箱验证码重置密码，新密码将发送到邮箱",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CashierAdmin"
+                ],
+                "summary": "重置密码",
+                "parameters": [
+                    {
+                        "description": "重置密码请求",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers.ResetPasswordReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "返回结果",
+                        "schema": {
+                            "$ref": "#/definitions/inpayos_internal_protocol.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/register": {
+            "post": {
+                "description": "邮箱注册新用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CashierAdmin"
+                ],
+                "summary": "商户注册",
+                "parameters": [
+                    {
+                        "description": "注册信息",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/inpayos_internal_services.CashierTeamRegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "返回结果",
+                        "schema": {
+                            "$ref": "#/definitions/inpayos_internal_protocol.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/transactions/detail": {
+            "post": {
+                "description": "获取指定交易ID的详细信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CashierAdmin"
+                ],
+                "summary": "获取交易详情",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/inpayos_internal_protocol.Result"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/inpayos_internal_protocol.Transaction"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/transactions/list": {
+            "post": {
+                "description": "分页获取交易列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CashierAdmin"
+                ],
+                "summary": "获取交易列表",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/inpayos_internal_protocol.Result"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/definitions/inpayos_internal_protocol.PageResult"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "list": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/definitions/inpayos_internal_protocol.Transaction"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/transactions/today-stats": {
+            "post": {
+                "description": "获取指定交易类型的今日统计数据",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CashierAdmin"
+                ],
+                "summary": "获取今日交易统计",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/inpayos_internal_protocol.Result"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/inpayos_internal_services.TodayStats"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/verifycode/send": {
+            "post": {
+                "description": "发送邮箱验证码",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CashierAdmin"
+                ],
+                "summary": "发送邮箱验证码",
+                "parameters": [
+                    {
+                        "description": "发送验证码请求",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers.SendVerifyCodeReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "返回结果",
+                        "schema": {
+                            "$ref": "#/definitions/inpayos_internal_protocol.Result"
+                        }
+                    }
+                }
+            }
+        },
+        "/verifycode/verify": {
+            "post": {
+                "description": "验证邮箱验证码是否正确",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CashierAdmin"
+                ],
+                "summary": "验证邮箱验证码",
+                "parameters": [
+                    {
+                        "description": "验证码验证请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handlers.VerifyCodeReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "返回结果",
+                        "schema": {
+                            "$ref": "#/definitions/inpayos_internal_protocol.Result"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "inpayos_internal_protocol.CashierTeam": {
+            "type": "object"
+        },
+        "inpayos_internal_protocol.MapData": {
+            "type": "object",
+            "additionalProperties": {}
+        },
+        "inpayos_internal_protocol.PageResult": {
+            "type": "object",
+            "properties": {
+                "attach": {
+                    "description": "附加数据",
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "count": {
+                    "description": "总记录数",
+                    "type": "integer"
+                },
+                "current": {
+                    "description": "当前页码",
+                    "type": "integer"
+                },
+                "records": {
+                    "description": "记录列表"
+                },
+                "result_type": {
+                    "description": "数据类型",
+                    "type": "string"
+                },
+                "size": {
+                    "description": "每页记录数",
+                    "type": "integer"
+                },
+                "total": {
+                    "description": "总页数",
+                    "type": "integer"
+                }
+            }
+        },
+        "inpayos_internal_protocol.Result": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "data": {},
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "inpayos_internal_protocol.Transaction": {
+            "type": "object",
+            "properties": {
+                "account_name": {
+                    "type": "string"
+                },
+                "account_no": {
+                    "description": "账户信息",
+                    "type": "string"
+                },
+                "account_type": {
+                    "type": "string"
+                },
+                "actual_amount": {
+                    "type": "string"
+                },
+                "amount": {
+                    "type": "string"
+                },
+                "bank_code": {
+                    "type": "string"
+                },
+                "bank_name": {
+                    "type": "string"
+                },
+                "cancel_failed_result": {
+                    "type": "string"
+                },
+                "cancel_reason": {
+                    "type": "string"
+                },
+                "canceled_at": {
+                    "description": "取消信息",
+                    "type": "integer"
+                },
+                "cashier_id": {
+                    "description": "收银员信息",
+                    "type": "string"
+                },
+                "ccy": {
+                    "description": "金额信息",
+                    "type": "string"
+                },
+                "channel_account": {
+                    "type": "string"
+                },
+                "channel_code": {
+                    "type": "string"
+                },
+                "channel_fee_amount": {
+                    "type": "string"
+                },
+                "channel_fee_ccy": {
+                    "type": "string"
+                },
+                "channel_fee_usd_amount": {
+                    "type": "string"
+                },
+                "channel_fee_usd_rate": {
+                    "type": "string"
+                },
+                "channel_group": {
+                    "type": "string"
+                },
+                "channel_status": {
+                    "type": "string"
+                },
+                "channel_trx_id": {
+                    "description": "渠道信息",
+                    "type": "string"
+                },
+                "completed_at": {
+                    "type": "integer"
+                },
+                "confirmed_at": {
+                    "description": "时间戳",
+                    "type": "integer"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "integer"
+                },
+                "detail": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "did": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "expired_at": {
+                    "type": "integer"
+                },
+                "failure_reason": {
+                    "type": "string"
+                },
+                "fee_amount": {
+                    "type": "string"
+                },
+                "fee_ccy": {
+                    "description": "费用信息",
+                    "type": "string"
+                },
+                "fee_usd_amount": {
+                    "type": "string"
+                },
+                "fee_usd_rate": {
+                    "type": "string"
+                },
+                "flow_no": {
+                    "description": "流程信息",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "基础交易信息",
+                    "type": "integer"
+                },
+                "last_refunded_at": {
+                    "type": "integer"
+                },
+                "link": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "扩展信息",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/inpayos_internal_protocol.MapData"
+                        }
+                    ]
+                },
+                "mid": {
+                    "type": "string"
+                },
+                "notify_url": {
+                    "type": "string"
+                },
+                "ori_flow_no": {
+                    "type": "string"
+                },
+                "ori_req_id": {
+                    "type": "string"
+                },
+                "ori_trx_id": {
+                    "description": "原始交易信息",
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "pkg": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "refunded_amount": {
+                    "type": "string"
+                },
+                "refunded_count": {
+                    "description": "退款信息",
+                    "type": "integer"
+                },
+                "refunded_usd_amount": {
+                    "type": "string"
+                },
+                "remark": {
+                    "type": "string"
+                },
+                "req_id": {
+                    "type": "string"
+                },
+                "res_code": {
+                    "type": "string"
+                },
+                "res_msg": {
+                    "type": "string"
+                },
+                "return_url": {
+                    "type": "string"
+                },
+                "settle_id": {
+                    "type": "string"
+                },
+                "settle_status": {
+                    "description": "结算信息",
+                    "type": "string"
+                },
+                "settled_at": {
+                    "type": "integer"
+                },
+                "status": {
+                    "description": "状态信息",
+                    "type": "string"
+                },
+                "tid": {
+                    "type": "string"
+                },
+                "trx_app": {
+                    "type": "string"
+                },
+                "trx_id": {
+                    "type": "string"
+                },
+                "trx_method": {
+                    "description": "交易方式和模式",
+                    "type": "string"
+                },
+                "trx_mode": {
+                    "type": "string"
+                },
+                "trx_type": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "integer"
+                },
+                "usd_amount": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                },
+                "user_ip": {
+                    "description": "用户信息",
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "inpayos_internal_services.CashierTeamRegisterRequest": {
+            "type": "object",
+            "required": [
+                "company_name",
+                "email",
+                "nickname",
+                "password",
+                "phone",
+                "verify_code"
+            ],
+            "properties": {
+                "company_name": {
+                    "description": "公司名称",
+                    "type": "string"
+                },
+                "email": {
+                    "description": "邮箱",
+                    "type": "string"
+                },
+                "nickname": {
+                    "description": "昵称",
+                    "type": "string",
+                    "minLength": 2
+                },
+                "password": {
+                    "description": "密码",
+                    "type": "string",
+                    "minLength": 8
+                },
+                "phone": {
+                    "description": "联系电话",
+                    "type": "string"
+                },
+                "reg_ip": {
+                    "description": "注册IP",
+                    "type": "string"
+                },
+                "region": {
+                    "description": "地区",
+                    "type": "string"
+                },
+                "verify_code": {
+                    "description": "验证码",
+                    "type": "string"
+                }
+            }
+        },
+        "inpayos_internal_services.TodayStats": {
+            "type": "object",
+            "properties": {
+                "pendingCount": {
+                    "description": "待处理交易数",
+                    "type": "integer"
+                },
+                "successCount": {
+                    "description": "成功交易数",
+                    "type": "integer"
+                },
+                "successRate": {
+                    "description": "成功率（百分比）",
+                    "type": "number"
+                },
+                "totalAmount": {
+                    "description": "总金额",
+                    "type": "string"
+                },
+                "totalCount": {
+                    "description": "总交易数",
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_handlers.AuthRequest": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "123456"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "password"
+                },
+                "token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIs..."
+                }
+            }
+        },
+        "internal_handlers.BindG2FAReq": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "description": "G2FA验证码",
+                    "type": "string"
+                },
+                "verify_code": {
+                    "description": "邮箱验证码",
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers.ChangePasswordReq": {
+            "type": "object",
+            "required": [
+                "new_password"
+            ],
+            "properties": {
+                "new_password": {
+                    "description": "新密码",
+                    "type": "string",
+                    "minLength": 6
+                }
+            }
+        },
+        "internal_handlers.ResetPasswordReq": {
+            "type": "object",
+            "required": [
+                "email",
+                "verification_code"
+            ],
+            "properties": {
+                "email": {
+                    "description": "邮箱地址",
+                    "type": "string"
+                },
+                "verification_code": {
+                    "description": "验证码",
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers.SendVerifyCodeReq": {
+            "type": "object",
+            "required": [
+                "email",
+                "type"
+            ],
+            "properties": {
+                "email": {
+                    "description": "邮箱地址",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "验证码类型",
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handlers.VerifyCodeReq": {
+            "type": "object",
+            "required": [
+                "code",
+                "email",
+                "type"
+            ],
+            "properties": {
+                "code": {
+                    "description": "验证码",
+                    "type": "string"
+                },
+                "email": {
+                    "description": "邮箱地址",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "验证码类型",
+                    "type": "string",
+                    "enum": [
+                        "register",
+                        "login",
+                        "reset"
+                    ]
+                }
+            }
+        }
+    }
 }

@@ -12,10 +12,10 @@ import (
 
 // @Summary 发送邮箱验证码
 // @Description 发送邮箱验证码
-// @Tags 系统
+// @Tags CashierAdmin
 // @Accept json
 // @Produce json
-// @Param data body VerifyCodeRequest true "邮箱"
+// @Param data body SendVerifyCodeReq true "发送验证码请求"
 // @Success 200 {object} protocol.Result "返回结果"
 // @Router /verifycode/send [post]
 func SendVerifyCode(c *gin.Context) {
@@ -36,7 +36,7 @@ func SendVerifyCode(c *gin.Context) {
 
 // @Summary 验证邮箱验证码
 // @Description 验证邮箱验证码是否正确
-// @Tags 验证码
+// @Tags CashierAdmin
 // @Accept json
 // @Produce json
 // @Param request body VerifyCodeReq true "验证码验证请求"
@@ -49,7 +49,7 @@ func VerifyCode(c *gin.Context) {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
 		return
 	}
-	if !services.GetVerifyCodeService().VerifyEmailCode(req.Type, req.Email, req.Code) {
+	if !services.GetVerifyCodeService().VerifyEmailCode(req.Type, strings.TrimSpace(req.Email), req.Code) {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.InvalidParams, lang))
 		return
 	}

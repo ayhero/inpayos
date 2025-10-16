@@ -21,7 +21,7 @@ import (
 // @contact.email support@inpayos.com
 // @license.name MIT
 // @license.url https://opensource.org/licenses/MIT
-// @host localhost:6082
+// @host localhost:6084
 // @BasePath /
 // @securityDefinitions.bearer BearerAuth
 // @in header
@@ -61,7 +61,7 @@ func (t *CashierAdmin) SetupRouter() *gin.Engine {
 	cashieradmindocs.SwaggerInfocashieradmin.Title = "InPayOS CashierAdmin API"
 	cashieradmindocs.SwaggerInfocashieradmin.Description = "出纳员管理API接口文档，提供出纳员认证、交易管理等功能"
 	cashieradmindocs.SwaggerInfocashieradmin.Version = "1.0"
-	cashieradmindocs.SwaggerInfocashieradmin.Host = "localhost:6082"
+	cashieradmindocs.SwaggerInfocashieradmin.Host = "localhost:6084"
 	cashieradmindocs.SwaggerInfocashieradmin.BasePath = "/"
 	cashieradmindocs.SwaggerInfocashieradmin.Schemes = []string{"http", "https"}
 

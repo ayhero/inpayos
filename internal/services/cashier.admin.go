@@ -72,47 +72,47 @@ type CashierTeamRegisterRequest struct {
 }
 
 // ValidateRegisterRequest 验证注册请求
-func (req *CashierTeamRegisterRequest) ValidateRegisterRequest() error {
+func (req *CashierTeamRegisterRequest) ValidateRegisterRequest() protocol.ErrorCode {
 	// 验证昵称长度
 	if len(req.Nickname) > 32 {
-		return errors.New("nickname too long, max length is 32")
+		return protocol.InvalidParams
 	}
 
 	// 验证手机号格式
 	if !IsValidPhone(req.Phone) {
-		return errors.New("invalid phone number format")
+		return protocol.InvalidParams
 	}
 
 	// 验证邮箱域名
 	if !IsValidEmailDomain(req.Email) {
-		return errors.New("email domain not allowed")
+		return protocol.InvalidParams
 	}
 
-	return nil
+	return protocol.Success
 }
 
 // RegisterCashierTeam 注册商户
-func RegisterCashierTeam(req *CashierTeamRegisterRequest) error {
+func RegisterCashierTeam(req *CashierTeamRegisterRequest) protocol.ErrorCode {
 	// 参数验证
-	if err := req.ValidateRegisterRequest(); err != nil {
+	if err := req.ValidateRegisterRequest(); err != protocol.Success {
 		return err
 	}
 
 	// 验证码校验
-	if !GetVerifyCodeService().VerifyEmailCode(protocol.VerifyCodeTypeRegister, req.Email, req.VerifyCode) {
-		return errors.New("invalid verify code")
+	if !GetVerifyCodeService().VerifyCode(protocol.MsgChannelEmail, protocol.VerifyCodeTypeRegister, req.Email, req.VerifyCode) {
+		return protocol.InvalidVerificationCode
 	}
 
 	// 检查邮箱是否已注册
-	if models.CheckCashierTeamEmail(req.Email) {
-		return errors.New("email already registered")
+	if models.CheckMerchantEmail(req.Email) {
+		return protocol.InvalidParams
 	}
 
 	// 创建商户
 	salt := utils.GenerateSalt()
-	merchant := &models.CashierTeam{
-		Tid: utils.GenerateCashierTeamID(),
-		CashierTeamValues: &models.CashierTeamValues{
+	merchant := &models.Merchant{
+		Mid: utils.GenerateUserID(),
+		MerchantValues: &models.MerchantValues{
 			Salt: &salt,
 		},
 	}
@@ -121,7 +121,7 @@ func RegisterCashierTeam(req *CashierTeamRegisterRequest) error {
 	merchant.SetEmail(req.Email).
 		SetPassword(req.Password).
 		SetName(req.Nickname).
-		SetType("cashier_team").
+		SetType("cashier-team").
 		SetStatus(protocol.StatusActive).
 		//SetRegIP(req.RegIP)
 		// 如果有公司信息，设置公司相关字段
@@ -136,10 +136,10 @@ func RegisterCashierTeam(req *CashierTeamRegisterRequest) error {
 	// 保存到数据库
 	if err := models.WriteDB.Create(merchant).Error; err != nil {
 		log.Get().Errorf("Failed to create merchant: %v", err)
-		return errors.New("failed to create merchant")
+		return protocol.InternalError
 	}
 
 	// 发送注册成功邮件
 	//SendRegisterSuccessEmail(req.Email)
-	return nil
+	return protocol.Success
 }

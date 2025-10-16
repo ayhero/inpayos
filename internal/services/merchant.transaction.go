@@ -162,7 +162,7 @@ func AfterTransactionCreate(trx *models.Transaction) {
 }
 
 // ListTransactionByQuery 统一查询交易列表
-func ListTransactionByQuery(query *models.TrxQuery) ([]*models.Transaction, int64, protocol.ErrorCode) {
+func (s *MerchantTransactionService) ListTransactionByQuery(query *models.TrxQuery) ([]*models.Transaction, int64, protocol.ErrorCode) {
 	var transactions []*models.Transaction
 	var total int64
 	var err error
@@ -190,7 +190,7 @@ func ListTransactionByQuery(query *models.TrxQuery) ([]*models.Transaction, int6
 	return transactions, total, protocol.Success
 }
 
-func AfterPayinSuccess(trx *models.Transaction) {
+func (s *MerchantTransactionService) AfterPayinSuccess(trx *models.Transaction) {
 	// 处理支付成功后的逻辑
 	// 例如，更新商户配置、发送通知等
 	log.Get().Infof("Payin transaction %s succeeded for merchant %s", trx.TrxID, trx.Mid)
@@ -208,7 +208,7 @@ type TodayStats struct {
 }
 
 // GetTransactionTodayStats 获取今日交易统计数据
-func GetTransactionTodayStats(mid string, trxType string) (*TodayStats, protocol.ErrorCode) {
+func (s *MerchantTransactionService) GetTransactionTodayStats(mid string, trxType string) (*TodayStats, protocol.ErrorCode) {
 	// 计算今日时间范围（毫秒时间戳）
 	todayStart := utils.TodayZeroTimeMilli()
 	todayEnd := todayStart + 86400000

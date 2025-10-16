@@ -21,7 +21,7 @@ import (
 // @contact.email support@inpayos.com
 // @license.name MIT
 // @license.url https://opensource.org/licenses/MIT
-// @host localhost:6084
+// @host localhost:6082
 // @BasePath /
 // @securityDefinitions.bearer BearerAuth
 // @in header
@@ -78,7 +78,7 @@ func (a *Admin) SetupRouter() *gin.Engine {
 	admindocs.SwaggerInfoadmin.Title = "InPayOS Admin API"
 	admindocs.SwaggerInfoadmin.Description = "平台管理API接口文档，提供管理员管理、系统配置等功能"
 	admindocs.SwaggerInfoadmin.Version = "1.0"
-	admindocs.SwaggerInfoadmin.Host = "localhost:6084"
+	admindocs.SwaggerInfoadmin.Host = "localhost:6082"
 	admindocs.SwaggerInfoadmin.BasePath = "/"
 	admindocs.SwaggerInfoadmin.Schemes = []string{"http", "https"}
 

@@ -87,7 +87,7 @@ func (t *MerchantAdmin) ListTransactions(c *gin.Context) {
 	}
 
 	// 调用服务层查询交易列表
-	transactions, total, code := services.ListTransactionByQuery(query)
+	transactions, total, code := services.GetMerchantTransactionService().ListTransactionByQuery(query)
 	if code != protocol.Success {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(code, lang))
 		return
@@ -115,7 +115,7 @@ func (t *MerchantAdmin) ListTransactions(c *gin.Context) {
 // @Tags 交易管理
 // @Accept json
 // @Produce json
-// @Success 200 {object} protocol.Result{data=protocol.TransactionInfo}
+// @Success 200 {object} protocol.Result{data=protocol.Transaction}
 // @Router /transactions/detail [post]
 func (t *MerchantAdmin) TransactionDetail(c *gin.Context) {
 	lang := middleware.GetLanguage(c)
@@ -144,7 +144,7 @@ func (t *MerchantAdmin) TransactionDetail(c *gin.Context) {
 	}
 
 	// 调用服务层查询交易详情
-	transactions, _, code := services.ListTransactionByQuery(query)
+	transactions, _, code := services.GetMerchantTransactionService().ListTransactionByQuery(query)
 	if code != protocol.Success {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(code, lang))
 		return
@@ -187,7 +187,7 @@ func (t *MerchantAdmin) GetTransactionTodayStats(c *gin.Context) {
 	// 从上下文获取商户信息
 	mid := middleware.GetMidFromContext(c)
 	// 调用服务层获取统计数据
-	stats, code := services.GetTransactionTodayStats(mid, req.TrxType)
+	stats, code := services.GetMerchantTransactionService().GetTransactionTodayStats(mid, req.TrxType)
 	if code != protocol.Success {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(code, lang))
 		return

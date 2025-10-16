@@ -90,15 +90,15 @@ func main() {
 
 	// 启动OpenAPI服务
 	g.Go(func() error {
-		openApiService := handlers.NewOpenApi()
-		if openApiService == nil {
+		app := handlers.NewOpenApi()
+		if app == nil {
 			log.Get().Fatal("Failed to create OpenAPI service - configuration may be invalid")
 			return fmt.Errorf("failed to create OpenAPI service")
 		}
-		server := openApiService.ToServer()
-		server.Handler = openApiService.SetupRouter()
+		server := app.ToServer()
+		server.Handler = app.SetupRouter()
 
-		log.Get().Printf("Starting OpenAPI Service on port %s", openApiService.Port)
+		log.Get().Printf("Starting OpenAPI Service on port %s", app.Port)
 		err := server.ListenAndServe()
 		if err != nil {
 			log.Get().Printf("OpenAPI Service error: %v", err)
@@ -110,15 +110,15 @@ func main() {
 
 	// 启动Merchant服务
 	g.Go(func() error {
-		merchantService := handlers.NewMerchantAdmin()
-		if merchantService == nil {
+		app := handlers.NewMerchantAdmin()
+		if app == nil {
 			log.Get().Fatal("Failed to create Merchant service - configuration may be invalid")
 			return fmt.Errorf("failed to create Merchant service")
 		}
-		server := merchantService.ToServer()
-		server.Handler = merchantService.SetupRouter()
+		server := app.ToServer()
+		server.Handler = app.SetupRouter()
 
-		log.Get().Printf("Starting Merchant Service on port %s", merchantService.Port)
+		log.Get().Printf("Starting Merchant Service on port %s", app.Port)
 		err := server.ListenAndServe()
 		if err != nil {
 			log.Get().Printf("Merchant Service error: %v", err)
@@ -128,17 +128,55 @@ func main() {
 		return err
 	})
 
+	// 启动Cashier Admin服务
+	g.Go(func() error {
+		app := handlers.NewCashierApi()
+		if app == nil {
+			log.Get().Fatal("Failed to create Cashier service - configuration may be invalid")
+			return fmt.Errorf("failed to create Cashier service")
+		}
+		server := app.ToServer()
+		server.Handler = app.SetupRouter()
+
+		log.Get().Printf("Starting Cashier Service on port %s", app.Port)
+		err := server.ListenAndServe()
+		if err != nil {
+			log.Get().Printf("Cashier Service error: %v", err)
+		} else {
+			log.Get().Println("Cashier Service started successfully")
+		}
+		return err
+	})
+	// 启动Cashier Admin服务
+	g.Go(func() error {
+		app := handlers.NewCashierAdmin()
+		if app == nil {
+			log.Get().Fatal("Failed to create Cashier Admin service - configuration may be invalid")
+			return fmt.Errorf("failed to create Cashier Admin service")
+		}
+		server := app.ToServer()
+		server.Handler = app.SetupRouter()
+
+		log.Get().Printf("Starting Cashier Admin Service on port %s", app.Port)
+		err := server.ListenAndServe()
+		if err != nil {
+			log.Get().Printf("Cashier Admin Service error: %v", err)
+		} else {
+			log.Get().Println("Cashier Admin Service started successfully")
+		}
+		return err
+	})
 	// 启动Admin服务
 	g.Go(func() error {
-		adminService := handlers.NewAdmin()
-		if adminService == nil {
+		app := handlers.NewAdmin()
+		if app == nil {
 			log.Get().Fatal("Failed to create Admin service - configuration may be invalid")
 			return fmt.Errorf("failed to create Admin service")
 		}
-		server := adminService.ToServer()
-		server.Handler = adminService.SetupRouter()
+		server := app.ToServer()
+		server.Handler = app.SetupRouter()
 
-		log.Get().Printf("Starting Admin Service on port %s", adminService.Port)
+		log.Get().Printf("Starting Admin Service on port %s", app.Port)
 		err := server.ListenAndServe()
 		if err != nil {
 			log.Get().Printf("Admin Service error: %v", err)

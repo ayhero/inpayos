@@ -15,7 +15,7 @@ import (
 // Auth 授权认证
 // @Summary      登陆授权认证
 // @Description  处理登陆认证并返回token
-// @Tags         认证
+// @Tags         CashierAdmin
 // @Accept       json
 // @Produce      json
 // @Param        request  body      AuthRequest  true  "认证请求参数"
@@ -93,6 +93,14 @@ func (s *CashierAdmin) Auth(c *gin.Context) {
 	}))
 }
 
+// @Summary 收银员登出
+// @Description 收银员登出接口
+// @Tags CashierAdmin
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} protocol.Result "登出成功"
+// @Router /logout [post]
 func (s *CashierAdmin) Logout(c *gin.Context) {
 	lang := middleware.GetLanguage(c)
 	c.JSON(http.StatusOK, protocol.NewSuccessResultWithLang(nil, lang))

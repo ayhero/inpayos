@@ -12,7 +12,7 @@ import (
 
 // @Summary 重置密码
 // @Description 通过邮箱验证码重置密码，新密码将发送到邮箱
-// @Tags Merchant
+// @Tags CashierAdmin
 // @Accept json
 // @Produce json
 // @Param data body ResetPasswordReq true "重置密码请求"
@@ -53,7 +53,7 @@ func (t *CashierAdmin) ResetPassword(c *gin.Context) {
 
 // @Summary 修改密码
 // @Description 商户登录后修改密码
-// @Tags Merchant
+// @Tags CashierAdmin
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer token"
@@ -69,9 +69,9 @@ func (t *CashierAdmin) ChangePassword(c *gin.Context) {
 	}
 
 	// 从上下文中获取商户信息
-	merchant := middleware.GetMerchantFromContext(c)
+	team := middleware.GetCashierTeamFromContext(c)
 	// 修改密码
-	if err := services.ChangeCashierTeamPassword(merchant.GetEmail(), req.NewPassword); err != nil {
+	if err := services.ChangeCashierTeamPassword(team.GetEmail(), req.NewPassword); err != nil {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.SystemError, lang))
 		return
 	}
