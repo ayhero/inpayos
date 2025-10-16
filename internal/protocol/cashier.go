@@ -85,4 +85,14 @@ type Cashier struct {
 }
 
 type CashierTeam struct {
+	ID      int64  `json:"id"`               // 主键ID
+	Tid     string `json:"tid"`              // 团队ID
+	Name    string `json:"name"`             // 车队名称
+	Type    string `json:"type"`             // 车队类型
+	Email   string `json:"email"`            // 车队邮箱
+	Phone   string `json:"phone"`            // 车队电话
+	Status  string `json:"status"`           // 车队状态
+	Region  string `json:"region,omitempty"` // 车队区域
+	Avatar  string `json:"avatar,omitempty"` // 车队头像
+	HasG2FA bool   `json:"has_g2fa"`         // 是否启用二次验证
 }

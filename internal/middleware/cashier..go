@@ -49,7 +49,7 @@ func CashierTeamJWTAuth() gin.HandlerFunc {
 		}
 		team := models.GetCashierTeamByTid(claims.UserID)
 		// 临时设置用户信息
-		c.Set(UserIDKey, team.ID)
+		c.Set(UserIDKey, team.Tid)
 		c.Set(UserKey, team)
 		c.Next()
 	}

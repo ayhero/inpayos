@@ -553,7 +553,49 @@
     },
     "definitions": {
         "inpayos_internal_protocol.CashierTeam": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "description": "车队头像",
+                    "type": "string"
+                },
+                "email": {
+                    "description": "车队邮箱",
+                    "type": "string"
+                },
+                "has_g2fa": {
+                    "description": "是否启用二次验证",
+                    "type": "boolean"
+                },
+                "id": {
+                    "description": "主键ID",
+                    "type": "integer"
+                },
+                "name": {
+                    "description": "车队名称",
+                    "type": "string"
+                },
+                "phone": {
+                    "description": "车队电话",
+                    "type": "string"
+                },
+                "region": {
+                    "description": "车队区域",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "车队状态",
+                    "type": "string"
+                },
+                "tid": {
+                    "description": "团队ID",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "车队类型",
+                    "type": "string"
+                }
+            }
         },
         "inpayos_internal_protocol.MapData": {
             "type": "object",

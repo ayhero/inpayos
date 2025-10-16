@@ -79,7 +79,7 @@ read_db:
 
 # Redis配置 - 本机安装，无密码
 redis:
-  dsn: "redis://host.docker.internal:6379"
+  dsn: "redis://localhost:6379"
 
 # 日志配置
 log:

@@ -328,7 +328,22 @@ func GetCashierTeamByEmail(email string) *CashierTeam {
 }
 
 func (t *CashierTeam) Protocol() *protocol.CashierTeam {
-	info := &protocol.CashierTeam{}
+	if t == nil {
+		return nil
+	}
+
+	info := &protocol.CashierTeam{
+		ID:      t.ID,
+		Tid:     t.Tid,
+		Name:    t.GetName(),
+		Email:   t.GetEmail(),
+		Phone:   t.GetPhone(),
+		Type:    t.GetType(),
+		Status:  t.GetStatus(),
+		Region:  t.GetRegion(),
+		Avatar:  t.GetAvatar(),
+		HasG2FA: t.GetG2FA() != "",
+	}
 	return info
 }
 

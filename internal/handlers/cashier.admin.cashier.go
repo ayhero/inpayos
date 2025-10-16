@@ -127,7 +127,5 @@ func (t *CashierAdmin) CashierDetail(c *gin.Context) {
 		return
 	}
 
-	// 转换为协议格式并返回
-	cashierInfo := cashier.Protocol()
-	c.JSON(http.StatusOK, protocol.NewSuccessResultWithLang(cashierInfo, lang))
+	c.JSON(http.StatusOK, protocol.NewSuccessResultWithLang(cashier.Protocol(), lang))
 }
