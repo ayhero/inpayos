@@ -12,7 +12,7 @@ import (
 
 // @Summary 重置密码
 // @Description 通过邮箱验证码重置密码，新密码将发送到邮箱
-// @Tags 商户
+// @Tags Merchant
 // @Accept json
 // @Produce json
 // @Param data body ResetPasswordReq true "重置密码请求"
@@ -53,7 +53,7 @@ func (t *CashierAdmin) ResetPassword(c *gin.Context) {
 
 // @Summary 修改密码
 // @Description 商户登录后修改密码
-// @Tags 商户
+// @Tags Merchant
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer token"

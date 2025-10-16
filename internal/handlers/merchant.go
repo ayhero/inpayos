@@ -2,12 +2,31 @@ package handlers
 
 import (
 	"fmt"
+	merchantdocs "inpayos/docs/merchant"
 	"inpayos/internal/config"
 	"inpayos/internal/middleware"
+	"inpayos/internal/protocol"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// @title InPayOS Merchant API
+// @version 1.0
+// @description 商户管理API接口文档，提供商户注册、认证、交易管理等功能
+// @termsOfService http://swagger.io/terms/
+// @contact.name InPayOS Support
+// @contact.url http://www.inpayos.com/support
+// @contact.email support@inpayos.com
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+// @host localhost:6081
+// @BasePath /
+// @securityDefinitions.bearer BearerAuth
+// @in header
+// @name Authorization
+// @description JWT认证令牌，请在请求头中添加Authorization: Bearer <token>
 type MerchantAdmin struct {
 	*config.ServiceConfig
 }
@@ -26,7 +45,7 @@ func NewMerchantAdmin() *MerchantAdmin {
 func (t *MerchantAdmin) SetupRouter() *gin.Engine {
 	// 设置Gin模式
 	cfg := config.Get()
-	if cfg.Env == "prod" {
+	if cfg.Env == protocol.EnvProduction {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
@@ -38,6 +57,16 @@ func (t *MerchantAdmin) SetupRouter() *gin.Engine {
 	router.Use(middleware.CORS())
 	router.Use(middleware.LanguageMiddleware())
 
+	// Initialize Swagger Info for Merchant
+	merchantdocs.SwaggerInfomerchant.Title = "InPayOS Merchant API"
+	merchantdocs.SwaggerInfomerchant.Description = "商户管理API接口文档，提供商户注册、认证、交易管理等功能"
+	merchantdocs.SwaggerInfomerchant.Version = "1.0"
+	merchantdocs.SwaggerInfomerchant.Host = "localhost:6081"
+	merchantdocs.SwaggerInfomerchant.BasePath = "/"
+	merchantdocs.SwaggerInfomerchant.Schemes = []string{"http", "https"}
+
+	// 添加Swagger文档路由
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.InstanceName("merchant")))
 	// API路由组
 	api := router.Group(fmt.Sprintf("/%s", t.Prefix))
 	api.POST("/auth", t.Auth)     // 注册授权路由

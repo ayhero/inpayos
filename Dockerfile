@@ -1,26 +1,5 @@
-# 多阶段构建
-FROM golang:1.23-alpine AS builder
-
-# 安装git和ca-certificates
-RUN apk add --no-cache git ca-certificates
-
-# 设置工作目录
-WORKDIR /app
-
-# 复制go mod文件
-COPY go.mod go.sum ./
-
-# 下载依赖
-RUN go mod download
-
-# 复制源代码
-COPY . .
-
-# 构建应用
-RUN mkdir -p build && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o build/inpayos ./main
-
-# 最终阶段
-FROM alpine:latest
+# 使用预构建的二进制文件
+FROM alpine:3.17
 
 # 安装ca-certificates和时区数据
 RUN apk --no-cache add ca-certificates tzdata
@@ -37,11 +16,11 @@ RUN mkdir -p /app/logs /logs
 # 设置工作目录
 WORKDIR /app
 
-# 从构建阶段复制二进制文件
-COPY --from=builder /app/build/inpayos ./inpayos
+# 复制预构建的二进制文件
+COPY build/inpayos-linux ./inpayos
 
 # 复制locales目录到镜像
-COPY --from=builder /app/internal/locales ./internal/locales
+COPY internal/locales ./internal/locales
 
 # 创建日志目录符号链接，支持两种挂载方式
 RUN ln -sf /logs /app/logs-external || true
@@ -60,4 +39,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
 # 运行应用
-CMD ["./inpayos", "serve"]
+CMD ["./inpayos"]

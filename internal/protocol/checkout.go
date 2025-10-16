@@ -23,6 +23,29 @@ type CancelCheckoutRequest struct {
 	CheckoutID string `json:"checkout_id" binding:"required"`
 }
 
+type SubmitCheckoutRequest struct {
+	CheckoutID    string `json:"checkout_id" binding:"required"`
+	PaymentMethod string `json:"payment_method" binding:"required"`
+	PayerInfo     struct {
+		Name  string `json:"name,omitempty"`
+		Email string `json:"email,omitempty"`
+		Phone string `json:"phone,omitempty"`
+	} `json:"payer_info,omitempty"`
+	PaymentDetails map[string]interface{} `json:"payment_details,omitempty"`
+}
+
+type CheckoutService struct {
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	LogoURL     string   `json:"logo_url,omitempty"`
+	MinAmount   string   `json:"min_amount,omitempty"`
+	MaxAmount   string   `json:"max_amount,omitempty"`
+	Currencies  []string `json:"currencies"`
+	Countries   []string `json:"countries"`
+	Status      string   `json:"status"`
+}
+
 type Checkout struct {
 	CheckoutID    string `json:"checkout_id"`
 	Mid           string `json:"mid"`

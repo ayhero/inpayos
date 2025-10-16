@@ -1,0 +1,891 @@
+definitions:
+  inpayos_internal_protocol.Account:
+    properties:
+      account_id:
+        type: string
+      balance:
+        $ref: '#/definitions/inpayos_internal_protocol.Assert'
+      ccy:
+        type: string
+      created_at:
+        type: integer
+      last_active_at:
+        type: integer
+      status:
+        type: string
+      updated_at:
+        type: integer
+      user_id:
+        type: string
+      user_type:
+        type: string
+      version:
+        type: integer
+    type: object
+  inpayos_internal_protocol.Assert:
+    properties:
+      available_balance:
+        type: string
+      available_margin_balance:
+        type: string
+      balance:
+        type: string
+      ccy:
+        type: string
+      frozen_balance:
+        type: string
+      frozen_margin_balance:
+        type: string
+      margin_balance:
+        type: string
+      updated_at:
+        type: integer
+    type: object
+  inpayos_internal_protocol.CancelCheckoutRequest:
+    properties:
+      checkout_id:
+        type: string
+    required:
+    - checkout_id
+    type: object
+  inpayos_internal_protocol.Checkout:
+    properties:
+      amount:
+        type: string
+      ccy:
+        type: string
+      checkout_id:
+        type: string
+      country:
+        type: string
+      created_at:
+        type: integer
+      expired_at:
+        type: integer
+      failure_reason:
+        type: string
+      metadata:
+        type: string
+      mid:
+        type: string
+      notify_url:
+        type: string
+      payment_method:
+        type: string
+      req_id:
+        type: string
+      return_url:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: integer
+    type: object
+  inpayos_internal_protocol.CheckoutService:
+    properties:
+      countries:
+        items:
+          type: string
+        type: array
+      currencies:
+        items:
+          type: string
+        type: array
+      description:
+        type: string
+      id:
+        type: string
+      logo_url:
+        type: string
+      max_amount:
+        type: string
+      min_amount:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  inpayos_internal_protocol.ConfirmCheckoutRequest:
+    properties:
+      amount:
+        type: string
+      ccy:
+        type: string
+      checkout_id:
+        type: string
+    required:
+    - amount
+    - ccy
+    - checkout_id
+    type: object
+  inpayos_internal_protocol.CreateCheckoutRequest:
+    properties:
+      amount:
+        type: string
+      ccy:
+        type: string
+      country:
+        type: string
+      notify_url:
+        type: string
+      payment_method:
+        type: string
+      req_id:
+        type: string
+      return_url:
+        type: string
+    required:
+    - amount
+    - ccy
+    - payment_method
+    - req_id
+    type: object
+  inpayos_internal_protocol.MapData:
+    additionalProperties: {}
+    type: object
+  inpayos_internal_protocol.MerchantCancelRequest:
+    properties:
+      mid:
+        type: string
+      req_id:
+        type: string
+      trx_id:
+        type: string
+      trx_type:
+        type: string
+    required:
+    - req_id
+    - trx_id
+    - trx_type
+    type: object
+  inpayos_internal_protocol.MerchantPayinRequest:
+    properties:
+      amount:
+        type: string
+      ccy:
+        type: string
+      channel_code:
+        type: string
+      channel_group:
+        type: string
+      did:
+        type: string
+      mid:
+        type: string
+      notify_url:
+        type: string
+      pkg:
+        type: string
+      product_id:
+        type: string
+      req_id:
+        type: string
+      return_url:
+        type: string
+      trx_app:
+        type: string
+      trx_method:
+        type: string
+      trx_mode:
+        type: string
+      user_ip:
+        type: string
+    required:
+    - amount
+    - ccy
+    - req_id
+    - trx_method
+    type: object
+  inpayos_internal_protocol.MerchantPayoutRequest:
+    properties:
+      amount:
+        type: string
+      ccy:
+        type: string
+      channel_code:
+        type: string
+      channel_group:
+        type: string
+      did:
+        type: string
+      mid:
+        type: string
+      notify_url:
+        type: string
+      pkg:
+        type: string
+      product_id:
+        type: string
+      req_id:
+        type: string
+      return_url:
+        type: string
+      trx_app:
+        type: string
+      trx_method:
+        type: string
+      trx_mode:
+        type: string
+      user_ip:
+        type: string
+    required:
+    - amount
+    - ccy
+    - req_id
+    - trx_method
+    type: object
+  inpayos_internal_protocol.MerchantQueryRequest:
+    properties:
+      mid:
+        type: string
+      req_id:
+        type: string
+      trx_id:
+        type: string
+      trx_type:
+        type: string
+    required:
+    - req_id
+    - trx_id
+    - trx_type
+    type: object
+  inpayos_internal_protocol.Result:
+    properties:
+      code:
+        type: string
+      data: {}
+      msg:
+        type: string
+    type: object
+  inpayos_internal_protocol.SubmitCheckoutRequest:
+    properties:
+      checkout_id:
+        type: string
+      payer_info:
+        properties:
+          email:
+            type: string
+          name:
+            type: string
+          phone:
+            type: string
+        type: object
+      payment_details:
+        additionalProperties: true
+        type: object
+      payment_method:
+        type: string
+    required:
+    - checkout_id
+    - payment_method
+    type: object
+  inpayos_internal_protocol.Transaction:
+    properties:
+      account_name:
+        type: string
+      account_no:
+        description: 账户信息
+        type: string
+      account_type:
+        type: string
+      actual_amount:
+        type: string
+      amount:
+        type: string
+      bank_code:
+        type: string
+      bank_name:
+        type: string
+      cancel_failed_result:
+        type: string
+      cancel_reason:
+        type: string
+      canceled_at:
+        description: 取消信息
+        type: integer
+      cashier_id:
+        description: 收银员信息
+        type: string
+      ccy:
+        description: 金额信息
+        type: string
+      channel_account:
+        type: string
+      channel_code:
+        type: string
+      channel_fee_amount:
+        type: string
+      channel_fee_ccy:
+        type: string
+      channel_fee_usd_amount:
+        type: string
+      channel_fee_usd_rate:
+        type: string
+      channel_group:
+        type: string
+      channel_status:
+        type: string
+      channel_trx_id:
+        description: 渠道信息
+        type: string
+      completed_at:
+        type: integer
+      confirmed_at:
+        description: 时间戳
+        type: integer
+      country:
+        type: string
+      created_at:
+        type: integer
+      detail:
+        additionalProperties: {}
+        type: object
+      did:
+        type: string
+      email:
+        type: string
+      expired_at:
+        type: integer
+      failure_reason:
+        type: string
+      fee_amount:
+        type: string
+      fee_ccy:
+        description: 费用信息
+        type: string
+      fee_usd_amount:
+        type: string
+      fee_usd_rate:
+        type: string
+      flow_no:
+        description: 流程信息
+        type: string
+      id:
+        description: 基础交易信息
+        type: integer
+      last_refunded_at:
+        type: integer
+      link:
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/inpayos_internal_protocol.MapData'
+        description: 扩展信息
+      mid:
+        type: string
+      notify_url:
+        type: string
+      ori_flow_no:
+        type: string
+      ori_req_id:
+        type: string
+      ori_trx_id:
+        description: 原始交易信息
+        type: string
+      phone:
+        type: string
+      pkg:
+        type: string
+      product_id:
+        type: string
+      reason:
+        type: string
+      refunded_amount:
+        type: string
+      refunded_count:
+        description: 退款信息
+        type: integer
+      refunded_usd_amount:
+        type: string
+      remark:
+        type: string
+      req_id:
+        type: string
+      res_code:
+        type: string
+      res_msg:
+        type: string
+      return_url:
+        type: string
+      settle_id:
+        type: string
+      settle_status:
+        description: 结算信息
+        type: string
+      settled_at:
+        type: integer
+      status:
+        description: 状态信息
+        type: string
+      tid:
+        type: string
+      trx_app:
+        type: string
+      trx_id:
+        type: string
+      trx_method:
+        description: 交易方式和模式
+        type: string
+      trx_mode:
+        type: string
+      trx_type:
+        type: string
+      updated_at:
+        type: integer
+      usd_amount:
+        type: string
+      user_id:
+        type: string
+      user_ip:
+        description: 用户信息
+        type: string
+      version:
+        type: integer
+    type: object
+info:
+  contact: {}
+paths:
+  /openapi/balance:
+    post:
+      consumes:
+      - application/json
+      description: 查询商户账户的各币种余额信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/inpayos_internal_protocol.Result'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/inpayos_internal_protocol.Account'
+                  type: array
+              type: object
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+      security:
+      - ApiKeyAuth: []
+      summary: 查询账户余额
+      tags:
+      - OpenAPI
+  /openapi/cancel:
+    post:
+      consumes:
+      - application/json
+      description: 取消指定的交易订单（代收或代付）
+      parameters:
+      - description: 取消订单请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inpayos_internal_protocol.MerchantCancelRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取消成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/inpayos_internal_protocol.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/inpayos_internal_protocol.Transaction'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+      security:
+      - ApiKeyAuth: []
+      summary: 取消订单
+      tags:
+      - OpenAPI
+  /openapi/checkout:
+    post:
+      consumes:
+      - application/json
+      description: 创建一个新的收银台会话，用于集成支付页面
+      parameters:
+      - description: 创建收银台请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inpayos_internal_protocol.CreateCheckoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 创建成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/inpayos_internal_protocol.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/inpayos_internal_protocol.Checkout'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+      security:
+      - ApiKeyAuth: []
+      summary: 创建收银台会话
+      tags:
+      - OpenAPI
+  /openapi/checkout/cancel:
+    post:
+      consumes:
+      - application/json
+      description: 取消指定的收银台会话
+      parameters:
+      - description: 取消收银台请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inpayos_internal_protocol.CancelCheckoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取消成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/inpayos_internal_protocol.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/inpayos_internal_protocol.Checkout'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+      security:
+      - ApiKeyAuth: []
+      summary: 取消收银台会话
+      tags:
+      - OpenAPI
+  /openapi/checkout/confirm:
+    post:
+      consumes:
+      - application/json
+      description: 确认用户在收银台的支付操作
+      parameters:
+      - description: 确认支付请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inpayos_internal_protocol.ConfirmCheckoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 确认成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/inpayos_internal_protocol.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/inpayos_internal_protocol.Checkout'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+      security:
+      - ApiKeyAuth: []
+      summary: 确认收银台支付
+      tags:
+      - OpenAPI
+  /openapi/checkout/info:
+    get:
+      consumes:
+      - application/json
+      description: 根据收银台ID获取收银台会话的详细信息
+      parameters:
+      - description: 收银台会话ID
+        in: query
+        name: checkout_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/inpayos_internal_protocol.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/inpayos_internal_protocol.Checkout'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取收银台信息
+      tags:
+      - OpenAPI
+  /openapi/checkout/services:
+    get:
+      consumes:
+      - application/json
+      description: 根据收银台ID获取该收银台会话可用的支付服务和通道
+      parameters:
+      - description: 收银台会话ID
+        in: query
+        name: checkout_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/inpayos_internal_protocol.Result'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/inpayos_internal_protocol.CheckoutService'
+                  type: array
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取收银台可用的服务列表
+      tags:
+      - OpenAPI
+  /openapi/checkout/submit:
+    post:
+      consumes:
+      - application/json
+      description: 用户在收银台页面提交支付信息，进行支付处理
+      parameters:
+      - description: 提交支付请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inpayos_internal_protocol.SubmitCheckoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 提交成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/inpayos_internal_protocol.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/inpayos_internal_protocol.Checkout'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+      security:
+      - ApiKeyAuth: []
+      summary: 提交收银台支付
+      tags:
+      - OpenAPI
+  /openapi/payin:
+    post:
+      consumes:
+      - application/json
+      description: 创建代收交易订单，支持多种支付方式和渠道
+      parameters:
+      - description: 代收订单请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inpayos_internal_protocol.MerchantPayinRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 创建成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/inpayos_internal_protocol.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/inpayos_internal_protocol.Transaction'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+      security:
+      - ApiKeyAuth: []
+      summary: 创建代收订单
+      tags:
+      - OpenAPI
+  /openapi/payout:
+    post:
+      consumes:
+      - application/json
+      description: 创建代付交易订单，向指定账户转账
+      parameters:
+      - description: 代付订单请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inpayos_internal_protocol.MerchantPayoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 创建成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/inpayos_internal_protocol.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/inpayos_internal_protocol.Transaction'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+      security:
+      - ApiKeyAuth: []
+      summary: 创建代付订单
+      tags:
+      - OpenAPI
+  /openapi/query:
+    post:
+      consumes:
+      - application/json
+      description: 根据请求ID或交易ID查询交易状态和详情
+      parameters:
+      - description: 查询请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inpayos_internal_protocol.MerchantQueryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 查询成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/inpayos_internal_protocol.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/inpayos_internal_protocol.Transaction'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/inpayos_internal_protocol.Result'
+      security:
+      - ApiKeyAuth: []
+      summary: 查询交易状态
+      tags:
+      - OpenAPI
+swagger: "2.0"

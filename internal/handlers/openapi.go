@@ -1,16 +1,35 @@
 package handlers
 
 import (
+	"fmt"
 	"inpayos/internal/config"
 	"inpayos/internal/middleware"
+	"inpayos/internal/protocol"
 	"inpayos/internal/services"
 	"net/http"
 
+	apidocs "inpayos/docs/openapi"
+
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-// OpenApi 第一层：纯开放 API 接口处理器
-// 面向第三方开发者集成，需要 API Key 认证
+// @title InPayOS OpenAPI
+// @version 1.0
+// @description 统一支付网关OpenAPI接口文档，提供代收、代付、收银台等核心支付功能
+// @termsOfService http://swagger.io/terms/
+// @contact.name InPayOS Support
+// @contact.url http://www.inpayos.com/support
+// @contact.email support@inpayos.com
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+// @host localhost:6080
+// @BasePath /
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name x-api-key
+// @description API密钥认证，请在请求头中添加x-api-key字段
 type OpenApi struct {
 	*config.ServiceConfig
 	Transaction *services.MerchantTransactionService
@@ -34,7 +53,7 @@ func NewOpenApi() *OpenApi {
 // ToServer 创建 HTTP服务器
 func (a *OpenApi) ToServer() *http.Server {
 	return &http.Server{
-		Addr: ":" + a.Port,
+		Addr: fmt.Sprintf(":%v", a.Port),
 	}
 }
 
@@ -42,7 +61,7 @@ func (a *OpenApi) ToServer() *http.Server {
 func (a *OpenApi) SetupRouter() *gin.Engine {
 	// 设置Gin模式
 	cfg := config.Get()
-	if cfg.Env == "prod" {
+	if cfg.Env == protocol.EnvProduction {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
@@ -58,6 +77,17 @@ func (a *OpenApi) SetupRouter() *gin.Engine {
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok", "service": "openapi"})
 	})
+
+	// Initialize Swagger Info
+	apidocs.SwaggerInfoopenapi.Title = "OpenAPI"
+	apidocs.SwaggerInfoopenapi.Description = "OpenAPI Documentation"
+	apidocs.SwaggerInfoopenapi.Version = "1.0"
+	apidocs.SwaggerInfoopenapi.Host = ""
+	apidocs.SwaggerInfoopenapi.BasePath = "/"
+	apidocs.SwaggerInfoopenapi.Schemes = []string{"http", "https"}
+
+	// Swagger UI 路由
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.InstanceName("openapi")))
 
 	// API路由组 - 需要API Key认证
 	prefix := a.Prefix
@@ -77,7 +107,9 @@ func (a *OpenApi) SetupRouter() *gin.Engine {
 		checkout := apiGroup.Group("/checkout")
 		{
 			checkout.POST("", a.CreateCheckout)
-			checkout.GET("/info", a.GetCheckout)
+			checkout.POST("/submit", a.SubmitCheckout)
+			checkout.GET("/services", a.CheckoutServices)
+			checkout.GET("/info", a.CheckoutInfo)
 			checkout.POST("/confirm", a.ConfirmCheckout)
 			checkout.POST("/cancel", a.CancelCheckout)
 		}

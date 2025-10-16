@@ -11,10 +11,10 @@ import (
 
 // @Summary 商户注册
 // @Description 邮箱注册新用户
-// @Tags 商户管理
+// @Tags Merchant
 // @Accept json
 // @Produce json
-// @Param data body MerchantRegisterRequest true "注册信息"
+// @Param data body services.MerchantRegisterRequest true "注册信息"
 // @Success 200 {object} protocol.Result "返回结果"
 // @Router /register [post]
 func (t *CashierAdmin) Register(c *gin.Context) {

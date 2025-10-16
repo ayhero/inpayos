@@ -1,0 +1,35 @@
+# InPayOS Docker Compose Configuration
+# 支付网关系统容器编排配置
+
+services:
+  # InPayOS API Service
+  inpayos-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inpayos-api
+    restart: unless-stopped
+    ports:
+      # OpenAPI - 商户支付网关主接口
+      - "8080:8080"
+      # CashierAPI - 收银渠道服务接口
+      - "8081:8081"
+      # MerchantAPI - 商户管理后台接口
+      - "8082:8082"
+      # CashierAdminAPI - 收银团队管理后台接口
+      - "8083:8083"
+      # AdminAPI - 全局管理后台接口
+      - "8084:8084"
+    environment:
+      - ENV=${ENV:-dev}
+    volumes:
+      - ./${ENV:-dev}.yaml:/app/config.yaml:ro
+      - ./logs:/app/logs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    #   start_period: 40s

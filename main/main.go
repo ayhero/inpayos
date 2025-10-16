@@ -11,6 +11,12 @@ import (
 	"inpayos/internal/models"
 	"inpayos/internal/services"
 
+	_ "inpayos/docs/admin"         // 导入Admin文档
+	_ "inpayos/docs/cashier"       // 导入Cashier文档
+	_ "inpayos/docs/cashier_admin" // 导入CashierAdmin文档
+	_ "inpayos/docs/merchant"      // 导入Merchant文档
+	_ "inpayos/docs/openapi"       // 导入OpenAPI文档
+
 	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/errgroup"
 )

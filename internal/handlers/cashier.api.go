@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	cashierdocs "inpayos/docs/cashier"
 	"inpayos/internal/config"
 	"inpayos/internal/middleware"
 	"inpayos/internal/protocol"
@@ -8,7 +9,25 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
+
+// @title InPayOS Cashier API
+// @version 1.0
+// @description 出纳员API接口文档，提供代收、代付等支付功能
+// @termsOfService http://swagger.io/terms/
+// @contact.name InPayOS Support
+// @contact.url http://www.inpayos.com/support
+// @contact.email support@inpayos.com
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+// @host localhost:6083
+// @BasePath /
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name x-api-key
+// @description API密钥认证，请在请求头中添加x-api-key字段
 
 // CashierApi 第一层：纯开放 API 接口处理器
 // 面向第三方开发者集成，需要 API Key 认证
@@ -41,7 +60,7 @@ func (a *CashierApi) ToServer() *http.Server {
 func (a *CashierApi) SetupRouter() *gin.Engine {
 	// 设置Gin模式
 	cfg := config.Get()
-	if cfg.Env == "prod" {
+	if cfg.Env == protocol.EnvProduction {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
@@ -57,6 +76,17 @@ func (a *CashierApi) SetupRouter() *gin.Engine {
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok", "service": "cashier"})
 	})
+
+	// Initialize Swagger Info for Cashier
+	cashierdocs.SwaggerInfocashier.Title = "InPayOS Cashier API"
+	cashierdocs.SwaggerInfocashier.Description = "出纳员API接口文档，提供代收、代付等支付功能"
+	cashierdocs.SwaggerInfocashier.Version = "1.0"
+	cashierdocs.SwaggerInfocashier.Host = "localhost:6083"
+	cashierdocs.SwaggerInfocashier.BasePath = "/"
+	cashierdocs.SwaggerInfocashier.Schemes = []string{"http", "https"}
+
+	// 添加Swagger文档路由
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.InstanceName("cashier")))
 
 	// API路由组 - 需要API Key认证
 	prefix := a.Prefix

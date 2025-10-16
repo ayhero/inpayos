@@ -2,12 +2,31 @@ package handlers
 
 import (
 	"fmt"
+	cashieradmindocs "inpayos/docs/cashier_admin"
 	"inpayos/internal/config"
 	"inpayos/internal/middleware"
+	"inpayos/internal/protocol"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// @title InPayOS CashierAdmin API
+// @version 1.0
+// @description 出纳员管理API接口文档，提供出纳员认证、交易管理等功能
+// @termsOfService http://swagger.io/terms/
+// @contact.name InPayOS Support
+// @contact.url http://www.inpayos.com/support
+// @contact.email support@inpayos.com
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+// @host localhost:6082
+// @BasePath /
+// @securityDefinitions.bearer BearerAuth
+// @in header
+// @name Authorization
+// @description JWT认证令牌，请在请求头中添加Authorization: Bearer <token>
 type CashierAdmin struct {
 	*config.ServiceConfig
 }
@@ -26,7 +45,7 @@ func NewCashierAdmin() *CashierAdmin {
 func (t *CashierAdmin) SetupRouter() *gin.Engine {
 	// 设置Gin模式
 	cfg := config.Get()
-	if cfg.Env == "prod" {
+	if cfg.Env == protocol.EnvProduction {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
@@ -37,6 +56,17 @@ func (t *CashierAdmin) SetupRouter() *gin.Engine {
 	router.Use(gin.Recovery())
 	router.Use(middleware.CORS())
 	router.Use(middleware.LanguageMiddleware())
+
+	// Initialize Swagger Info for CashierAdmin
+	cashieradmindocs.SwaggerInfocashieradmin.Title = "InPayOS CashierAdmin API"
+	cashieradmindocs.SwaggerInfocashieradmin.Description = "出纳员管理API接口文档，提供出纳员认证、交易管理等功能"
+	cashieradmindocs.SwaggerInfocashieradmin.Version = "1.0"
+	cashieradmindocs.SwaggerInfocashieradmin.Host = "localhost:6082"
+	cashieradmindocs.SwaggerInfocashieradmin.BasePath = "/"
+	cashieradmindocs.SwaggerInfocashieradmin.Schemes = []string{"http", "https"}
+
+	// 添加Swagger文档路由
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.InstanceName("cashieradmin")))
 	// API路由组
 	api := router.Group(fmt.Sprintf("/%s", t.Prefix))
 	api.POST("/auth", t.Auth)     // 注册授权路由

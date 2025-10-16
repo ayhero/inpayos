@@ -95,44 +95,7 @@ install-tools: ## 安装开发工具
 	go install golang.org/x/tools/cmd/goimports@latest
 	go install github.com/swaggo/swag/cmd/swag@latest
 
-swagger: ## 生成统一Swagger文档
-	@echo "📚 生成统一Swagger文档..."
-	make swagger-openapi
-	make swagger-merchant
-	make swagger-cashier
-	make swagger-admin
 
-swagger-openapi: ## 生成OpenAPI Swagger文档
-	@echo "📚 生成OpenAPI Swagger文档..."
-	swag init -g main/main.go \
-		--instanceName openapi \
-		--tags "OpenAPI" \
-		--parseDependency --parseInternal \
-		-o ./docs/openapi
-
-swagger-merchant: ## 生成MerchantAPI Swagger文档
-	@echo "📚 生成MerchantAPI Swagger文档..."
-	swag init -g main/main.go \
-		--instanceName merchant \
-		--tags "MerchantAPI" \
-		--parseDependency --parseInternal \
-		-o ./docs/merchant
-
-swagger-cashier: ## 生成CashierAPI Swagger文档
-	@echo "📚 生成CashierAPI Swagger文档..."
-	swag init -g main/main.go \
-		--instanceName cashier \
-		--tags "CashierAPI" \
-		--parseDependency --parseInternal \
-		-o ./docs/cashier
-
-swagger-admin: ## 生成AdminAPI Swagger文档
-	@echo "📚 生成AdminAPI Swagger文档..."
-	swag init -g main/main.go \
-		--instanceName admin \
-		--tags "AdminAPI" \
-		--parseDependency --parseInternal \
-		-o ./docs/admin
 
 security-scan: ## 安全扫描
 	@echo "🔒 执行安全扫描..."
@@ -150,6 +113,55 @@ benchmark: ## 运行性能测试
 logs: ## 查看应用日志
 	@echo "📋 查看应用日志..."
 	tail -f logs/app.log
+
+swagger: ## 生成统一Swagger文档
+	@echo "📚 生成统一Swagger文档..."
+	make swagger-openapi
+	make swagger-merchant 
+	make swagger-cashier 
+	make swagger-cashier-admin
+	make swagger-admin 
+
+swagger-openapi: ## 生成OpenAPI Swagger文档
+	@echo "📚 生成OpenAPI Swagger文档..."
+	swag init -g main/main.go \
+		--instanceName openapi \
+		--tags "OpenAPI" \
+		--parseDependency --parseInternal \
+		-o ./docs/openapi
+
+swagger-merchant: ## 生成Merchant Swagger文档
+	@echo "📚 生成Merchant Swagger文档..."
+	swag init -g main/main.go \
+		--instanceName merchant \
+		--tags "Merchant" \
+		--parseDependency --parseInternal \
+		-o ./docs/merchant
+
+swagger-cashier: ## 生成Cashier Swagger文档
+	@echo "📚 生成Cashier Swagger文档..."
+	swag init -g main/main.go \
+		--instanceName cashier \
+		--tags "Cashier" \
+		--parseDependency --parseInternal \
+		-o ./docs/cashier
+
+swagger-cashier-admin: ## 生成CashierAdmin Swagger文档
+	@echo "📚 生成CashierAdmin Swagger文档..."
+	swag init -g main/main.go \
+		--instanceName cashieradmin \
+		--tags "CashierAdmin" \
+		--parseDependency --parseInternal \
+		-o ./docs/cashier_admin
+
+swagger-admin: ## 生成Admin Swagger文档
+	@echo "📚 生成Admin Swagger文档..."
+	swag init -g main/main.go \
+		--instanceName admin \
+		--tags "Admin" \
+		--parseDependency --parseInternal \
+		-o ./docs/admin
+
 
 health-check: ## 健康检查
 	@echo "💊 执行健康检查..."
@@ -264,7 +276,7 @@ all: deps build test ## 执行完整构建流程
 # 服务器管理
 ssh-dev: ## 连接到AWS开发服务器
 	@echo "🌐 连接到AWS开发服务器..."
-	ssh aws-dev
+	ssh aws-in-dev
 
 ssh-prod: ## 连接到AWS生产服务器
 	@echo "🌐 连接到AWS生产服务器..."
@@ -307,3 +319,41 @@ sync-config-all: ## 同步所有环境配置
 	@echo "同步PROD环境配置..."
 	@gh secret set CONFIG --env PROD < prod.yaml
 	@echo "✅ 所有配置同步完成!"
+
+# Docker 部署命令
+docker-dev: ## Docker部署到开发环境
+	@echo "🚀 Docker部署到开发环境..."
+	./scripts/docker.sh dev --build --detach
+
+docker-prod: ## Docker部署到生产环境
+	@echo "🚀 Docker部署到生产环境..."
+	./scripts/docker.sh prod --build --detach
+
+docker-logs: ## 查看Docker服务日志
+	@echo "📋 查看Docker服务日志..."
+	./scripts/docker.sh $(ENV) logs
+
+docker-status: ## 查看Docker服务状态
+	@echo "📊 查看Docker服务状态..."
+	./scripts/docker.sh $(ENV) status
+
+docker-stop: ## 停止Docker服务
+	@echo "🛑 停止Docker服务..."
+	./scripts/docker.sh $(ENV) stop
+
+# Docker Compose 部署命令（保留）
+deploy-dev: ## 部署到开发环境
+	@echo "🚀 部署到开发环境..."
+	./scripts/deploy.sh dev --build
+
+deploy-prod: ## 部署到生产环境
+	@echo "🚀 部署到生产环境..."
+	./scripts/deploy.sh prod --build --backup
+
+deploy-logs: ## 查看服务日志
+	@echo "📋 查看服务日志..."
+	./scripts/deploy.sh $(ENV) logs
+
+deploy-status: ## 查看服务状态
+	@echo "📊 查看服务状态..."
+	./scripts/deploy.sh $(ENV) status

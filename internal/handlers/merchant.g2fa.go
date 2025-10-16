@@ -25,7 +25,7 @@ type G2FAResponse struct {
 
 // @Summary 商户绑定G2FA
 // @Description 绑定商户的二次验证
-// @Tags 商户API
+// @Tags Merchant
 // @Accept json
 // @Produce json
 // @Param data body BindG2FAReq true "绑定信息"
@@ -78,7 +78,7 @@ func (t *MerchantAdmin) BindG2FA(c *gin.Context) {
 
 // @Summary 生成新的G2FA密钥
 // @Description 为商户生成新的G2FA密钥
-// @Tags 商户API
+// @Tags Merchant
 // @Accept json
 // @Produce json
 // @Success 200 {object} protocol.Result "返回结果"

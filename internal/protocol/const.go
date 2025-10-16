@@ -7,7 +7,8 @@ const (
 
 const (
 	EnvSandbox    = "sandbox"
-	EnvProduction = "production"
+	EnvDev        = "dev"
+	EnvProduction = "prod"
 )
 
 // 用户类型常量
