@@ -66,6 +66,14 @@ const (
 	SecretKeyExpired      ErrorCode = "4007" // 密钥过期
 	InvalidAppID          ErrorCode = "4008" // 应用ID无效
 	AppIDNotFound         ErrorCode = "4009" // 应用ID不存在
+
+	// 出纳员相关错误码 (4100-4199)
+	CashierNotFound      ErrorCode = "4100" // 出纳员不存在
+	CashierAlreadyExists ErrorCode = "4101" // 出纳员已存在
+	CashierDisabled      ErrorCode = "4102" // 出纳员被禁用
+	CashierSuspended     ErrorCode = "4103" // 出纳员被暂停
+	InvalidCashierID     ErrorCode = "4104" // 出纳员ID无效
+	CashierNotActive     ErrorCode = "4105" // 出纳员未激活
 )
 
 // 交易相关错误码 (5000-5999)
@@ -254,6 +262,14 @@ func (code ErrorCode) GetMessage() string {
 		SecretKeyExpired:      "Secret key expired",
 		InvalidAppID:          "Invalid app ID",
 		AppIDNotFound:         "App ID not found",
+
+		// 出纳员相关错误码
+		CashierNotFound:      "Cashier not found",
+		CashierAlreadyExists: "Cashier already exists",
+		CashierDisabled:      "Cashier disabled",
+		CashierSuspended:     "Cashier suspended",
+		InvalidCashierID:     "Invalid cashier ID",
+		CashierNotActive:     "Cashier not active",
 
 		// 交易相关错误码
 		TransactionNotFound:      "Transaction not found",

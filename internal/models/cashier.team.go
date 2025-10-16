@@ -3,6 +3,8 @@ package models
 import (
 	"inpayos/internal/protocol"
 	"inpayos/internal/utils"
+
+	"gorm.io/gorm"
 )
 
 type CashierTeam struct {
@@ -334,4 +336,57 @@ func CheckCashierTeamEmail(email string) bool {
 	var count int64
 	ReadDB.Model(&CashierTeam{}).Where("email = ?", email).Count(&count)
 	return count > 0
+}
+
+// CashierTeamQuery 出纳员团队查询结构体
+type CashierTeamQuery struct {
+	Tid            string `json:"tid"`              // 团队ID
+	Name           string `json:"name"`             // 出纳员姓名
+	Email          string `json:"email"`            // 邮箱
+	Phone          string `json:"phone"`            // 电话
+	Status         string `json:"status"`           // 状态
+	Type           string `json:"type"`             // 类型
+	Region         string `json:"region"`           // 地区
+	CreatedAtStart int64  `json:"created_at_start"` // 创建开始时间
+	CreatedAtEnd   int64  `json:"created_at_end"`   // 创建结束时间
+	Page           int    `json:"page"`             // 页码
+	Size           int    `json:"size"`             // 每页记录数
+}
+
+// BuildQuery 构建查询条件
+func (q *CashierTeamQuery) BuildQuery() *gorm.DB {
+	query := ReadDB.Model(&CashierTeam{})
+
+	// 基础过滤条件
+	if q.Tid != "" {
+		query = query.Where("tid = ?", q.Tid)
+	}
+	if q.Name != "" {
+		query = query.Where("name LIKE ?", "%"+q.Name+"%")
+	}
+	if q.Email != "" {
+		query = query.Where("email LIKE ?", "%"+q.Email+"%")
+	}
+	if q.Phone != "" {
+		query = query.Where("phone LIKE ?", "%"+q.Phone+"%")
+	}
+	if q.Status != "" {
+		query = query.Where("status = ?", q.Status)
+	}
+	if q.Type != "" {
+		query = query.Where("type = ?", q.Type)
+	}
+	if q.Region != "" {
+		query = query.Where("region = ?", q.Region)
+	}
+
+	// 时间范围过滤
+	if q.CreatedAtStart > 0 {
+		query = query.Where("created_at >= ?", q.CreatedAtStart)
+	}
+	if q.CreatedAtEnd > 0 {
+		query = query.Where("created_at <= ?", q.CreatedAtEnd)
+	}
+
+	return query
 }

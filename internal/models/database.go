@@ -77,6 +77,7 @@ func AutoMigrate() error {
 		&Merchant{},
 		&MerchantSecret{},
 		&Cashier{},
+		&CashierTeam{},
 
 		// 交易相关
 		&MerchantPayin{},

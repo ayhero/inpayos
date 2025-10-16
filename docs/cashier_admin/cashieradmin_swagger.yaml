@@ -353,6 +353,53 @@ paths:
       summary: 登陆授权认证
       tags:
       - CashierAdmin
+  /cashiers/detail:
+    post:
+      consumes:
+      - application/json
+      description: 获取指定出纳员的详细信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/inpayos_internal_protocol.Result'
+            - properties:
+                data:
+                  $ref: '#/definitions/inpayos_internal_protocol.CashierTeam'
+              type: object
+      summary: 获取出纳员详情
+      tags:
+      - CashierAdmin
+  /cashiers/list:
+    post:
+      consumes:
+      - application/json
+      description: 分页获取出纳员列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/inpayos_internal_protocol.Result'
+            - properties:
+                data:
+                  allOf:
+                  - $ref: '#/definitions/inpayos_internal_protocol.PageResult'
+                  - properties:
+                      list:
+                        items:
+                          $ref: '#/definitions/inpayos_internal_protocol.CashierTeam'
+                        type: array
+                    type: object
+              type: object
+      summary: 获取出纳员列表
+      tags:
+      - CashierAdmin
   /info:
     post:
       consumes:

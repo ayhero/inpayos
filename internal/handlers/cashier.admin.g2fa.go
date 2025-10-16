@@ -53,7 +53,7 @@ func (t *CashierAdmin) BindG2FA(c *gin.Context) {
 	}
 
 	// 验证通过后，更新商户的G2FA信息
-	if err := models.WriteDB.Model(cashierTeam).Updates(&models.MerchantValues{G2FA: &newG2FAKey}).Error; err != nil {
+	if err := models.WriteDB.Model(cashierTeam).Updates(&models.CashierTeamValues{G2FA: &newG2FAKey}).Error; err != nil {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.DatabaseError, lang))
 		return
 	}
@@ -74,7 +74,7 @@ func (t *CashierAdmin) BindG2FA(c *gin.Context) {
 func (t *CashierAdmin) NewG2FA(c *gin.Context) {
 	lang := middleware.GetLanguage(c)
 	// 获取当前商户信息
-	merchant := middleware.GetMerchantFromContext(c)
+	team := middleware.GetCashierTeamFromContext(c)
 	// 生成新的G2FA密钥
 	newG2FAKey := services.GenerateG2FAKey()
 	if newG2FAKey == "" {
@@ -83,7 +83,7 @@ func (t *CashierAdmin) NewG2FA(c *gin.Context) {
 	}
 
 	// 将新生成的G2FA密钥存入缓存
-	cacheKey := fmt.Sprintf(protocol.G2FABindingTpl, merchant.Mid)
+	cacheKey := fmt.Sprintf(protocol.G2FABindingTpl, team.Tid)
 	if err := models.SetCache(cacheKey, newG2FAKey, protocol.G2FACacheExpiration); err != nil {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.CacheError, lang))
 		return
@@ -91,7 +91,7 @@ func (t *CashierAdmin) NewG2FA(c *gin.Context) {
 
 	response := G2FAResponse{
 		G2FAKey: newG2FAKey,
-		QRCode:  services.GenerateG2FAQRCode(merchant.Mid, newG2FAKey),
+		QRCode:  services.GenerateG2FAQRCode(team.Tid, newG2FAKey),
 	}
 	c.JSON(http.StatusOK, protocol.NewSuccessResultWithLang(response, lang))
 }

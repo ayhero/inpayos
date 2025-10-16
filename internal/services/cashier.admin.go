@@ -60,6 +60,59 @@ func ChangeCashierTeamPassword(email, newPassword string) error {
 	return nil
 }
 
+// ListCashiersByQuery 根据查询条件获取出纳员列表
+func (s *CashierAdminService) ListCashiersByQuery(query *models.CashierTeamQuery) ([]*models.CashierTeam, int64, protocol.ErrorCode) {
+	if query == nil {
+		return nil, 0, protocol.InvalidParams
+	}
+
+	// 设置默认分页参数
+	if query.Page <= 0 {
+		query.Page = 1
+	}
+	if query.Size <= 0 {
+		query.Size = 20
+	}
+	if query.Size > 100 {
+		query.Size = 100
+	}
+
+	// 构建查询条件
+	db := query.BuildQuery()
+
+	// 获取总数
+	var total int64
+	if err := db.Count(&total).Error; err != nil {
+		log.Get().Errorf("ListCashiersByQuery: Count error: %v", err)
+		return nil, 0, protocol.InternalError
+	}
+
+	// 分页查询
+	var cashiers []*models.CashierTeam
+	offset := (query.Page - 1) * query.Size
+	if err := db.Offset(offset).Limit(query.Size).Order("created_at DESC").Find(&cashiers).Error; err != nil {
+		log.Get().Errorf("ListCashiersByQuery: Find error: %v", err)
+		return nil, 0, protocol.InternalError
+	}
+
+	return cashiers, total, protocol.Success
+}
+
+// GetCashierDetail 根据团队ID获取出纳员详情
+func (s *CashierAdminService) GetCashierDetail(tid string) (*models.CashierTeam, protocol.ErrorCode) {
+	if tid == "" {
+		return nil, protocol.InvalidParams
+	}
+
+	// 根据Tid查询出纳员团队
+	cashier := models.GetCashierTeamByTid(tid)
+	if cashier == nil {
+		return nil, protocol.CashierNotFound
+	}
+
+	return cashier, protocol.Success
+}
+
 type CashierTeamRegisterRequest struct {
 	Email       string `json:"email" binding:"required,email"`    // 邮箱
 	Password    string `json:"password" binding:"required,min=8"` // 密码
@@ -104,21 +157,21 @@ func RegisterCashierTeam(req *CashierTeamRegisterRequest) protocol.ErrorCode {
 	}
 
 	// 检查邮箱是否已注册
-	if models.CheckMerchantEmail(req.Email) {
+	if models.CheckCashierTeamEmail(req.Email) {
 		return protocol.InvalidParams
 	}
 
 	// 创建商户
 	salt := utils.GenerateSalt()
-	merchant := &models.Merchant{
-		Mid: utils.GenerateUserID(),
-		MerchantValues: &models.MerchantValues{
+	team := &models.CashierTeam{
+		Tid: utils.GenerateCashierTeamID(),
+		CashierTeamValues: &models.CashierTeamValues{
 			Salt: &salt,
 		},
 	}
 
 	// 设置商户基本信息
-	merchant.SetEmail(req.Email).
+	team.SetEmail(req.Email).
 		SetPassword(req.Password).
 		SetName(req.Nickname).
 		SetType("cashier-team").
@@ -131,10 +184,10 @@ func RegisterCashierTeam(req *CashierTeamRegisterRequest) protocol.ErrorCode {
 		SetRegIP(req.RegIP)
 
 	// 加密密码
-	merchant.Encrypt()
+	team.Encrypt()
 
 	// 保存到数据库
-	if err := models.WriteDB.Create(merchant).Error; err != nil {
+	if err := models.WriteDB.Create(team).Error; err != nil {
 		log.Get().Errorf("Failed to create merchant: %v", err)
 		return protocol.InternalError
 	}
@@ -142,4 +195,31 @@ func RegisterCashierTeam(req *CashierTeamRegisterRequest) protocol.ErrorCode {
 	// 发送注册成功邮件
 	//SendRegisterSuccessEmail(req.Email)
 	return protocol.Success
+}
+
+// ResetCashierTeamPassword 重置商户密码
+func ResetCashierTeamPassword(email string) (string, error) {
+	// 检查商户是否存在
+	merchant := models.GetMerchantByEmail(email)
+	if merchant == nil {
+		return "", errors.New("商户不存在")
+	}
+
+	// 生成新密码
+	newPassword, err := utils.GenerateRandomPassword(12)
+	if err != nil {
+		log.Get().Error("Failed to generate password: ", err)
+		return "", errors.New("生成新密码失败")
+	}
+
+	// 更新商户密码
+	merchant.SetPassword(newPassword)
+	merchant.Encrypt()
+
+	if err := models.WriteDB.Model(merchant).Update("password", merchant.Password).Error; err != nil {
+		log.Get().Error("Failed to update password: ", err)
+		return "", errors.New("密码更新失败")
+	}
+
+	return newPassword, nil
 }

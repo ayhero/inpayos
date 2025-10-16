@@ -36,7 +36,7 @@ func (t *CashierAdmin) ResetPassword(c *gin.Context) {
 	}
 
 	// 重置密码
-	newPassword, err := services.ResetMerchantPassword(email)
+	newPassword, err := services.ResetCashierTeamPassword(email)
 	if err != nil {
 		c.JSON(http.StatusOK, protocol.NewErrorResultWithCode(protocol.SystemError, lang))
 		return
