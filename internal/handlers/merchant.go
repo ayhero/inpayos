@@ -6,6 +6,7 @@ import (
 	"inpayos/internal/config"
 	"inpayos/internal/middleware"
 	"inpayos/internal/protocol"
+	"inpayos/internal/services"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -29,6 +30,7 @@ import (
 // @description JWT认证令牌，请在请求头中添加Authorization: Bearer <token>
 type MerchantAdmin struct {
 	*config.ServiceConfig
+	Checkout *services.CheckoutService
 }
 
 func NewMerchantAdmin() *MerchantAdmin {
@@ -39,6 +41,7 @@ func NewMerchantAdmin() *MerchantAdmin {
 
 	return &MerchantAdmin{
 		ServiceConfig: cfg.Server.Merchant,
+		Checkout:      services.GetCheckoutService(),
 	}
 }
 
@@ -81,6 +84,7 @@ func (t *MerchantAdmin) SetupRouter() *gin.Engine {
 	api.POST("/info", t.Info)                      // 商户信息
 	api.POST("/password/change", t.ChangePassword) // 修改密码
 	api.POST("/password/reset", t.ResetPassword)   // 重置密码
+	api.POST("/checkout/info", t.CheckoutInfo)
 
 	// G2FA相关路由
 	g2fa := api.Group("/g2fa")
@@ -110,6 +114,13 @@ func (t *MerchantAdmin) SetupRouter() *gin.Engine {
 	{
 		account.GET("/list", t.AccountList)           // 账户列表
 		account.POST("/flow/list", t.AccountFlowList) // 账户流水列表
+	}
+	checkout := api.Group("/checkout")
+	{
+		checkout.POST("/submit", t.SubmitCheckout)
+		checkout.POST("/services", t.CheckoutServices)
+		checkout.POST("/confirm", t.ConfirmCheckout)
+		checkout.POST("/cancel", t.CancelCheckout)
 	}
 
 	return router

@@ -13,21 +13,22 @@ var (
 )
 
 type Config struct {
-	Debug          bool                  `mapstructure:"debug"`
-	Env            string                `mapstructure:"env"`
-	Server         *ServerConfig         `mapstructure:"server"`
-	WriteDB        *DatabaseConfig       `mapstructure:"write_db"`
-	ReadDB         *DatabaseConfig       `mapstructure:"read_db"`
-	Redis          *RedisConfig          `mapstructure:"redis"`
-	I18n           *I18nConfig           `mapstructure:"i18n"`
-	Log            *LogConfig            `mapstructure:"log"`
-	Email          *EmailConfig          `mapstructure:"email"`       // 邮件服务配置
-	SMS            *SMSConfig            `mapstructure:"sms"`         // SMS服务配置
-	VerifyCode     *VerifyCodeConfig     `mapstructure:"verify_code"` // 验证码配置
-	Settle         *SettleConfig         `mapstructure:"settle"`      // 结算配置
-	Task           *TaskConfig           `mapstructure:"task"`        // 任务调度配置
-	MerchantPayin  *MerchantPayinConfig  `mapstructure:"payin"`       // 支付配置
-	MerchantPayout *MerchantPayoutConfig `mapstructure:"payout"`      // 支付配置
+	Debug            bool                    `mapstructure:"debug"`
+	Env              string                  `mapstructure:"env"`
+	Server           *ServerConfig           `mapstructure:"server"`
+	WriteDB          *DatabaseConfig         `mapstructure:"write_db"`
+	ReadDB           *DatabaseConfig         `mapstructure:"read_db"`
+	Redis            *RedisConfig            `mapstructure:"redis"`
+	I18n             *I18nConfig             `mapstructure:"i18n"`
+	Log              *LogConfig              `mapstructure:"log"`
+	Email            *EmailConfig            `mapstructure:"email"`       // 邮件服务配置
+	SMS              *SMSConfig              `mapstructure:"sms"`         // SMS服务配置
+	VerifyCode       *VerifyCodeConfig       `mapstructure:"verify_code"` // 验证码配置
+	Settle           *SettleConfig           `mapstructure:"settle"`      // 结算配置
+	Task             *TaskConfig             `mapstructure:"task"`        // 任务调度配置
+	MerchantPayin    *MerchantPayinConfig    `mapstructure:"payin"`       // 支付配置
+	MerchantPayout   *MerchantPayoutConfig   `mapstructure:"payout"`      // 支付配置
+	MerchantCheckout *MerchantCheckoutConfig `mapstructure:"checkout"`    // 结账配置
 }
 
 // Get 获取配置单例
@@ -73,6 +74,32 @@ func (c *Config) Validate() {
 		c.I18n = &I18nConfig{}
 	}
 	c.I18n.Validate()
+
+	if c.Email != nil {
+		c.Email.Validate()
+	}
+	if c.SMS != nil {
+		c.SMS.Validate()
+	}
+	if c.VerifyCode == nil {
+		c.VerifyCode = &VerifyCodeConfig{}
+	}
+	c.VerifyCode.Validate()
+	if c.Task != nil {
+		c.Task.Validate()
+	}
+	if c.MerchantPayin == nil {
+		c.MerchantPayin = &MerchantPayinConfig{}
+	}
+	c.MerchantPayin.Validate()
+	if c.MerchantPayout == nil {
+		c.MerchantPayout = &MerchantPayoutConfig{}
+	}
+	c.MerchantPayout.Validate()
+	if c.MerchantCheckout == nil {
+		c.MerchantCheckout = &MerchantCheckoutConfig{}
+	}
+	c.MerchantCheckout.Validate()
 }
 
 // LoadConfig 加载配置

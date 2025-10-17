@@ -82,6 +82,7 @@ func AutoMigrate() error {
 		// 交易相关
 		&MerchantPayin{},
 		&MerchantPayout{},
+		&MerchantCheckout{},
 		&Deposit{},
 		&Withdraw{},
 		&CashierPayin{},

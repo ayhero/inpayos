@@ -90,11 +90,7 @@ func (a *OpenApi) SetupRouter() *gin.Engine {
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.InstanceName("openapi")))
 
 	// API路由组 - 需要API Key认证
-	prefix := a.Prefix
-	if prefix == "" {
-		prefix = "/openapi"
-	}
-	apiGroup := router.Group(prefix)
+	apiGroup := router.Group("")
 	apiGroup.Use(middleware.APIKeyAuth())
 	{
 		// 代收接口
@@ -107,11 +103,6 @@ func (a *OpenApi) SetupRouter() *gin.Engine {
 		checkout := apiGroup.Group("/checkout")
 		{
 			checkout.POST("", a.CreateCheckout)
-			checkout.POST("/submit", a.SubmitCheckout)
-			checkout.GET("/services", a.CheckoutServices)
-			checkout.GET("/info", a.CheckoutInfo)
-			checkout.POST("/confirm", a.ConfirmCheckout)
-			checkout.POST("/cancel", a.CancelCheckout)
 		}
 
 		// 查询接口

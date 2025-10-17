@@ -1,6 +1,12 @@
 package models
 
-import "inpayos/internal/protocol"
+import (
+	"inpayos/internal/protocol"
+	"slices"
+
+	"github.com/shopspring/decimal"
+	"gorm.io/gorm"
+)
 
 // MerchantCheckout 收银台会话表
 type MerchantCheckout struct {
@@ -10,27 +16,32 @@ type MerchantCheckout struct {
 	ReqID      string `gorm:"column:req_id;type:varchar(64);index" json:"req_id"`
 	TrxID      string `gorm:"column:trx_id;type:varchar(64);index" json:"trx_id"`
 	TrxType    string `gorm:"column:trx_type;type:varchar(32);index" json:"trx_type"` // 交易类型: payin-代收, payout-代付
-	*CheckoutValues
+	*MerchantCheckoutValues
 	CreatedAt int64 `gorm:"column:created_at;type:bigint;autoCreateTime:milli" json:"created_at"`
 	UpdatedAt int64 `gorm:"column:updated_at;type:bigint;autoUpdateTime:milli" json:"updated_at"`
 }
 
-type CheckoutValues struct {
-	Ccy           *string          `gorm:"column:ccy;type:varchar(10)" json:"ccy"`
-	Amount        *string          `gorm:"column:amount;type:decimal(20,8)" json:"amount"`
-	Country       *string          `gorm:"column:country;type:varchar(3)" json:"country"`
-	PaymentMethod *string          `gorm:"column:payment_method;type:varchar(32)" json:"payment_method"`
-	ReturnURL     *string          `gorm:"column:return_url;type:varchar(1024)" json:"return_url"`
-	CancelURL     *string          `gorm:"column:cancel_url;type:varchar(1024)" json:"cancel_url"`
-	NotifyURL     *string          `gorm:"column:notify_url;type:varchar(1024)" json:"notify_url"`
-	Status        *string          `gorm:"column:status;type:varchar(32);default:'created'" json:"status"` // created, pending, completed, cancelled, expired
-	TrxID         *string          `gorm:"column:trx_id;type:varchar(64);index" json:"trx_id"`             // 关联的交易ID
-	ChannelCode   *string          `gorm:"column:channel_code;type:varchar(32)" json:"channel_code"`
-	Metadata      protocol.MapData `gorm:"column:metadata;type:text" json:"metadata"` // JSON格式的元数据
-	ErrorCode     *string          `gorm:"column:error_code;type:varchar(32)" json:"error_code"`
-	ErrorMsg      *string          `gorm:"column:error_msg;type:varchar(512)" json:"error_msg"`
-	ExpiredAt     *int64           `gorm:"column:expired_at;type:bigint" json:"expired_at"`
-	CompletedAt   *int64           `gorm:"column:completed_at;type:bigint" json:"completed_at"`
+type MerchantCheckoutValues struct {
+	Ccy          *string           `gorm:"column:ccy;type:varchar(10)" json:"ccy"`
+	Amount       *decimal.Decimal  `gorm:"column:amount;type:decimal(20,8)" json:"amount"`
+	Country      *string           `gorm:"column:country;type:varchar(3)" json:"country"`
+	TrxApp       *string           `gorm:"column:trx_app;type:varchar(32)" json:"trx_app"`
+	TrxMethod    *string           `gorm:"column:trx_method;type:varchar(32)" json:"trx_method"`
+	ReturnURL    *string           `gorm:"column:return_url;type:varchar(1024)" json:"return_url"`
+	CancelURL    *string           `gorm:"column:cancel_url;type:varchar(1024)" json:"cancel_url"`
+	NotifyURL    *string           `gorm:"column:notify_url;type:varchar(1024)" json:"notify_url"`
+	Status       *string           `gorm:"column:status;type:varchar(32);default:'created'" json:"status"` // created, pending, completed, cancelled, expired
+	ChannelCode  *string           `gorm:"column:channel_code;type:varchar(32)" json:"channel_code"`
+	CheckoutURL  *string           `gorm:"column:checkout_url;type:varchar(1024)" json:"checkout_url"`
+	Transactions []*Transaction    `gorm:"column:transactions;type:json;serializer:json" json:"transactions"` // 关联的交易记录，不存储在数据库中
+	Metadata     *protocol.MapData `gorm:"column:meta_data;type:json;serializer:json" json:"meta_data"`       // JSON格式的元数据
+	ErrorCode    *string           `gorm:"column:error_code;type:varchar(32)" json:"error_code"`
+	ErrorMsg     *string           `gorm:"column:error_msg;type:varchar(512)" json:"error_msg"`
+	ExpiredAt    *int64            `gorm:"column:expired_at;type:bigint" json:"expired_at"`
+	SubmitedAt   *int64            `gorm:"column:submited_at;type:bigint" json:"submited_at"`
+	ConfirmedAt  *int64            `gorm:"column:confirmed_at;type:bigint" json:"confirmed_at"`
+	CanceledAt   *int64            `gorm:"column:canceled_at;type:bigint" json:"canceled_at"`
+	CompletedAt  *int64            `gorm:"column:completed_at;type:bigint" json:"completed_at"`
 }
 
 // TableName 返回表名
@@ -40,7 +51,7 @@ func (MerchantCheckout) TableName() string {
 
 // CheckoutValues Getter Methods
 // GetCcy returns the Ccy value
-func (cv *CheckoutValues) GetCcy() string {
+func (cv *MerchantCheckoutValues) GetCcy() string {
 	if cv.Ccy == nil {
 		return ""
 	}
@@ -48,15 +59,15 @@ func (cv *CheckoutValues) GetCcy() string {
 }
 
 // GetAmount returns the Amount value
-func (cv *CheckoutValues) GetAmount() string {
+func (cv *MerchantCheckoutValues) GetAmount() decimal.Decimal {
 	if cv.Amount == nil {
-		return ""
+		return decimal.Zero
 	}
 	return *cv.Amount
 }
 
 // GetCountry returns the Country value
-func (cv *CheckoutValues) GetCountry() string {
+func (cv *MerchantCheckoutValues) GetCountry() string {
 	if cv.Country == nil {
 		return ""
 	}
@@ -64,15 +75,15 @@ func (cv *CheckoutValues) GetCountry() string {
 }
 
 // GetPaymentMethod returns the PaymentMethod value
-func (cv *CheckoutValues) GetPaymentMethod() string {
-	if cv.PaymentMethod == nil {
+func (cv *MerchantCheckoutValues) GetPaymentMethod() string {
+	if cv.TrxMethod == nil {
 		return ""
 	}
-	return *cv.PaymentMethod
+	return *cv.TrxMethod
 }
 
 // GetReturnURL returns the ReturnURL value
-func (cv *CheckoutValues) GetReturnURL() string {
+func (cv *MerchantCheckoutValues) GetReturnURL() string {
 	if cv.ReturnURL == nil {
 		return ""
 	}
@@ -80,7 +91,7 @@ func (cv *CheckoutValues) GetReturnURL() string {
 }
 
 // GetCancelURL returns the CancelURL value
-func (cv *CheckoutValues) GetCancelURL() string {
+func (cv *MerchantCheckoutValues) GetCancelURL() string {
 	if cv.CancelURL == nil {
 		return ""
 	}
@@ -88,7 +99,7 @@ func (cv *CheckoutValues) GetCancelURL() string {
 }
 
 // GetNotifyURL returns the NotifyURL value
-func (cv *CheckoutValues) GetNotifyURL() string {
+func (cv *MerchantCheckoutValues) GetNotifyURL() string {
 	if cv.NotifyURL == nil {
 		return ""
 	}
@@ -96,23 +107,15 @@ func (cv *CheckoutValues) GetNotifyURL() string {
 }
 
 // GetStatus returns the Status value
-func (cv *CheckoutValues) GetStatus() string {
+func (cv *MerchantCheckoutValues) GetStatus() string {
 	if cv.Status == nil {
 		return ""
 	}
 	return *cv.Status
 }
 
-// GetTrxID returns the TransactionID value
-func (cv *CheckoutValues) GetTrxID() string {
-	if cv.TrxID == nil {
-		return ""
-	}
-	return *cv.TrxID
-}
-
 // GetChannelCode returns the ChannelCode value
-func (cv *CheckoutValues) GetChannelCode() string {
+func (cv *MerchantCheckoutValues) GetChannelCode() string {
 	if cv.ChannelCode == nil {
 		return ""
 	}
@@ -120,12 +123,15 @@ func (cv *CheckoutValues) GetChannelCode() string {
 }
 
 // GetMetadata returns the Metadata value
-func (cv *CheckoutValues) GetMetadata() protocol.MapData {
-	return cv.Metadata
+func (cv *MerchantCheckoutValues) GetMetadata() protocol.MapData {
+	if cv.Metadata == nil {
+		return protocol.MapData{}
+	}
+	return *cv.Metadata
 }
 
 // GetErrorCode returns the ErrorCode value
-func (cv *CheckoutValues) GetErrorCode() string {
+func (cv *MerchantCheckoutValues) GetErrorCode() string {
 	if cv.ErrorCode == nil {
 		return ""
 	}
@@ -133,7 +139,7 @@ func (cv *CheckoutValues) GetErrorCode() string {
 }
 
 // GetErrorMsg returns the ErrorMsg value
-func (cv *CheckoutValues) GetErrorMsg() string {
+func (cv *MerchantCheckoutValues) GetErrorMsg() string {
 	if cv.ErrorMsg == nil {
 		return ""
 	}
@@ -141,7 +147,7 @@ func (cv *CheckoutValues) GetErrorMsg() string {
 }
 
 // GetExpiredAt returns the ExpiredAt value
-func (cv *CheckoutValues) GetExpiredAt() int64 {
+func (cv *MerchantCheckoutValues) GetExpiredAt() int64 {
 	if cv.ExpiredAt == nil {
 		return 0
 	}
@@ -149,159 +155,298 @@ func (cv *CheckoutValues) GetExpiredAt() int64 {
 }
 
 // GetCompletedAt returns the CompletedAt value
-func (cv *CheckoutValues) GetCompletedAt() int64 {
+func (cv *MerchantCheckoutValues) GetCompletedAt() int64 {
 	if cv.CompletedAt == nil {
 		return 0
 	}
 	return *cv.CompletedAt
 }
 
+// GetTrxApp returns the TrxApp value
+func (cv *MerchantCheckoutValues) GetTrxApp() string {
+	if cv.TrxApp == nil {
+		return ""
+	}
+	return *cv.TrxApp
+}
+
+// GetCheckoutURL returns the CheckoutURL value
+func (cv *MerchantCheckoutValues) GetCheckoutURL() string {
+	if cv.CheckoutURL == nil {
+		return ""
+	}
+	return *cv.CheckoutURL
+}
+
+// GetSubmitedAt returns the SubmitedAt value
+func (cv *MerchantCheckoutValues) GetSubmitedAt() int64 {
+	if cv.SubmitedAt == nil {
+		return 0
+	}
+	return *cv.SubmitedAt
+}
+
+// GetConfirmedAt returns the ConfirmedAt value
+func (cv *MerchantCheckoutValues) GetConfirmedAt() int64 {
+	if cv.ConfirmedAt == nil {
+		return 0
+	}
+	return *cv.ConfirmedAt
+}
+
+// GetCanceledAt returns the CanceledAt value
+func (cv *MerchantCheckoutValues) GetCanceledAt() int64 {
+	if cv.CanceledAt == nil {
+		return 0
+	}
+	return *cv.CanceledAt
+}
+
 // CheckoutValues Setter Methods (support method chaining)
 // SetCcy sets the Ccy value
-func (cv *CheckoutValues) SetCcy(value string) *CheckoutValues {
+func (cv *MerchantCheckoutValues) SetCcy(value string) *MerchantCheckoutValues {
 	cv.Ccy = &value
 	return cv
 }
 
 // SetAmount sets the Amount value
-func (cv *CheckoutValues) SetAmount(value string) *CheckoutValues {
+func (cv *MerchantCheckoutValues) SetAmount(value decimal.Decimal) *MerchantCheckoutValues {
 	cv.Amount = &value
 	return cv
 }
 
 // SetCountry sets the Country value
-func (cv *CheckoutValues) SetCountry(value string) *CheckoutValues {
+func (cv *MerchantCheckoutValues) SetCountry(value string) *MerchantCheckoutValues {
 	cv.Country = &value
 	return cv
 }
 
 // SetPaymentMethod sets the PaymentMethod value
-func (cv *CheckoutValues) SetPaymentMethod(value string) *CheckoutValues {
-	cv.PaymentMethod = &value
+func (cv *MerchantCheckoutValues) SetPaymentMethod(value string) *MerchantCheckoutValues {
+	cv.TrxMethod = &value
 	return cv
 }
 
 // SetReturnURL sets the ReturnURL value
-func (cv *CheckoutValues) SetReturnURL(value string) *CheckoutValues {
+func (cv *MerchantCheckoutValues) SetReturnURL(value string) *MerchantCheckoutValues {
 	cv.ReturnURL = &value
 	return cv
 }
 
 // SetCancelURL sets the CancelURL value
-func (cv *CheckoutValues) SetCancelURL(value string) *CheckoutValues {
+func (cv *MerchantCheckoutValues) SetCancelURL(value string) *MerchantCheckoutValues {
 	cv.CancelURL = &value
 	return cv
 }
 
 // SetNotifyURL sets the NotifyURL value
-func (cv *CheckoutValues) SetNotifyURL(value string) *CheckoutValues {
+func (cv *MerchantCheckoutValues) SetNotifyURL(value string) *MerchantCheckoutValues {
 	cv.NotifyURL = &value
 	return cv
 }
 
 // SetStatus sets the Status value
-func (cv *CheckoutValues) SetStatus(value string) *CheckoutValues {
+func (cv *MerchantCheckoutValues) SetStatus(value string) *MerchantCheckoutValues {
 	cv.Status = &value
 	return cv
 }
 
-// SetTrxID sets the TransactionID value
-func (cv *CheckoutValues) SetTrxID(value string) *CheckoutValues {
-	cv.TrxID = &value
-	return cv
-}
-
 // SetChannelCode sets the ChannelCode value
-func (cv *CheckoutValues) SetChannelCode(value string) *CheckoutValues {
+func (cv *MerchantCheckoutValues) SetChannelCode(value string) *MerchantCheckoutValues {
 	cv.ChannelCode = &value
 	return cv
 }
 
 // SetMetadata sets the Metadata value
-func (cv *CheckoutValues) SetMetadata(value protocol.MapData) *CheckoutValues {
-	cv.Metadata = value
+func (cv *MerchantCheckoutValues) SetMetadata(value protocol.MapData) *MerchantCheckoutValues {
+	cv.Metadata = &value
 	return cv
 }
 
 // SetErrorCode sets the ErrorCode value
-func (cv *CheckoutValues) SetErrorCode(value string) *CheckoutValues {
+func (cv *MerchantCheckoutValues) SetErrorCode(value string) *MerchantCheckoutValues {
 	cv.ErrorCode = &value
 	return cv
 }
 
 // SetErrorMsg sets the ErrorMsg value
-func (cv *CheckoutValues) SetErrorMsg(value string) *CheckoutValues {
+func (cv *MerchantCheckoutValues) SetErrorMsg(value string) *MerchantCheckoutValues {
 	cv.ErrorMsg = &value
 	return cv
 }
 
 // SetExpiredAt sets the ExpiredAt value
-func (cv *CheckoutValues) SetExpiredAt(value int64) *CheckoutValues {
+func (cv *MerchantCheckoutValues) SetExpiredAt(value int64) *MerchantCheckoutValues {
 	cv.ExpiredAt = &value
 	return cv
 }
 
 // SetCompletedAt sets the CompletedAt value
-func (cv *CheckoutValues) SetCompletedAt(value int64) *CheckoutValues {
+func (cv *MerchantCheckoutValues) SetCompletedAt(value int64) *MerchantCheckoutValues {
 	cv.CompletedAt = &value
 	return cv
 }
 
+// SetTrxApp sets the TrxApp value
+func (cv *MerchantCheckoutValues) SetTrxApp(value string) *MerchantCheckoutValues {
+	cv.TrxApp = &value
+	return cv
+}
+
+// SetCheckoutURL sets the CheckoutURL value
+func (cv *MerchantCheckoutValues) SetCheckoutURL(value string) *MerchantCheckoutValues {
+	cv.CheckoutURL = &value
+	return cv
+}
+
+// SetSubmitedAt sets the SubmitedAt value
+func (cv *MerchantCheckoutValues) SetSubmitedAt(value int64) *MerchantCheckoutValues {
+	cv.SubmitedAt = &value
+	return cv
+}
+
+// SetConfirmedAt sets the ConfirmedAt value
+func (cv *MerchantCheckoutValues) SetConfirmedAt(value int64) *MerchantCheckoutValues {
+	cv.ConfirmedAt = &value
+	return cv
+}
+
+// SetCanceledAt sets the CanceledAt value
+func (cv *MerchantCheckoutValues) SetCanceledAt(value int64) *MerchantCheckoutValues {
+	cv.CanceledAt = &value
+	return cv
+}
+
 // SetValues sets multiple CheckoutValues fields at once
-func (c *MerchantCheckout) SetValues(values *CheckoutValues) *MerchantCheckout {
+func (c *MerchantCheckout) SetValues(values *MerchantCheckoutValues) *MerchantCheckout {
 	if values == nil {
 		return c
 	}
 
-	if c.CheckoutValues == nil {
-		c.CheckoutValues = &CheckoutValues{}
+	if c.MerchantCheckoutValues == nil {
+		c.MerchantCheckoutValues = &MerchantCheckoutValues{}
 	}
 
 	// Set all fields from the provided values
 	if values.Ccy != nil {
-		c.CheckoutValues.SetCcy(*values.Ccy)
+		c.MerchantCheckoutValues.SetCcy(*values.Ccy)
 	}
 	if values.Amount != nil {
-		c.CheckoutValues.SetAmount(*values.Amount)
+		c.MerchantCheckoutValues.SetAmount(*values.Amount)
 	}
 	if values.Country != nil {
-		c.CheckoutValues.SetCountry(*values.Country)
+		c.MerchantCheckoutValues.SetCountry(*values.Country)
 	}
-	if values.PaymentMethod != nil {
-		c.CheckoutValues.SetPaymentMethod(*values.PaymentMethod)
+	if values.TrxApp != nil {
+		c.MerchantCheckoutValues.SetTrxApp(*values.TrxApp)
+	}
+	if values.TrxMethod != nil {
+		c.MerchantCheckoutValues.SetPaymentMethod(*values.TrxMethod)
 	}
 	if values.ReturnURL != nil {
-		c.CheckoutValues.SetReturnURL(*values.ReturnURL)
+		c.MerchantCheckoutValues.SetReturnURL(*values.ReturnURL)
 	}
 	if values.CancelURL != nil {
-		c.CheckoutValues.SetCancelURL(*values.CancelURL)
+		c.MerchantCheckoutValues.SetCancelURL(*values.CancelURL)
 	}
 	if values.NotifyURL != nil {
-		c.CheckoutValues.SetNotifyURL(*values.NotifyURL)
+		c.MerchantCheckoutValues.SetNotifyURL(*values.NotifyURL)
 	}
 	if values.Status != nil {
-		c.CheckoutValues.SetStatus(*values.Status)
-	}
-	if values.TrxID != nil {
-		c.CheckoutValues.SetTrxID(*values.TrxID)
+		c.MerchantCheckoutValues.SetStatus(*values.Status)
 	}
 	if values.ChannelCode != nil {
-		c.CheckoutValues.SetChannelCode(*values.ChannelCode)
+		c.MerchantCheckoutValues.SetChannelCode(*values.ChannelCode)
+	}
+	if values.CheckoutURL != nil {
+		c.MerchantCheckoutValues.SetCheckoutURL(*values.CheckoutURL)
 	}
 	// Metadata is not a pointer, so we always set it
-	c.CheckoutValues.SetMetadata(values.Metadata)
+	c.MerchantCheckoutValues.SetMetadata(values.GetMetadata())
 	if values.ErrorCode != nil {
-		c.CheckoutValues.SetErrorCode(*values.ErrorCode)
+		c.MerchantCheckoutValues.SetErrorCode(*values.ErrorCode)
 	}
 	if values.ErrorMsg != nil {
-		c.CheckoutValues.SetErrorMsg(*values.ErrorMsg)
+		c.MerchantCheckoutValues.SetErrorMsg(*values.ErrorMsg)
 	}
 	if values.ExpiredAt != nil {
-		c.CheckoutValues.SetExpiredAt(*values.ExpiredAt)
+		c.MerchantCheckoutValues.SetExpiredAt(*values.ExpiredAt)
+	}
+	if values.SubmitedAt != nil {
+		c.MerchantCheckoutValues.SetSubmitedAt(*values.SubmitedAt)
+	}
+	if values.ConfirmedAt != nil {
+		c.MerchantCheckoutValues.SetConfirmedAt(*values.ConfirmedAt)
+	}
+	if values.CanceledAt != nil {
+		c.MerchantCheckoutValues.SetCanceledAt(*values.CanceledAt)
 	}
 	if values.CompletedAt != nil {
-		c.CheckoutValues.SetCompletedAt(*values.CompletedAt)
+		c.MerchantCheckoutValues.SetCompletedAt(*values.CompletedAt)
 	}
 
 	return c
+}
+
+func (t *MerchantCheckout) CanCancel() bool {
+	return !slices.Contains(protocol.MerchantCheckoutStatusList, t.GetStatus())
+}
+
+// Database Operations
+
+// GetMerchantCheckoutByReqID 根据商户ID和请求ID获取收银台记录
+func GetMerchantCheckoutByReqID(mid, reqID string) *MerchantCheckout {
+	var checkout MerchantCheckout
+	if err := ReadDB.Where("mid = ? AND req_id = ?", mid, reqID).First(&checkout).Error; err == nil {
+		return &checkout
+	}
+	return nil
+}
+
+// GetMerchantCheckoutByCheckoutID 根据收银台ID获取记录
+func GetMerchantCheckoutByCheckoutID(checkoutID string) *MerchantCheckout {
+	var checkout MerchantCheckout
+	if err := ReadDB.Where("checkout_id = ?", checkoutID).First(&checkout).Error; err != nil {
+		return nil
+	}
+	return &checkout
+}
+
+func SaveMerchantCheckout(tx *gorm.DB, checkout *MerchantCheckout, values *MerchantCheckoutValues) (err error) {
+	defer func() {
+		if err == nil {
+			checkout.SetValues(values)
+		}
+	}()
+	return tx.Model(checkout).UpdateColumns(checkout).Error
+}
+
+// Protocol conversion method
+func (c *MerchantCheckout) Protocol() *protocol.Checkout {
+	if c == nil {
+		return nil
+	}
+
+	return &protocol.Checkout{
+		CheckoutID:  c.CheckoutID,
+		Mid:         c.Mid,
+		ReqID:       c.ReqID,
+		Amount:      c.GetAmount().String(),
+		Ccy:         c.GetCcy(),
+		Country:     c.GetCountry(),
+		TrxMethod:   c.GetPaymentMethod(),
+		Status:      c.GetStatus(),
+		NotifyURL:   c.GetNotifyURL(),
+		ReturnURL:   c.GetReturnURL(),
+		CreatedAt:   c.CreatedAt,
+		UpdatedAt:   c.UpdatedAt,
+		ExpiredAt:   c.GetExpiredAt(),
+		ErrorCode:   c.GetErrorCode(),
+		ErrorMsg:    c.GetErrorMsg(),
+		CheckoutURL: c.GetCheckoutURL(),
+		SubmitedAt:  c.GetSubmitedAt(),
+		ConfirmedAt: c.GetConfirmedAt(),
+		CanceledAt:  c.GetCanceledAt(),
+		CompletedAt: c.GetCompletedAt(),
+	}
 }

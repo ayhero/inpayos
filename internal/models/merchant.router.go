@@ -2,6 +2,7 @@ package models
 
 import (
 	"inpayos/internal/log"
+	"inpayos/internal/protocol"
 
 	"github.com/shopspring/decimal"
 )
@@ -45,6 +46,7 @@ type MerchantRouters []*MerchantRouter
 func ListMerchantRouterByMerchant(mid, trx_type string) (data MerchantRouters) {
 	err := ReadDB.Where("trx_type=?", trx_type).
 		Where("mid = '' OR mid IS NULL OR mid = ?", mid).
+		Where("status = ?", protocol.StatusActive).
 		Order("priority desc").
 		Find(&data).Error
 	if err != nil {

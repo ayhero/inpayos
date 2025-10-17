@@ -322,3 +322,41 @@ func SafeDecimalDeref(d *decimal.Decimal) decimal.Decimal {
 func RoundToTwoDecimal(num float64) float64 {
 	return math.Round(num*100) / 100
 }
+
+// ValidateAmount 验证金额格式和有效性
+// 返回值：解析后的 decimal.Decimal 指针，如果验证失败返回 nil
+// 错误情况：格式错误、金额小于等于0
+func ValidateAmount(amountStr string) (*decimal.Decimal, error) {
+	if amountStr == "" {
+		return nil, fmt.Errorf("amount cannot be empty")
+	}
+
+	amount, err := decimal.NewFromString(amountStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid amount format: %v", err)
+	}
+
+	if amount.LessThanOrEqual(decimal.Zero) {
+		return nil, fmt.Errorf("amount must be greater than zero")
+	}
+
+	return &amount, nil
+}
+
+// ValidateAmountRange 验证金额是否在指定范围内
+func ValidateAmountRange(amountStr string, minAmount, maxAmount decimal.Decimal) (*decimal.Decimal, error) {
+	amount, err := ValidateAmount(amountStr)
+	if err != nil {
+		return nil, err
+	}
+
+	if amount.LessThan(minAmount) {
+		return nil, fmt.Errorf("amount %s is less than minimum %s", amountStr, minAmount.String())
+	}
+
+	if amount.GreaterThan(maxAmount) {
+		return nil, fmt.Errorf("amount %s exceeds maximum %s", amountStr, maxAmount.String())
+	}
+
+	return amount, nil
+}

@@ -72,6 +72,8 @@ type TransactionValues struct {
 	Detail        map[string]any `json:"detail" gorm:"column:detail;serializer:json;type:json"`
 	NotifyURL     *string        `json:"notify_url" gorm:"column:notify_url"`
 
+	ProofID *string `json:"proof_id" gorm:"column:proof_id"` // 支付凭证ID/UTR
+
 	// Fee related fields
 	FeeCcy       *string          `json:"fee_ccy" gorm:"column:fee_ccy"`
 	FeeAmount    *decimal.Decimal `json:"fee_amount" gorm:"column:fee_amount"`
@@ -89,6 +91,7 @@ type TransactionValues struct {
 	ChannelFeeUsdRate   *decimal.Decimal `json:"channel_fee_usd_rate" gorm:"column:channel_fee_usd_rate"`
 
 	// Timing fields
+	SubmitedAt         *int64  `json:"submited_at" gorm:"column:submited_at"`
 	ConfirmedAt        *int64  `json:"confirmed_at" gorm:"column:confirmed_at"`
 	CompletedAt        *int64  `json:"completed_at" gorm:"column:completed_at"`
 	ExpiredAt          *int64  `json:"expired_at" gorm:"column:expired_at"`
@@ -263,6 +266,14 @@ func (tv *TransactionValues) GetExpiredAt() int64 {
 		return 0
 	}
 	return *tv.ExpiredAt
+}
+
+// GetSubmitedAt returns the SubmitedAt value
+func (tv *TransactionValues) GetSubmitedAt() int64 {
+	if tv.SubmitedAt == nil {
+		return 0
+	}
+	return *tv.SubmitedAt
 }
 
 // GetConfirmedAt returns the ConfirmedAt value
@@ -491,6 +502,14 @@ func (tv *TransactionValues) GetCancelFailedResult() string {
 	return *tv.CancelFailedResult
 }
 
+// GetProofID returns the ProofID value
+func (tv *TransactionValues) GetProofID() string {
+	if tv.ProofID == nil {
+		return ""
+	}
+	return *tv.ProofID
+}
+
 // GetVersion returns the Version value
 func (tv *TransactionValues) GetVersion() int64 {
 	if tv.Version == nil {
@@ -526,6 +545,12 @@ func (tv *TransactionValues) SetRemark(value string) *TransactionValues {
 // SetExpiredAt sets the ExpiredAt value
 func (tv *TransactionValues) SetExpiredAt(value int64) *TransactionValues {
 	tv.ExpiredAt = &value
+	return tv
+}
+
+// SetSubmitedAt sets the SubmitedAt value
+func (tv *TransactionValues) SetSubmitedAt(value int64) *TransactionValues {
+	tv.SubmitedAt = &value
 	return tv
 }
 
@@ -703,6 +728,12 @@ func (tv *TransactionValues) SetCancelFailedResult(value string) *TransactionVal
 	return tv
 }
 
+// SetProofID sets the ProofID value
+func (tv *TransactionValues) SetProofID(value string) *TransactionValues {
+	tv.ProofID = &value
+	return tv
+}
+
 // SetVersion sets the Version value
 func (tv *TransactionValues) SetVersion(value int64) *TransactionValues {
 	tv.Version = &value
@@ -733,6 +764,9 @@ func (t *Transaction) SetValues(values *TransactionValues) *Transaction {
 	}
 	if values.ExpiredAt != nil {
 		t.TransactionValues.SetExpiredAt(*values.ExpiredAt)
+	}
+	if values.SubmitedAt != nil {
+		t.TransactionValues.SetSubmitedAt(*values.SubmitedAt)
 	}
 	if values.ConfirmedAt != nil {
 		t.TransactionValues.SetConfirmedAt(*values.ConfirmedAt)
@@ -830,6 +864,9 @@ func (t *Transaction) SetValues(values *TransactionValues) *Transaction {
 	}
 	if values.CancelFailedResult != nil {
 		t.TransactionValues.SetCancelFailedResult(*values.CancelFailedResult)
+	}
+	if values.ProofID != nil {
+		t.TransactionValues.SetProofID(*values.ProofID)
 	}
 	if values.Version != nil {
 		t.TransactionValues.SetVersion(*values.Version)

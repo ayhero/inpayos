@@ -35,12 +35,15 @@ const (
 
 // 业务状态常量
 const (
+	StatusCreated    = "created"
 	StatusActive     = "active"
 	StatusInactive   = "inactive"
 	StatusSuspended  = "suspended"
 	StatusDeleted    = "deleted"
 	StatusPending    = "pending"
 	StatusProcessing = "processing"
+	StatusSubmitted  = "submitted"
+	StatusConfirming = "confirming"
 	StatusSuccess    = "success"
 	StatusFailed     = "failed"
 	StatusCancelled  = "cancelled"
@@ -112,4 +115,12 @@ const (
 	AdminActiveStatusOnline  = StatusOnline
 	AdminActiveStatusOffline = StatusOffline
 	AdminActiveStatusBusy    = StatusBusy
+)
+
+var (
+	MerchantCheckoutStatusList = []string{
+		StatusCreated,
+		StatusPending,
+		StatusCancelled,
+	}
 )

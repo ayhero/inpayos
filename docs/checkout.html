@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InPayOS 收银台 - 安全支付</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .header {
+            background: #fff;
+            border-bottom: 1px solid #e1e5e9;
+            padding: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2563eb;
+        }
+        
+        .security-badge {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #059669;
+        }
+        
+        .security-badge::before {
+            content: "🔒";
+            margin-right: 5px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        
+        .checkout-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .card-header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .card-header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        .card-content {
+            padding: 40px;
+        }
+        
+        .step {
+            display: none;
+        }
+        
+        .step.active {
+            display: block;
+        }
+        
+        .step-header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .step-title {
+            font-size: 24px;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .step-description {
+            color: #6b7280;
+            font-size: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 24px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 14px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .order-summary {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        
+        .order-item.total {
+            border-top: 1px solid #e2e8f0;
+            padding-top: 12px;
+            font-weight: 600;
+            font-size: 18px;
+            color: #1f2937;
+        }
+        
+        .payment-methods {
+            display: grid;
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+        
+        .payment-method {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .payment-method:hover {
+            border-color: #2563eb;
+            background-color: #f8fafc;
+        }
+        
+        .payment-method.selected {
+            border-color: #2563eb;
+            background-color: #eff6ff;
+        }
+        
+        .payment-method-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .payment-method-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            font-size: 20px;
+        }
+        
+        .payment-method-icon.upi {
+            background: #ff6b35;
+            color: white;
+        }
+        
+        .payment-method-icon.bank {
+            background: #059669;
+            color: white;
+        }
+        
+        .payment-method-icon.card {
+            background: #7c3aed;
+            color: white;
+        }
+        
+        .payment-method-details h3 {
+            font-size: 16px;
+            margin-bottom: 4px;
+            color: #1f2937;
+        }
+        
+        .payment-method-details p {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .payment-details {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .payment-details h3 {
+            color: #92400e;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .payment-details h3::before {
+            content: "💳";
+            margin-right: 8px;
+        }
+        
+        .bank-info {
+            display: grid;
+            gap: 12px;
+        }
+        
+        .bank-info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border-radius: 6px;
+        }
+        
+        .bank-info-label {
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .bank-info-value {
+            font-family: monospace;
+            font-size: 16px;
+            color: #1f2937;
+        }
+        
+        .copy-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+        
+        .copy-btn:hover {
+            background: #1d4ed8;
+        }
+        
+        .upload-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            border-color: #2563eb;
+            background-color: #f8fafc;
+        }
+        
+        .upload-area.dragover {
+            border-color: #2563eb;
+            background-color: #eff6ff;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #9ca3af;
+        }
+        
+        .upload-text {
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .uploaded-files {
+            margin-top: 20px;
+        }
+        
+        .uploaded-file {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .file-info::before {
+            content: "📎";
+            margin-right: 8px;
+        }
+        
+        .remove-file {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
+        }
+        
+        .btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            margin-top: 10px;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #2563eb;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .success-message {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .countdown {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 20px auto;
+                padding: 0 16px;
+            }
+            
+            .card-content {
+                padding: 24px;
+            }
+            
+            .header-content {
+                padding: 0 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">InPayOS</div>
+            <div class="security-badge">安全支付</div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- 使用说明卡片 -->
+        <div class="checkout-card" style="margin-bottom: 20px;">
+            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 20px; border-radius: 12px 12px 0 0;">
+                <h2 style="margin: 0 0 10px 0; font-size: 20px;">📋 使用说明</h2>
+            </div>
+            <div style="padding: 20px; background: #f8fafc;">
+                <div style="display: grid; gap: 12px;">
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <span style="color: #059669; font-weight: bold;">1.</span>
+                        <div>
+                            <strong>API密钥：</strong>请从开发者控制台获取您的API密钥，测试环境可使用 <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-family: monospace;">test-api-key-123</code>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <span style="color: #059669; font-weight: bold;">2.</span>
+                        <div>
+                            <strong>收银台ID：</strong>每笔支付都会生成唯一的收银台ID，请确保输入正确
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <span style="color: #059669; font-weight: bold;">3.</span>
+                        <div>
+                            <strong>支付流程：</strong>选择支付方式 → 获取收款信息 → 完成转账 → 上传支付凭证 → 填写UTR号码
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <span style="color: #059669; font-weight: bold;">4.</span>
+                        <div>
+                            <strong>测试环境：</strong>当前连接到本地测试服务器 <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-family: monospace;">localhost:6080</code>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <span style="color: #059669; font-weight: bold;">5.</span>
+                        <div>
+                            <strong>API接口：</strong>
+                            <div style="font-size: 12px; margin-top: 4px; font-family: monospace; color: #6b7280;">
+                                POST /checkout/info - 获取收银台信息<br>
+                                POST /checkout/services - 获取支付方式<br>
+                                POST /checkout/submit - 提交支付<br>
+                                POST /checkout/confirm - 确认支付
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="checkout-card">
+            <div class="card-header">
+                <h1>安全收银台</h1>
+                <p>请按照以下步骤完成您的支付</p>
+            </div>
+            
+            <div class="card-content">
+                <!-- 步骤1: 输入收银台ID -->
+                <div class="step active" id="step-input">
+                    <div class="step-header">
+                        <h2 class="step-title">输入收银台ID</h2>
+                        <p class="step-description">请输入您收到的收银台ID以开始支付</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="apiKey">API密钥 (测试用)</label>
+                        <input type="text" class="form-input" id="apiKey" placeholder="请输入API密钥" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="checkoutId">收银台ID</label>
+                        <input type="text" class="form-input" id="checkoutId" placeholder="请输入收银台ID" />
+                    </div>
+                    
+                    <button class="btn" onclick="loadCheckout()">开始支付</button>
+                </div>
+                
+                <!-- 步骤2: 选择支付方式 -->
+                <div class="step" id="step-payment-method">
+                    <div class="step-header">
+                        <h2 class="step-title">选择支付方式</h2>
+                        <p class="step-description">请选择您偏好的支付方式</p>
+                    </div>
+                    
+                    <div class="order-summary" id="orderSummary">
+                        <div class="order-item">
+                            <span>订单金额:</span>
+                            <span id="orderAmount">--</span>
+                        </div>
+                        <div class="order-item">
+                            <span>币种:</span>
+                            <span id="orderCurrency">--</span>
+                        </div>
+                        <div class="order-item total">
+                            <span>应付总额:</span>
+                            <span id="totalAmount">--</span>
+                        </div>
+                    </div>
+                    
+                    <div class="countdown" id="countdown" style="display:none;">
+                        <span>⏰ 订单将在 <span id="countdownTime">--:--</span> 后过期</span>
+                    </div>
+                    
+                    <div class="payment-methods" id="paymentMethods">
+                        <!-- 支付方式将动态加载 -->
+                    </div>
+                    
+                    <button class="btn" id="selectPaymentBtn" onclick="selectPayment()" disabled>确认支付方式</button>
+                </div>
+                
+                <!-- 步骤3: 支付详情 -->
+                <div class="step" id="step-payment-details">
+                    <div class="step-header">
+                        <h2 class="step-title">完成支付</h2>
+                        <p class="step-description">请转账至以下账户并上传支付凭证</p>
+                    </div>
+                    
+                    <div class="payment-details">
+                        <h3>收款账户信息</h3>
+                        <div class="bank-info" id="bankInfo">
+                            <!-- 银行信息将动态加载 -->
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="utrNumber">UTR/交易参考号</label>
+                        <input type="text" class="form-input" id="utrNumber" placeholder="请输入UTR或交易参考号" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">上传支付凭证</label>
+                        <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                            <div class="upload-icon">📄</div>
+                            <div class="upload-text">点击上传支付截图或凭证</div>
+                            <div class="upload-text">支持 JPG, PNG, PDF 格式</div>
+                            <button type="button" class="upload-btn">选择文件</button>
+                        </div>
+                        <input type="file" class="file-input" id="fileInput" accept="image/*,.pdf" multiple>
+                        <div class="uploaded-files" id="uploadedFiles"></div>
+                    </div>
+                    
+                    <button class="btn" id="submitPaymentBtn" onclick="submitPayment()" disabled>提交支付凭证</button>
+                    <button class="btn btn-secondary" onclick="goBack()">返回上一步</button>
+                </div>
+                
+                <!-- 步骤4: 支付完成 -->
+                <div class="step" id="step-complete">
+                    <div class="step-header">
+                        <h2 class="step-title">支付提交成功</h2>
+                        <p class="step-description">您的支付凭证已提交，我们正在处理中</p>
+                    </div>
+                    
+                    <div class="success-message">
+                        <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+                        <h3>支付凭证已提交</h3>
+                        <p>我们将在1-5分钟内验证您的支付，验证完成后您将收到确认通知。</p>
+                        <p style="margin-top: 12px;">交易ID: <span id="transactionId">--</span></p>
+                    </div>
+                    
+                    <button class="btn" onclick="checkStatus()">查看支付状态</button>
+                </div>
+                
+                <!-- 加载状态 -->
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>处理中，请稍候...</p>
+                </div>
+                
+                <!-- 错误消息 -->
+                <div class="error-message" id="errorMessage" style="display:none;">
+                    <h3>操作失败</h3>
+                    <p id="errorText">--</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 页面底部信息 -->
+        <div style="text-align: center; margin-top: 30px; padding: 20px; color: #6b7280; font-size: 14px;">
+            <div style="margin-bottom: 10px;">
+                <span id="connectionStatus" style="display: inline-flex; align-items: center; gap: 6px;">
+                    <span style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%; display: inline-block;"></span>
+                    API连接状态：未连接
+                </span>
+            </div>
+            <div>
+                <p>InPayOS © 2025 - 安全支付解决方案</p>
+                <p style="margin-top: 4px;">如有疑问，请联系技术支持</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 全局变量
+        let currentStep = 'step-input';
+        let checkoutData = null;
+        let selectedPaymentMethod = null;
+        let currentTransaction = null;
+        let uploadedFiles = [];
+        let countdownTimer = null;
+        
+        // API配置
+        const API_BASE_URL = 'http://localhost:6080';
+        
+        // 获取API密钥
+        function getApiKey() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) {
+                alert('请输入API密钥');
+                return null;
+            }
+            return apiKey;
+        }
+        
+        // 通用API调用函数
+        async function makeApiCall(endpoint, data) {
+            const apiKey = getApiKey();
+            if (!apiKey) return null;
+            
+            try {
+                console.log(`发起API调用: ${endpoint}`, data);
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                console.log('响应状态:', response.status);
+                console.log('响应头:', Object.fromEntries(response.headers));
+                
+                let responseData;
+                const responseText = await response.text();
+                console.log('响应原始数据:', responseText);
+                
+                try {
+                    responseData = responseText ? JSON.parse(responseText) : {};
+                } catch (parseError) {
+                    console.error('JSON解析失败:', parseError);
+                    throw new Error('服务器响应格式错误');
+                }
+                
+                if (!response.ok) {
+                    const errorMessage = responseData.message || responseData.error || `HTTP ${response.status}`;
+                    console.error('API调用失败:', errorMessage);
+                    throw new Error(errorMessage);
+                }
+                
+                console.log('响应数据:', responseData);
+                return responseData;
+            } catch (error) {
+                console.error('API调用出错:', error);
+                showError(`API调用失败: ${error.message}`);
+                return null;
+            }
+        }        // 显示步骤
+        function showStep(stepId) {
+            document.querySelectorAll('.step').forEach(step => {
+                step.classList.remove('active');
+            });
+            document.getElementById(stepId).classList.add('active');
+            currentStep = stepId;
+        }
+        
+        // 显示加载状态
+        function showLoading(show = true) {
+            document.getElementById('loading').classList.toggle('show', show);
+        }
+        
+        // 显示错误消息
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            document.getElementById('errorText').textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+
+        
+        // 加载收银台信息
+        async function loadCheckout() {
+            const checkoutId = document.getElementById('checkoutId').value.trim();
+            
+            if (!checkoutId) {
+                showError('请输入收银台ID');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                // 获取收银台信息
+                const checkoutInfo = await makeApiCall('/checkout/info', { checkout_id: checkoutId });
+                
+                if (!checkoutInfo) {
+                    throw new Error('获取收银台信息失败');
+                }
+                
+                // 处理响应数据
+                const data = checkoutInfo.data || checkoutInfo;
+                checkoutData = data;
+                
+                console.log('收银台数据:', checkoutData);
+                
+                // 显示订单信息 (使用默认值以防字段缺失)
+                const amount = checkoutData.amount || '100.00';
+                const ccy = checkoutData.ccy || 'INR';
+                
+                document.getElementById('orderAmount').textContent = amount;
+                document.getElementById('orderCurrency').textContent = ccy;
+                document.getElementById('totalAmount').textContent = `${amount} ${ccy}`;
+                
+                // 获取支付方式
+                await loadPaymentMethods();
+                
+                showStep('step-payment-method');
+                
+            } catch (error) {
+                console.error('加载收银台失败:', error);
+                showError(`加载收银台失败: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // 加载支付方式
+        async function loadPaymentMethods() {
+            try {
+                const servicesInfo = await makeApiCall('/checkout/services', { 
+                    checkout_id: checkoutData.id || checkoutData.checkout_id || document.getElementById('checkoutId').value.trim()
+                });
+                
+                if (!servicesInfo) {
+                    throw new Error('获取支付方式失败');
+                }
+                
+                const services = servicesInfo.data || servicesInfo;
+                console.log('支付方式数据:', services);
+                
+                // 显示支付方式
+                displayPaymentMethods(services);
+                
+            } catch (error) {
+                console.error('加载支付方式失败:', error);
+                // 显示默认支付方式
+                displayDefaultPaymentMethods();
+            }
+        }
+        
+        // 显示默认支付方式 (当API调用失败时使用)
+        function displayDefaultPaymentMethods() {
+            const container = document.getElementById('paymentMethods');
+            container.innerHTML = '';
+            
+            // 添加提示信息
+            const infoDiv = document.createElement('div');
+            infoDiv.innerHTML = '<p style="color: #f59e0b; text-align: center; margin-bottom: 20px;">⚠️ 无法加载支付方式配置，显示默认选项</p>';
+            container.appendChild(infoDiv);
+            
+            const defaultMethods = [
+                { id: 'upi', name: 'UPI支付', description: '使用UPI应用扫码或转账', type: 'upi' },
+                { id: 'bank_transfer', name: '银行转账', description: '银行账户间直接转账', type: 'bank' }
+            ];
+            
+            defaultMethods.forEach(method => {
+                const methodDiv = document.createElement('div');
+                methodDiv.className = 'payment-method';
+                methodDiv.dataset.method = method.id;
+                
+                methodDiv.innerHTML = `
+                    <div class="payment-method-info">
+                        <div class="payment-method-icon ${method.type}">${getPaymentMethodEmoji(method.id)}</div>
+                        <div class="payment-method-details">
+                            <h3>${method.name}</h3>
+                            <p>${method.description}</p>
+                        </div>
+                    </div>
+                    <div class="payment-method-radio">
+                        <input type="radio" name="paymentMethod" value="${method.id}" style="transform: scale(1.2);">
+                    </div>
+                `;
+                
+                methodDiv.addEventListener('click', () => {
+                    document.querySelectorAll('.payment-method').forEach(pm => pm.classList.remove('selected'));
+                    methodDiv.classList.add('selected');
+                    methodDiv.querySelector('input[type="radio"]').checked = true;
+                    selectedPaymentMethod = method.id;
+                    document.getElementById('selectPaymentBtn').disabled = false;
+                });
+                
+                container.appendChild(methodDiv);
+            });
+        }
+        
+        // 显示订单摘要
+        function displayOrderSummary(checkout) {
+            console.log('Displaying order summary for:', checkout);
+            
+            const amount = checkout.amount || '0';
+            const ccy = checkout.ccy || 'INR';
+            
+            document.getElementById('orderAmount').textContent = amount;
+            document.getElementById('orderCurrency').textContent = ccy;
+            document.getElementById('totalAmount').textContent = `${amount} ${ccy}`;
+        }
+        
+        // 显示支付方式
+        function displayPaymentMethods(services) {
+            const container = document.getElementById('paymentMethods');
+            container.innerHTML = '';
+            
+            const country = checkoutData.country || 'IN';
+            const countryConfig = services.configs[country];
+            
+            if (!countryConfig || !countryConfig.trx_methods) {
+                showError('暂无可用的支付方式');
+                return;
+            }
+            
+            countryConfig.trx_methods.forEach(method => {
+                const methodConfig = countryConfig.configs[method];
+                const methodDiv = document.createElement('div');
+                methodDiv.className = 'payment-method';
+                methodDiv.dataset.method = method;
+                
+                const iconClass = getPaymentMethodIcon(method);
+                const methodName = getPaymentMethodName(method);
+                const methodDesc = getPaymentMethodDescription(method);
+                
+                methodDiv.innerHTML = `
+                    <div class="payment-method-info">
+                        <div class="payment-method-icon ${iconClass}">${getPaymentMethodEmoji(method)}</div>
+                        <div class="payment-method-details">
+                            <h3>${methodName}</h3>
+                            <p>${methodDesc}</p>
+                        </div>
+                    </div>
+                    <div class="payment-method-radio">
+                        <input type="radio" name="paymentMethod" value="${method}" style="transform: scale(1.2);">
+                    </div>
+                `;
+                
+                methodDiv.addEventListener('click', () => {
+                    document.querySelectorAll('.payment-method').forEach(pm => pm.classList.remove('selected'));
+                    methodDiv.classList.add('selected');
+                    methodDiv.querySelector('input[type="radio"]').checked = true;
+                    selectedPaymentMethod = method;
+                    document.getElementById('selectPaymentBtn').disabled = false;
+                });
+                
+                container.appendChild(methodDiv);
+            });
+        }
+        
+        // 获取支付方式图标
+        function getPaymentMethodIcon(method) {
+            const icons = {
+                'UPI': 'upi',
+                'BANK_TRANSFER': 'bank',
+                'CREDIT_CARD': 'card'
+            };
+            return icons[method] || 'bank';
+        }
+        
+        // 获取支付方式表情
+        function getPaymentMethodEmoji(method) {
+            const emojis = {
+                'UPI': '📱',
+                'BANK_TRANSFER': '🏦',
+                'CREDIT_CARD': '💳'
+            };
+            return emojis[method] || '💰';
+        }
+        
+        // 获取支付方式名称
+        function getPaymentMethodName(method) {
+            const names = {
+                'UPI': 'UPI支付',
+                'BANK_TRANSFER': '银行转账',
+                'CREDIT_CARD': '信用卡支付'
+            };
+            return names[method] || method;
+        }
+        
+        // 获取支付方式描述
+        function getPaymentMethodDescription(method) {
+            const descriptions = {
+                'UPI': '使用UPI应用扫码或转账',
+                'BANK_TRANSFER': '银行账户间直接转账',
+                'CREDIT_CARD': '信用卡或借记卡支付'
+            };
+            return descriptions[method] || '安全便捷的支付方式';
+        }
+        
+        // 启动倒计时
+        function startCountdown(expiredAt) {
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+            }
+            
+            const countdownDiv = document.getElementById('countdown');
+            const timeSpan = document.getElementById('countdownTime');
+            
+            countdownTimer = setInterval(() => {
+                const now = Date.now();
+                const timeLeft = expiredAt - now;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(countdownTimer);
+                    timeSpan.textContent = '00:00';
+                    showError('订单已过期，请重新发起支付');
+                    return;
+                }
+                
+                const minutes = Math.floor(timeLeft / 60000);
+                const seconds = Math.floor((timeLeft % 60000) / 1000);
+                timeSpan.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+            
+            countdownDiv.style.display = 'block';
+        }
+        
+        // 选择支付方式
+        async function selectPayment() {
+            if (!selectedPaymentMethod) {
+                showError('请选择支付方式');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                // 提交支付方式选择
+                const submitData = {
+                    checkout_id: checkoutData.checkout_id || checkoutData.id || document.getElementById('checkoutId').value.trim(),
+                    trx_method: selectedPaymentMethod,
+                    account_no: generateAccountNo(selectedPaymentMethod)
+                };
+                
+                const result = await makeApiCall('/checkout/submit', submitData);
+                
+                if (result) {
+                    // 保存交易信息
+                    currentTransaction = result.data || result;
+                    
+                    // 显示支付详情
+                    displayPaymentDetails(result.data || result);
+                    showStep('step-payment-details');
+                } else {
+                    throw new Error('提交失败');
+                }
+                
+            } catch (error) {
+                console.error('提交支付方式失败:', error);
+                showError(`提交支付方式失败: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // 生成模拟账户号
+        function generateAccountNo(method) {
+            if (method === 'UPI') {
+                return `${Math.floor(Math.random() * 9000000000) + 1000000000}@paytm`;
+            } else if (method === 'BANK_TRANSFER') {
+                return Math.floor(Math.random() * 90000000000000) + 10000000000000;
+            }
+            return 'user@example.com';
+        }
+        
+        // 显示支付详情
+        function displayPaymentDetails(submitResult) {
+            const bankInfoDiv = document.getElementById('bankInfo');
+            
+            // 模拟银行账户信息
+            const bankInfo = generateBankInfo(selectedPaymentMethod);
+            
+            bankInfoDiv.innerHTML = '';
+            Object.entries(bankInfo).forEach(([label, value]) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'bank-info-item';
+                itemDiv.innerHTML = `
+                    <span class="bank-info-label">${label}:</span>
+                    <span class="bank-info-value">${value}</span>
+                    <button class="copy-btn" onclick="copyToClipboard('${value}')">复制</button>
+                `;
+                bankInfoDiv.appendChild(itemDiv);
+            });
+        }
+        
+        // 生成银行信息
+        function generateBankInfo(method) {
+            if (method === 'UPI') {
+                return {
+                    'UPI ID': 'merchant@paytm',
+                    '收款人': 'InPayOS Merchant',
+                    '金额': `${checkoutData.amount} ${checkoutData.ccy}`
+                };
+            } else if (method === 'BANK_TRANSFER') {
+                return {
+                    '银行名称': 'State Bank of India',
+                    '账户号码': '1234567890123456',
+                    '账户名称': 'InPayOS Merchant Account',
+                    'IFSC代码': 'SBIN0001234',
+                    '金额': `${checkoutData.amount} ${checkoutData.ccy}`
+                };
+            }
+            return {
+                '收款账户': 'merchant@inpayos.com',
+                '金额': `${checkoutData.amount} ${checkoutData.ccy}`
+            };
+        }
+        
+        // 复制到剪贴板
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // 可以添加一个临时的成功提示
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '已复制';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+        
+        // 文件上传处理
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            handleFiles(e.target.files);
+        });
+        
+        // 拖拽上传
+        const uploadArea = document.getElementById('uploadArea');
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        
+        // 处理文件
+        function handleFiles(files) {
+            Array.from(files).forEach(file => {
+                if (file.size > 5 * 1024 * 1024) { // 5MB限制
+                    showError(`文件 ${file.name} 超过5MB限制`);
+                    return;
+                }
+                
+                uploadedFiles.push(file);
+                displayUploadedFile(file);
+            });
+            
+            updateSubmitButton();
+        }
+        
+        // 显示已上传文件
+        function displayUploadedFile(file) {
+            const container = document.getElementById('uploadedFiles');
+            const fileDiv = document.createElement('div');
+            fileDiv.className = 'uploaded-file';
+            fileDiv.innerHTML = `
+                <div class="file-info">${file.name} (${formatFileSize(file.size)})</div>
+                <button class="remove-file" onclick="removeFile('${file.name}')">删除</button>
+            `;
+            container.appendChild(fileDiv);
+        }
+        
+        // 删除文件
+        function removeFile(fileName) {
+            uploadedFiles = uploadedFiles.filter(file => file.name !== fileName);
+            
+            // 重新显示文件列表
+            const container = document.getElementById('uploadedFiles');
+            container.innerHTML = '';
+            uploadedFiles.forEach(file => displayUploadedFile(file));
+            
+            updateSubmitButton();
+        }
+        
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // 更新提交按钮状态
+        function updateSubmitButton() {
+            const utrNumber = document.getElementById('utrNumber').value.trim();
+            const hasFiles = uploadedFiles.length > 0;
+            const btn = document.getElementById('submitPaymentBtn');
+            
+            btn.disabled = !utrNumber || !hasFiles;
+        }
+        
+        // UTR输入监听
+        document.getElementById('utrNumber').addEventListener('input', updateSubmitButton);
+        
+        // 提交支付凭证
+        async function submitPayment() {
+            const utrNumber = document.getElementById('utrNumber').value.trim();
+            
+            if (!utrNumber) {
+                showError('请输入UTR或交易参考号');
+                return;
+            }
+            
+            if (uploadedFiles.length === 0) {
+                showError('请上传支付凭证');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                // 将文件转换为base64
+                const proofFile = uploadedFiles[0];
+                const proofBase64 = await fileToBase64(proofFile);
+                
+                // 提交确认请求
+                const confirmData = {
+                    checkout_id: checkoutData.checkout_id || checkoutData.id || document.getElementById('checkoutId').value.trim(),
+                    trx_id: currentTransaction?.id || generateTrxId(),
+                    proof_id: utrNumber,
+                    trx_app: getAppName(selectedPaymentMethod),
+                    proof_urls: [`data:${proofFile.type};base64,${proofBase64}`]
+                };
+                
+                const result = await makeApiCall('/checkout/confirm', confirmData);
+                
+                if (result) {
+                    // 显示成功页面
+                    document.getElementById('transactionId').textContent = confirmData.trx_id;
+                    showStep('step-complete');
+                    
+                    // 停止倒计时
+                    if (countdownTimer) {
+                        clearInterval(countdownTimer);
+                    }
+                } else {
+                    throw new Error('确认失败');
+                }
+                
+            } catch (error) {
+                console.error('提交支付凭证失败:', error);
+                showError(`提交支付凭证失败: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // 将文件转换为base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    // 移除data:image/jpeg;base64,前缀
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // 模拟文件上传
+        async function uploadFiles(files) {
+            // 这里应该是真实的文件上传逻辑
+            // 返回模拟的URL列表
+            return files.map((file, index) => 
+                `https://storage.inpayos.com/proofs/${Date.now()}-${index}-${file.name}`
+            );
+        }
+        
+        // 生成交易ID
+        function generateTrxId() {
+            return `TRX_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+        }
+        
+        // 获取应用名称
+        function getAppName(method) {
+            const apps = {
+                'UPI': 'Paytm',
+                'BANK_TRANSFER': 'SBI Online',
+                'CREDIT_CARD': 'Visa'
+            };
+            return apps[method] || 'Unknown';
+        }
+        
+        // 返回上一步
+        function goBack() {
+            if (currentStep === 'step-payment-details') {
+                showStep('step-payment-method');
+            } else if (currentStep === 'step-payment-method') {
+                showStep('step-input');
+            }
+        }
+        
+        // 查看支付状态
+        async function checkStatus() {
+            showLoading(true);
+            
+            try {
+                const result = await makeApiCall('/checkout/info', { 
+                    checkout_id: checkoutData.checkout_id || checkoutData.id || document.getElementById('checkoutId').value.trim() 
+                });
+                const status = (result.data || result).status;
+                
+                if (status === 'completed') {
+                    showError('支付已完成！');
+                } else if (status === 'confirming') {
+                    showError('支付正在确认中，请耐心等待...');
+                } else {
+                    showError(`当前状态: ${status}`);
+                }
+                
+            } catch (error) {
+                showError(`查询状态失败: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // 更新连接状态
+        function updateConnectionStatus(connected, message = '') {
+            const statusElement = document.getElementById('connectionStatus');
+            const dot = statusElement.querySelector('span');
+            
+            if (connected) {
+                dot.style.background = '#10b981';
+                statusElement.innerHTML = `
+                    <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block;"></span>
+                    API连接状态：已连接 ${message}
+                `;
+            } else {
+                dot.style.background = '#ef4444';
+                statusElement.innerHTML = `
+                    <span style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%; display: inline-block;"></span>
+                    API连接状态：${message || '未连接'}
+                `;
+            }
+        }
+        
+        // 测试API连接
+        async function testApiConnection() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${document.getElementById('apiKey').value}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    updateConnectionStatus(true, '✓');
+                } else {
+                    updateConnectionStatus(false, `连接失败 (${response.status})`);
+                }
+            } catch (error) {
+                updateConnectionStatus(false, '连接失败');
+            }
+        }
+        
+        // API密钥输入监听
+        document.getElementById('apiKey').addEventListener('input', function() {
+            const apiKey = this.value.trim();
+            if (apiKey) {
+                testApiConnection();
+            } else {
+                updateConnectionStatus(false, '请输入API密钥');
+            }
+        });
+        
+        // 页面加载完成后的初始化
+        window.addEventListener('load', function() {
+            console.log('InPayOS 收银台页面已加载');
+            
+            // 设置默认的API密钥
+            document.getElementById('apiKey').value = 'test-api-key-123';
+            
+            // 从URL参数获取checkout_id
+            const urlParams = new URLSearchParams(window.location.search);
+            const checkoutId = urlParams.get('checkout_id');
+            if (checkoutId) {
+                document.getElementById('checkoutId').value = checkoutId;
+            }
+            
+            // 测试API连接
+            testApiConnection();
+            
+            // 定期检查连接状态
+            setInterval(testApiConnection, 30000); // 每30秒检查一次
+        });
+    </script>
+</body>
+</html>
