@@ -977,6 +977,7 @@ func (t *Transaction) Protocol() *protocol.Transaction {
 		ReqID:     t.ReqID,
 		UserID:    t.UserID,
 		CashierID: t.CashierID,
+		Country:   t.GetCountry(),
 
 		// 原始交易信息
 		OriTrxID:  t.OriTrxID,
