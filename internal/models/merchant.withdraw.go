@@ -8,7 +8,7 @@ import (
 type MerchantWithdraw struct {
 	ID        uint64 `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	TrxID     string `json:"trx_id" gorm:"column:trx_id;type:varchar(64);uniqueIndex"`
-	Mid       string `json:"mid" gorm:"column:mid;type:varchar(32);index"`
+	Mid       string `json:"mid" gorm:"column:mid;type:varchar(64);index"`
 	AccountID string `json:"account_id" gorm:"column:account_id;type:varchar(64);index"`
 	*MerchantWithdrawValues
 	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`

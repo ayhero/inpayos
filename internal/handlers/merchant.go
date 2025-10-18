@@ -117,6 +117,7 @@ func (t *MerchantAdmin) SetupRouter() *gin.Engine {
 	}
 	checkout := api.Group("/checkout")
 	{
+		checkout.POST("/create", t.CreateCheckout)
 		checkout.POST("/submit", t.SubmitCheckout)
 		checkout.POST("/services", t.CheckoutServices)
 		checkout.POST("/confirm", t.ConfirmCheckout)

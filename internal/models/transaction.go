@@ -14,7 +14,7 @@ type Transaction struct {
 	ID                 int64            `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	Tid                string           `json:"tid" gorm:"column:tid;type:varchar(32);index"`
 	CashierID          string           `json:"cashier_id" gorm:"column:cashier_id;type:varchar(32);index"`
-	Mid                string           `json:"mid" gorm:"column:mid;type:varchar(32);index"`
+	Mid                string           `json:"mid" gorm:"column:mid;type:varchar(64);index"`
 	UserID             string           `json:"user_id" gorm:"column:user_id;type:varchar(32);index"`
 	TrxID              string           `json:"trx_id" gorm:"column:trx_id;type:varchar(64);uniqueIndex"`
 	TrxType            string           `json:"trx_type" gorm:"column:trx_type;type:varchar(32);index"` // 交易类型：payin, payout
@@ -916,6 +916,16 @@ func (tv *TransactionValues) SetSettleStatus(value string) *TransactionValues {
 	return tv
 }
 
+func GetTransactionByMidAndTrxID(mid, trxID, trxType string) *Transaction {
+	var transaction Transaction
+	err := GetTransactionQueryByType(trxType).Where("mid = ? AND trx_id = ?", mid, trxID).First(&transaction).Error
+	if err != nil {
+		log.Get().Errorf("GetTransactionByMidAndTrxID: %v", err)
+		return nil
+	}
+	return &transaction
+}
+
 // CountTransactionByQuery 根据查询条件统计交易数量
 func CountTransactionByQuery(query *TrxQuery) int64 {
 	var count int64
@@ -1099,4 +1109,191 @@ func (t *Transaction) Protocol() *protocol.Transaction {
 	}
 
 	return info
+}
+
+// ToMerchantPayin converts Transaction to MerchantPayin
+func (t *Transaction) ToMerchantPayin() *MerchantPayin {
+	if t == nil || t.TrxType != protocol.TrxTypePayin {
+		return nil
+	}
+
+	payin := &MerchantPayin{
+		ID:          t.ID,
+		TrxID:       t.TrxID,
+		TrxType:     t.TrxType,
+		Mid:         t.Mid,
+		UserID:      t.UserID,
+		ReqID:       t.ReqID,
+		OriTrxID:    t.OriTrxID,
+		OriReqID:    t.OriReqID,
+		OriFlowNo:   t.OriFlowNo,
+		TrxMethod:   t.TrxMethod,
+		TrxMode:     t.TrxMode,
+		TrxApp:      t.TrxApp,
+		Pkg:         t.Pkg,
+		Did:         t.Did,
+		ProductID:   t.ProductID,
+		UserIP:      t.UserIP,
+		Email:       t.Email,
+		Phone:       t.Phone,
+		Ccy:         t.Ccy,
+		Amount:      t.Amount,
+		UsdAmount:   t.UsdAmount,
+		AccountNo:   t.AccountNo,
+		AccountName: t.AccountName,
+		AccountType: t.AccountType,
+		BankCode:    t.BankCode,
+		BankName:    t.BankName,
+		ReturnURL:   t.ReturnURL,
+		CreatedAt:   t.CreatedAt,
+		UpdatedAt:   t.UpdatedAt,
+	}
+
+	// Convert TransactionValues to MerchantPayinValues
+	if t.TransactionValues != nil {
+		payin.MerchantPayinValues = &MerchantPayinValues{
+			MetaData:            t.TransactionValues.MetaData,
+			RefundedCount:       t.TransactionValues.RefundedCount,
+			RefundedAmount:      t.TransactionValues.RefundedAmount,
+			RefundedUsdAmount:   t.TransactionValues.RefundedUsdAmount,
+			LastRefundedAt:      t.TransactionValues.LastRefundedAt,
+			FlowNo:              t.TransactionValues.FlowNo,
+			SettleStatus:        t.TransactionValues.SettleStatus,
+			SettleID:            t.TransactionValues.SettleID,
+			SettledAt:           t.TransactionValues.SettledAt,
+			Country:             t.TransactionValues.Country,
+			Remark:              t.TransactionValues.Remark,
+			Status:              t.TransactionValues.Status,
+			Reason:              t.TransactionValues.Reason,
+			Link:                t.TransactionValues.Link,
+			Detail:              t.TransactionValues.Detail,
+			NotifyURL:           t.TransactionValues.NotifyURL,
+			FeeCcy:              t.TransactionValues.FeeCcy,
+			FeeAmount:           t.TransactionValues.FeeAmount,
+			FeeUsdAmount:        t.TransactionValues.FeeUsdAmount,
+			FeeUsdRate:          t.TransactionValues.FeeUsdRate,
+			ChannelStatus:       t.TransactionValues.ChannelStatus,
+			ResCode:             t.TransactionValues.ResCode,
+			ResMsg:              t.TransactionValues.ResMsg,
+			ChannelTrxID:        t.TransactionValues.ChannelTrxID,
+			ChannelCode:         t.TransactionValues.ChannelCode,
+			ChannelAccount:      t.TransactionValues.ChannelAccount,
+			ChannelGroup:        t.TransactionValues.ChannelGroup,
+			ChannelFeeCcy:       t.TransactionValues.ChannelFeeCcy,
+			ChannelFeeAmount:    t.TransactionValues.ChannelFeeAmount,
+			ChannelFeeUsdAmount: t.TransactionValues.ChannelFeeUsdAmount,
+			ChannelFeeUsdRate:   t.TransactionValues.ChannelFeeUsdRate,
+			ConfirmedAt:         t.TransactionValues.ConfirmedAt,
+			CompletedAt:         t.TransactionValues.CompletedAt,
+			ExpiredAt:           t.TransactionValues.ExpiredAt,
+			CanceledAt:          t.TransactionValues.CanceledAt,
+			CancelReason:        t.TransactionValues.CancelReason,
+			CancelFailedResult:  t.TransactionValues.CancelFailedResult,
+			Version:             t.TransactionValues.Version,
+		}
+	}
+
+	return payin
+}
+
+// ToMerchantPayout converts Transaction to MerchantPayout
+func (t *Transaction) ToMerchantPayout() *MerchantPayout {
+	if t == nil || t.TrxType != protocol.TrxTypePayout {
+		return nil
+	}
+
+	payout := &MerchantPayout{
+		ID:          t.ID,
+		TrxID:       t.TrxID,
+		TrxType:     t.TrxType,
+		Mid:         t.Mid,
+		UserID:      t.UserID,
+		ReqID:       t.ReqID,
+		OriTrxID:    t.OriTrxID,
+		OriReqID:    t.OriReqID,
+		OriFlowNo:   t.OriFlowNo,
+		TrxMethod:   t.TrxMethod,
+		TrxMode:     t.TrxMode,
+		TrxApp:      t.TrxApp,
+		Pkg:         t.Pkg,
+		Did:         t.Did,
+		ProductID:   t.ProductID,
+		UserIP:      t.UserIP,
+		Email:       t.Email,
+		Phone:       t.Phone,
+		Ccy:         t.Ccy,
+		Amount:      t.Amount,
+		UsdAmount:   t.UsdAmount,
+		AccountNo:   t.AccountNo,
+		AccountName: t.AccountName,
+		AccountType: t.AccountType,
+		BankCode:    t.BankCode,
+		BankName:    t.BankName,
+		ReturnURL:   t.ReturnURL,
+		CreatedAt:   t.CreatedAt,
+		UpdatedAt:   t.UpdatedAt,
+	}
+
+	// Convert TransactionValues to MerchantPayoutValues
+	if t.TransactionValues != nil {
+		payout.MerchantPayoutValues = &MerchantPayoutValues{
+			MetaData:            t.TransactionValues.MetaData,
+			RefundedCount:       t.TransactionValues.RefundedCount,
+			RefundedAmount:      t.TransactionValues.RefundedAmount,
+			RefundedUsdAmount:   t.TransactionValues.RefundedUsdAmount,
+			LastRefundedAt:      t.TransactionValues.LastRefundedAt,
+			FlowNo:              t.TransactionValues.FlowNo,
+			SettleStatus:        t.TransactionValues.SettleStatus,
+			SettleID:            t.TransactionValues.SettleID,
+			SettledAt:           t.TransactionValues.SettledAt,
+			Country:             t.TransactionValues.Country,
+			Remark:              t.TransactionValues.Remark,
+			Status:              t.TransactionValues.Status,
+			Link:                t.TransactionValues.Link,
+			Detail:              t.TransactionValues.Detail,
+			NotifyURL:           t.TransactionValues.NotifyURL,
+			FeeCcy:              t.TransactionValues.FeeCcy,
+			FeeAmount:           t.TransactionValues.FeeAmount,
+			FeeUsdAmount:        t.TransactionValues.FeeUsdAmount,
+			FeeUsdRate:          t.TransactionValues.FeeUsdRate,
+			ChannelStatus:       t.TransactionValues.ChannelStatus,
+			ResCode:             t.TransactionValues.ResCode,
+			ResMsg:              t.TransactionValues.ResMsg,
+			Reason:              t.TransactionValues.Reason,
+			ChannelTrxID:        t.TransactionValues.ChannelTrxID,
+			ChannelCode:         t.TransactionValues.ChannelCode,
+			ChannelAccount:      t.TransactionValues.ChannelAccount,
+			ChannelGroup:        t.TransactionValues.ChannelGroup,
+			ChannelFeeCcy:       t.TransactionValues.ChannelFeeCcy,
+			ChannelFeeAmount:    t.TransactionValues.ChannelFeeAmount,
+			ChannelFeeUsdAmount: t.TransactionValues.ChannelFeeUsdAmount,
+			ChannelFeeUsdRate:   t.TransactionValues.ChannelFeeUsdRate,
+			ConfirmedAt:         t.TransactionValues.ConfirmedAt,
+			CompletedAt:         t.TransactionValues.CompletedAt,
+			ExpiredAt:           t.TransactionValues.ExpiredAt,
+			CanceledAt:          t.TransactionValues.CanceledAt,
+			CancelReason:        t.TransactionValues.CancelReason,
+			CancelFailedResult:  t.TransactionValues.CancelFailedResult,
+			Version:             t.TransactionValues.Version,
+		}
+	}
+
+	return payout
+}
+
+// ToTrxByType converts Transaction to specific transaction type based on trxType
+func (t *Transaction) ToTrxByType() interface{} {
+	if t == nil {
+		return nil
+	}
+
+	switch t.TrxType {
+	case protocol.TrxTypePayin:
+		return t.ToMerchantPayin()
+	case protocol.TrxTypePayout:
+		return t.ToMerchantPayout()
+	default:
+		// For unsupported types, return the Transaction itself
+		return t
+	}
 }

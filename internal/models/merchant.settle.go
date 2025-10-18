@@ -6,14 +6,13 @@ import (
 	"inpayos/internal/utils"
 
 	"github.com/shopspring/decimal"
-	"github.com/spf13/cast"
 	"gorm.io/gorm"
 )
 
-type MerchantSettleLog struct {
+type MerchantSettle struct {
 	ID                       int64            `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	SettleID                 string           `json:"settle_id" gorm:"column:settle_id;index"`       // SettleID 结算ID
-	MID                      int64            `json:"mid" gorm:"column:mid;index"`                   // MerchantID 商户ID
+	Mid                      string           `json:"mid" gorm:"column:mid;type:varchar(64);index"`  // MerchantID 商户ID
 	PeriodType               string           `json:"period_type" gorm:"column:period_type;index"`   // SettlePeriodType 结算周期类型: D0, D1, D7, M1
 	Period                   int64            `json:"period" gorm:"column:period;index"`             // SettlePeriod 结算周期
 	TrxStartAt               int64            `json:"trx_start_at" gorm:"column:trx_start_at"`       // TrxStartAt 交易开始时间
@@ -49,29 +48,29 @@ type MerchantSettleLogValues struct {
 	CompletedAt     *int64           `json:"completed_at" gorm:"column:completed_at"`                               // CompletedAt 结算完成时间
 }
 
-func (t MerchantSettleLog) TableName() string {
-	return "t_merchant_settle_log"
+func (t MerchantSettle) TableName() string {
+	return "t_merchant_settle"
 }
 
-// Getters for MerchantSettleLog
-func (t *MerchantSettleLog) GetTrxAmount() decimal.Decimal {
+// Getters for MerchantSettle
+func (t *MerchantSettle) GetTrxAmount() decimal.Decimal {
 	if t.TrxAmount == nil {
 		return decimal.Zero
 	}
 	return *t.TrxAmount
 }
-func (t *MerchantSettleLog) GetTrxUsdAmount() decimal.Decimal {
+func (t *MerchantSettle) GetTrxUsdAmount() decimal.Decimal {
 	if t.TrxUsdAmount == nil {
 		return decimal.Zero
 	}
 	return *t.TrxUsdAmount
 }
 
-func (t *MerchantSettleLog) SetTrxAmount(amount decimal.Decimal) *MerchantSettleLog {
+func (t *MerchantSettle) SetTrxAmount(amount decimal.Decimal) *MerchantSettle {
 	t.TrxAmount = &amount
 	return t
 }
-func (t *MerchantSettleLog) SetTrxUsdAmount(amount decimal.Decimal) *MerchantSettleLog {
+func (t *MerchantSettle) SetTrxUsdAmount(amount decimal.Decimal) *MerchantSettle {
 	t.TrxUsdAmount = &amount
 	return t
 }
@@ -209,7 +208,7 @@ func (v *MerchantSettleLogValues) SetStrategyCodes(codes []string) *MerchantSett
 }
 
 // SetValues updates the MerchantSettleLogValues of the settle log
-func (t *MerchantSettleLog) SetValues(values *MerchantSettleLogValues) {
+func (t *MerchantSettle) SetValues(values *MerchantSettleLogValues) {
 	if values == nil {
 		return
 	}
@@ -260,16 +259,16 @@ func (t *MerchantSettleLog) SetValues(values *MerchantSettleLogValues) {
 }
 
 // GetOrCreateSettleLog 获取或创建结算周期记录,根据执行结算的当时
-func GetOrCreateSettleLog(mid string, completedAt, settleAt int64, settleConfig *ContractSettleSetting) *MerchantSettleLog {
+func GetOrCreateSettleLog(mid string, completedAt, settleAt int64, settleConfig *ContractSettleConfig) *MerchantSettle {
 	settleLog := GetMerchantSettleLogByMIDAndPeriod(mid, settleConfig.TrxType, settleAt, settleConfig.Type)
 	if settleLog != nil {
 		return settleLog
 	}
 	period, startAt, endAt := settleConfig.GetSettlePeriodByTime(completedAt, settleAt)
 	// 创建新的结算周期记录
-	settleLog = &MerchantSettleLog{
+	settleLog = &MerchantSettle{
 		SettleID:      utils.GenerateSettleLogID(),
-		MID:           cast.ToInt64(mid),
+		Mid:           mid,
 		PeriodType:    settleConfig.Type,
 		Period:        period,
 		SettleStartAt: startAt,
@@ -295,12 +294,12 @@ func RefreshSettleLog(tx *gorm.DB, settleLogID string) error {
 }
 
 // GetSettleLogByID 根据ID获取结算周期记录
-func GetSettleLogByID(settleID string) (*MerchantSettleLog, error) {
+func GetSettleLogByID(settleID string) (*MerchantSettle, error) {
 	if settleID == "" {
 		return nil, fmt.Errorf("settleID cannot be empty")
 	}
 
-	var settleLog MerchantSettleLog
+	var settleLog MerchantSettle
 	err := ReadDB.Where("settle_id = ?", settleID).First(&settleLog).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -311,8 +310,8 @@ func GetSettleLogByID(settleID string) (*MerchantSettleLog, error) {
 	return &settleLog, nil
 }
 
-func GetMerchantSettleLogByMIDAndPeriod(mid, trx_type string, period int64, periodType string) *MerchantSettleLog {
-	var settleLog MerchantSettleLog
+func GetMerchantSettleLogByMIDAndPeriod(mid, trx_type string, period int64, periodType string) *MerchantSettle {
+	var settleLog MerchantSettle
 	err := ReadDB.Where("mid = ? AND period = ? AND period_type = ? AND trx_type = ?", mid, period, periodType, trx_type).First(&settleLog).Error
 	if err != nil {
 		return nil
@@ -325,7 +324,7 @@ func NewSettleTransaction(trx *Transaction, settleLogID string) *MerchantSettleT
 	settleTransaction := &MerchantSettleTransaction{
 		TrxID:        trx.TrxID,
 		SettleID:     utils.GenerateSettleTrxID(),
-		MID:          trx.Mid,
+		Mid:          trx.Mid,
 		TrxType:      trx.TrxType,
 		TrxCcy:       trx.Ccy,
 		TrxAmount:    trx.Amount,
@@ -363,8 +362,8 @@ func NewSettleTransactionRecord(trx *Transaction, settleLogID string, strategy *
 
 // GetPendingAccountingSettleLogs 获取待记账的结算记录
 // 返回所有 settle_end_at 已过期且状态为成功但尚未记账的结算记录
-func GetPendingAccountingSettleLogs(currentTime int64) ([]*MerchantSettleLog, error) {
-	var settleLogs []*MerchantSettleLog
+func GetPendingAccountingSettleLogs(currentTime int64) ([]*MerchantSettle, error) {
+	var settleLogs []*MerchantSettle
 
 	// 查询条件：
 	// 1. settle_end_at < currentTime (结算周期已结束)

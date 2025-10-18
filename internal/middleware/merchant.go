@@ -48,6 +48,11 @@ func MerchantJWTAuth() gin.HandlerFunc {
 			return
 		}
 		merchant := models.GetMerchantByMID(claims.UserID)
+		if merchant == nil {
+			c.JSON(http.StatusUnauthorized, protocol.NewAuthErrorResult())
+			c.Abort()
+			return
+		}
 		// 临时设置用户信息
 		c.Set(UserIDKey, merchant.Mid)
 		c.Set(UserKey, merchant)

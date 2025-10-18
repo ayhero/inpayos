@@ -61,7 +61,6 @@ func (s *CheckoutService) Create(req *protocol.CreateCheckoutRequest) (info *pro
 		CheckoutID: checkoutID,
 		Mid:        req.Mid,
 		ReqID:      req.ReqID,
-		TrxID:      utils.GeneratePayinID(),
 		TrxType:    protocol.TrxTypePayin, // 默认代收类型
 		MerchantCheckoutValues: &models.MerchantCheckoutValues{
 			Ccy:          &req.Ccy,
@@ -108,83 +107,56 @@ func (s *CheckoutService) Submit(req *protocol.SubmitCheckoutRequest) (trx *prot
 		return
 	}
 
-	// 3. 检查是否已有该支付方式的交易记录
-	// 使用checkout的CheckoutID + TrxMethod作为ReqID，确保同一收银台的同一支付方式唯一
-	reqID := checkout.CheckoutID + "-" + req.TrxMethod
-
-	// 检查是否已存在相同支付方式的交易
-	payin := models.GetMerchantPayinByReqID(req.Mid, reqID)
-	if payin != nil {
+	// 3. 检查是否已有该支付方式的交易记录（从Checkout.Transactions字段中检查）
+	existingTrx := checkout.FindTransactionByTrxMethod(req.TrxMethod)
+	if existingTrx != nil {
+		// 如果已存在该支付方式的交易，直接返回
 		trx = checkout.Protocol()
-		trx.Transaction = payin.ToTransaction().Protocol()
+		trx.Transaction = existingTrx.Protocol()
 		return
 	}
 
-	// 4. 创建支付交易请求
-	// ReqID在第3步已经定义，这里直接使用
+	// 4. 创建交易记录（暂存在Checkout.Transactions中，不写入代收表）
+	reqID := checkout.CheckoutID + "-" + req.TrxMethod
+	trxID := utils.GeneratePayinID()
 
-	payinReq := &protocol.MerchantPayinRequest{
+	// 创建Transaction记录
+	status := protocol.StatusPending
+	notifyURL := checkout.GetNotifyURL()
+	transaction := &models.Transaction{
 		Mid:       req.Mid,
-		ReqID:     reqID, // 设置ReqID用于重复检查
+		TrxType:   protocol.TrxTypePayin,
+		ReqID:     reqID,
+		TrxID:     trxID,
 		Ccy:       checkout.GetCcy(),
-		Amount:    checkout.GetAmount().String(),
+		Amount:    checkout.Amount,
 		TrxMethod: req.TrxMethod,
-		TrxMode:   "", // 基于 TrxMethod 自动推导
-		TrxApp:    "", // 在具体支付时再指定
 		ReturnURL: checkout.GetReturnURL(),
-		NotifyURL: checkout.GetNotifyURL(),
+		AccountNo: req.AccountNo,
+		TransactionValues: &models.TransactionValues{
+			Status:    &status,
+			NotifyURL: &notifyURL,
+		},
 	}
+	transaction.SetCountry(req.Country)
+	// 5. 将交易记录添加到Checkout.Transactions字段中
+	checkout.AddTransaction(transaction)
 
-	// 5. 创建支付订单
-	var transaction *protocol.Transaction
-
-	// 使用数据库事务
-	err := models.WriteDB.Transaction(func(tx *gorm.DB) error {
-		// 先检查重复性
-		payin := models.GetMerchantPayinByReqID(payinReq.Mid, payinReq.ReqID)
-		if payin != nil {
-			transaction = payin.ToTransaction().Protocol()
-			return nil
-		}
-		// 创建代收记录
-		payin = &models.MerchantPayin{
-			Mid:                 payinReq.Mid,
-			TrxType:             protocol.TrxTypePayin,
-			ReqID:               payinReq.ReqID,
-			TrxID:               utils.GeneratePayinID(),
-			Ccy:                 payinReq.Ccy,
-			Amount:              checkout.Amount,
-			TrxMethod:           payinReq.TrxMethod,
-			ReturnURL:           payinReq.ReturnURL,
-			AccountNo:           req.AccountNo,
-			MerchantPayinValues: &models.MerchantPayinValues{},
-		}
-		payin.SetStatus(protocol.StatusPending).
-			SetNotifyURL(payinReq.NotifyURL)
-
-		// 保存到数据库先创建基础记录
-		return tx.Create(payin).Error
-	})
-
+	nowtime := utils.TimeNowMilli()
+	// 6. 更新收银台记录（包含新的交易数据）
+	checkoutValues := &models.MerchantCheckoutValues{}
+	checkoutValues.SetSubmitedAt(nowtime).
+		SetTransactions(checkout.GetTransactions())
+	err := models.SaveMerchantCheckout(models.WriteDB, checkout, checkoutValues)
 	if err != nil {
+		log.Get().Errorf("Update checkout submit status failed: %v", err)
 		code = protocol.SystemError
 		return
-	}
-	nowtime := utils.TimeNowMilli()
-	// 6. 更新收银台记录
-	checkoutValues := &models.MerchantCheckoutValues{}
-	checkoutValues.SetSubmitedAt(nowtime)
-
-	err = models.SaveMerchantCheckout(models.WriteDB, checkout, checkoutValues)
-	if err != nil {
-		// 更新失败不影响主流程，记录日志即可
-		log.Get().Errorf("Update checkout submit status failed: %v", err)
 	}
 
 	// 7. 返回更新后的收银台信息
 	trx = checkout.Protocol()
-	// 这里还需要包含新创建的交易信息
-	trx.Transaction = transaction
+	trx.Transaction = transaction.Protocol()
 	return
 }
 
@@ -200,7 +172,7 @@ func (s *CheckoutService) Confirm(req *protocol.ConfirmCheckoutRequest) (trx *pr
 
 	// 验证商户匹配
 	if checkout.Mid != req.Mid {
-		code = protocol.InvalidParams
+		code = protocol.TransactionNotFound
 		return
 	}
 
@@ -210,48 +182,42 @@ func (s *CheckoutService) Confirm(req *protocol.ConfirmCheckoutRequest) (trx *pr
 		return
 	}
 
-	// 3. 获取对应的交易记录
-	var transaction *models.Transaction
-
-	// 根据TrxID查找对应的交易记录
-	if checkout.TrxType == protocol.TrxTypePayin {
-		transaction = models.GetMerchantPayinByTrxID(req.Mid, req.TrxID)
-		if transaction == nil {
-			code = protocol.TransactionNotFound
-			return
-		}
-	}
+	// 3. 从Checkout.Transactions中查找对应的交易记录
+	transaction := checkout.FindTransactionByTrxID(req.TrxID)
 	if transaction == nil {
 		code = protocol.TransactionNotFound
 		return
 	}
 
 	// 验证交易状态
-	if transaction.GetStatus() != protocol.StatusSubmitted {
+	if transaction.GetStatus() != protocol.StatusPending {
 		code = protocol.TransactionCompleted
 		return
 	}
+	// 4. 现在才将交易数据写入代收表
+	now := utils.TimeNowMilli()
+	//更新交易记录
+	transaction.SetStatus(protocol.StatusConfirming).
+		SetSubmitedAt(now)
 
-	// 4. 更新交易状态为确认中
-	now := time.Now().UnixMilli()
+	// 更新收银台状态
+	checkoutValues := &models.MerchantCheckoutValues{}
+	checkoutValues.SetStatus(protocol.StatusConfirming).
+		SetTrxID(transaction.TrxID).
+		SetCountry(transaction.GetCountry()).
+		SetTrxMethod(transaction.TrxMethod).
+		SetSubmitedAt(now).
+		SetTransactions(checkout.GetTransactions())
+
 	// 使用数据库事务确保数据一致性
 	err := models.WriteDB.Transaction(func(tx *gorm.DB) error {
-		// 更新交易记录状态
-		values := models.NewTrxValues()
-		values.SetStatus(protocol.StatusConfirming).
-			SetConfirmedAt(now).
-			SetProofID(req.ProofID)
-
-		// 保存交易状态更新
-		if err := models.SaveTransactionValues(tx, transaction, values); err != nil {
-			return err
+		// 先检查代收表中是否已存在该交易
+		if trx := models.GetTransactionByMidAndTrxID(req.Mid, transaction.TrxID, transaction.TrxType); trx == nil {
+			// 保存代收记录到数据库
+			if err := tx.Table(models.TrxTypeTableMap[transaction.TrxType]).Create(transaction.ToTrxByType()).Error; err != nil {
+				return err
+			}
 		}
-
-		// 更新收银台状态
-		checkoutValues := &models.MerchantCheckoutValues{}
-		checkoutValues.SetStatus(protocol.StatusConfirming).
-			SetConfirmedAt(now)
-
 		return models.SaveMerchantCheckout(tx, checkout, checkoutValues)
 	})
 
@@ -281,7 +247,7 @@ func (s *CheckoutService) Configs(checkoutID string) (result *protocol.MerchantC
 	}
 
 	// 3. 获取商户的支付路由配置
-	routers := models.ListMerchantRouterByMerchant(checkout.Mid, protocol.TrxTypePayin)
+	routers := models.ListActiveRouterByMerchant(checkout.Mid, protocol.TrxTypePayin)
 	if len(routers) == 0 {
 		code = protocol.ChannelNotSupported
 		return
@@ -289,20 +255,15 @@ func (s *CheckoutService) Configs(checkoutID string) (result *protocol.MerchantC
 
 	// 4. 创建商户收银台配置结构
 	result = &protocol.MerchantCheckoutConfig{
-		MerchantID: checkout.Mid,
-		Countries:  []string{},
-		Configs:    make(map[string]*protocol.CountryCheckoutConfig),
+		Mid:       checkout.Mid,
+		Countries: []string{},
+		Configs:   make(map[string]*protocol.CountryCheckoutConfig),
 	}
 
 	// 5. 按国家分组处理路由配置
 	countryMap := make(map[string]*protocol.CountryCheckoutConfig)
 
 	for _, router := range routers {
-		// 跳过非活跃状态的路由
-		if router.GetStatus() != protocol.StatusActive {
-			continue
-		}
-
 		trxMethod := router.GetTrxMethod()
 		if trxMethod == "" {
 			continue
@@ -310,7 +271,7 @@ func (s *CheckoutService) Configs(checkoutID string) (result *protocol.MerchantC
 
 		country := router.GetCountry()
 		if country == "" {
-			country = "*" // 默认国家
+			continue
 		}
 
 		// 如果国家配置不存在，创建新的
@@ -318,7 +279,7 @@ func (s *CheckoutService) Configs(checkoutID string) (result *protocol.MerchantC
 			countryMap[country] = &protocol.CountryCheckoutConfig{
 				Country:    country,
 				TrxMethods: []string{},
-				Configs:    make(map[string]*protocol.TrxMethodConfig),
+				Configs:    map[string]*protocol.TrxMethodConfig{},
 			}
 			result.Countries = append(result.Countries, country)
 		}

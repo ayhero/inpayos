@@ -8,22 +8,12 @@ import (
 // 结算策略
 type MerchantSettleStrategy struct {
 	ID                            int64  `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	Code                          string `json:"code" gorm:"column:code;uniqueIndex:uk_strategy_code"`                         // Code 策略代码
-	MID                           int64  `json:"mid" gorm:"column:mid;index;uniqueIndex:uk_mid_settle_strategy"`               // MerchantID 商户ID
-	SettleCcy                     string `json:"settle_ccy" gorm:"column:settle_ccy;index;uniqueIndex:uk_mid_settle_strategy"` // Currency 币种
+	Code                          string `json:"code" gorm:"column:code;uniqueIndex:uk_strategy_code"`                            // Code 策略代码
+	Mid                           string `json:"mid" gorm:"column:mid;type:varchar(64);index;uniqueIndex:uk_mid_settle_strategy"` // MerchantID 商户ID
+	SettleCcy                     string `json:"settle_ccy" gorm:"column:settle_ccy;index;uniqueIndex:uk_mid_settle_strategy"`    // Currency 币种
 	*MerchantSettleStrategyValues `gorm:"embedded"`
 	CreatedAt                     int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
 	UpdatedAt                     int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"` // 更新时间 (毫秒时间戳)
-}
-
-type MerchantSettleStrategies []*MerchantSettleStrategy
-
-func (t MerchantSettleStrategies) Protocol() []*protocol.SettleStrategy {
-	strategies := make([]*protocol.SettleStrategy, 0, len(t))
-	for _, s := range t {
-		strategies = append(strategies, s.Protocol())
-	}
-	return strategies
 }
 
 type MerchantSettleStrategyValues struct {
@@ -37,7 +27,17 @@ type MerchantSettleStrategyValues struct {
 }
 
 func (t MerchantSettleStrategy) TableName() string {
-	return "t_merchant_settle_strategy"
+	return "t_merchant_settle_strategies"
+}
+
+type MerchantSettleStrategies []*MerchantSettleStrategy
+
+func (t MerchantSettleStrategies) Protocol() []*protocol.SettleStrategy {
+	strategies := make([]*protocol.SettleStrategy, 0, len(t))
+	for _, s := range t {
+		strategies = append(strategies, s.Protocol())
+	}
+	return strategies
 }
 
 // Getters for MerchantSettleStrategy
@@ -178,7 +178,7 @@ func ListSettleStrategiesByMid(mid string) MerchantSettleStrategies {
 func (t *MerchantSettleStrategy) Protocol() *protocol.SettleStrategy {
 	v := &protocol.SettleStrategy{
 		ID:        t.ID,
-		MID:       t.MID,
+		Mid:       t.Mid,
 		SettleCcy: t.SettleCcy,
 		TrxType:   t.TrxType,
 		TrxMode:   t.TrxMode,

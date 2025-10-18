@@ -9,7 +9,7 @@ import (
 
 type MerchantRouter struct {
 	ID  int64  `json:"id" gorm:"column:id;primaryKey;AUTO_INCREMENT"`
-	MID string `json:"mid" gorm:"column:mid"`
+	Mid string `json:"mid" gorm:"column:mid;type:varchar(64);index"`
 	*MerchantRouterValues
 	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
 	UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"` // 更新时间 (毫秒时间戳)
@@ -43,7 +43,7 @@ func (t *MerchantRouter) TableName() string {
 
 type MerchantRouters []*MerchantRouter
 
-func ListMerchantRouterByMerchant(mid, trx_type string) (data MerchantRouters) {
+func ListActiveRouterByMerchant(mid, trx_type string) (data MerchantRouters) {
 	err := ReadDB.Where("trx_type=?", trx_type).
 		Where("mid = '' OR mid IS NULL OR mid = ?", mid).
 		Where("status = ?", protocol.StatusActive).

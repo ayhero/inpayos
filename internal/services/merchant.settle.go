@@ -7,7 +7,6 @@ import (
 	"inpayos/internal/models"
 	"inpayos/internal/protocol"
 	"inpayos/internal/utils"
-	"strconv"
 	"sync"
 	"time"
 
@@ -309,7 +308,7 @@ func (s *MerchantSettleService) SettleTransaction(ctx *protocol.MerchantSettleCo
 }
 
 // GetSettleStrategies 基于结算周期记录使用缓存获取结算策略
-func (s *MerchantSettleService) GetSettleStrategies(ctx *protocol.MerchantSettleContext, settleLog *models.MerchantSettleLog) []*protocol.SettleStrategy {
+func (s *MerchantSettleService) GetSettleStrategies(ctx *protocol.MerchantSettleContext, settleLog *models.MerchantSettle) []*protocol.SettleStrategy {
 	if settleLog == nil {
 		return nil
 	}
@@ -317,7 +316,7 @@ func (s *MerchantSettleService) GetSettleStrategies(ctx *protocol.MerchantSettle
 	// 使用结算周期记录的唯一标识作为缓存key
 	// 格式: settle.period_{商户ID}_{周期}
 	cacheKey := fmt.Sprintf("settle.period_%v_%v_%v",
-		settleLog.MID,
+		settleLog.Mid,
 		settleLog.PeriodType,
 		settleLog.Period)
 
@@ -336,8 +335,8 @@ func (s *MerchantSettleService) GetSettleStrategies(ctx *protocol.MerchantSettle
 		strategies = s.GetSettleStrategiesByCodes(strategyCodes)
 	} else {
 		// 回退：查询在周期时间有效的合同
-		log.Get().Debugf("GetSettleStrategiesWithPeriodCache: no preset strategies, falling back to contract query for merchant %d at time %d", settleLog.MID, settleLog.TrxStartAt)
-		contract := models.GetValidContractsAtTime(strconv.FormatInt(settleLog.MID, 10), settleLog.TrxStartAt)
+		log.Get().Debugf("GetSettleStrategiesWithPeriodCache: no preset strategies, falling back to contract query for merchant %d at time %d", settleLog.Mid, settleLog.TrxStartAt)
+		contract := models.GetValidContractsAtTime(settleLog.Mid, settleLog.TrxStartAt)
 		if contract != nil {
 			strategies = s.GenerateStrategiesFromContract(contract)
 		}
@@ -377,7 +376,7 @@ func (s *MerchantSettleService) IsStrategyMatched(trx *models.Transaction, strat
 	}
 
 	// 检查商户匹配 - 使用字符串比较
-	if strategy.MID > 0 && strconv.FormatInt(strategy.MID, 10) != trx.Mid {
+	if strategy.Mid != trx.Mid {
 		return false
 	}
 
@@ -462,7 +461,7 @@ func (s *MerchantSettleService) CalculateSettlement(trx *models.Transaction, rul
 }
 
 // GenerateStrategiesFromContract 根据合同配置生成结算策略
-func (s *MerchantSettleService) GenerateStrategiesFromContract(contract *models.Contract) []*protocol.SettleStrategy {
+func (s *MerchantSettleService) GenerateStrategiesFromContract(contract *models.MerchantContract) []*protocol.SettleStrategy {
 	if contract == nil {
 		return nil
 	}
@@ -475,8 +474,8 @@ func (s *MerchantSettleService) GenerateStrategiesFromContract(contract *models.
 
 	// 遍历合同，收集所有的策略代码
 	// 收集充值结算策略代码
-	if contract.SettleConfig.Payin != nil {
-		for _, code := range contract.SettleConfig.Payin.Strategies {
+	if contract.Payin != nil {
+		for _, code := range contract.Payin.Settle.Strategies {
 			if !codeLib[code] {
 				payinCodes = append(payinCodes, code)
 				codeLib[code] = true
@@ -485,8 +484,8 @@ func (s *MerchantSettleService) GenerateStrategiesFromContract(contract *models.
 	}
 
 	// 收集提现结算策略代码
-	if contract.SettleConfig.Payout != nil {
-		for _, code := range contract.SettleConfig.Payout.Strategies {
+	if contract.Payout != nil {
+		for _, code := range contract.Payout.Settle.Strategies {
 			if !codeLib[code] {
 				payoutCodes = append(payoutCodes, code)
 				codeLib[code] = true
@@ -542,7 +541,7 @@ func (s *MerchantSettleService) GetSettleStrategiesByCodes(strategyCodes []strin
 }
 
 // GetOrCreateTransactionSettleLog 获取或创建交易对应的结算周期记录
-func (s *MerchantSettleService) GetOrCreateTransactionSettleLog(trx *models.Transaction, settleAt int64) (*models.MerchantSettleLog, error) {
+func (s *MerchantSettleService) GetOrCreateTransactionSettleLog(trx *models.Transaction, settleAt int64) (*models.MerchantSettle, error) {
 	mid := trx.Mid
 	trxTime := trx.CreatedAt
 
@@ -553,10 +552,10 @@ func (s *MerchantSettleService) GetOrCreateTransactionSettleLog(trx *models.Tran
 	}
 
 	// 2. 从合同配置获取结算周期类型和策略
-	if contract.SettleConfig == nil {
+	settleConfig := contract.GetSettleConfig(trx.TrxType)
+	if settleConfig == nil {
 		return nil, fmt.Errorf("invalid contract settle config for merchant %s", mid)
 	}
-	settleConfig := contract.SettleConfig.GetSetting(trx.TrxType)
 
 	// 4. 获取或创建结算周期记录
 	settleLog := models.GetOrCreateSettleLog(mid, trx.GetCompletedAt(), settleAt, settleConfig)
@@ -568,7 +567,7 @@ func (s *MerchantSettleService) GetOrCreateTransactionSettleLog(trx *models.Tran
 }
 
 // ProcessSettleLogAccounting 处理单个结算记录的记账操作
-func (s *MerchantSettleService) ProcessSettleLogAccounting(settleLog *models.MerchantSettleLog) error {
+func (s *MerchantSettleService) ProcessSettleLogAccounting(settleLog *models.MerchantSettle) error {
 	if settleLog == nil {
 		return fmt.Errorf("settle log is nil")
 	}
@@ -583,7 +582,7 @@ func (s *MerchantSettleService) ProcessSettleLogAccounting(settleLog *models.Mer
 	// 调用账户服务更新余额
 	accountService := GetAccountService()
 	balanceReq := &protocol.UpdateBalanceRequest{
-		UserID:      cast.ToString(settleLog.MID),
+		UserID:      cast.ToString(settleLog.Mid),
 		UserType:    protocol.UserTypeMerchant,
 		Ccy:         settleLog.SettleCcy,
 		TrxType:     protocol.TrxTypeDeposit, // 结算入账使用充值类型
@@ -608,7 +607,7 @@ func (s *MerchantSettleService) ProcessSettleLogAccounting(settleLog *models.Mer
 	}
 
 	log.Get().Infof("ProcessSettleLogAccounting: successfully processed accounting for settle_id %s, merchant %d, amount %s %s",
-		settleLog.SettleID, settleLog.MID, settleAmount.String(), settleLog.SettleCcy)
+		settleLog.SettleID, settleLog.Mid, settleAmount.String(), settleLog.SettleCcy)
 
 	return nil
 }

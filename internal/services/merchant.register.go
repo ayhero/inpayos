@@ -58,7 +58,7 @@ func RegisterMerchant(req *MerchantRegisterRequest) protocol.ErrorCode {
 	// 创建商户
 	salt := utils.GenerateSalt()
 	merchant := &models.Merchant{
-		Mid: utils.GenerateUserID(),
+		Mid: utils.GenerateMerchantID(),
 		MerchantValues: &models.MerchantValues{
 			Salt: &salt,
 		},

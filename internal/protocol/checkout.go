@@ -6,15 +6,13 @@ const (
 	TrxMethodBankCard     = "bank_card"
 	TrxMethodBankTransfer = "bank_transfer"
 	TrxMethodUSDT         = "usdt"
-	TrxMethodWallet       = "wallet"
-	TrxMethodQRCode       = "qr_code"
 )
 
 // MerchantCheckoutConfig 商户收银台配置信息
 type MerchantCheckoutConfig struct {
-	MerchantID string                            `json:"merchant_id"`
-	Countries  []string                          `json:"countries"`         // 支持的国家列表
-	Configs    map[string]*CountryCheckoutConfig `json:"configs,omitempty"` // 按国家分组的配置
+	Mid       string                            `json:"mid"`
+	Countries []string                          `json:"countries"`         // 支持的国家列表
+	Configs   map[string]*CountryCheckoutConfig `json:"configs,omitempty"` // 按国家分组的配置
 }
 
 // CountryCheckoutConfig 国家级收银台配置信息
@@ -54,12 +52,10 @@ type CreateCheckoutRequest struct {
 	ReturnURL string `json:"return_url"`
 }
 type ConfirmCheckoutRequest struct {
-	Mid        string   `json:"mid"`
-	CheckoutID string   `json:"checkout_id" binding:"required"`
-	TrxID      string   `json:"trx_id" binding:"required"`   // 要确认的交易ID
-	ProofID    string   `json:"proof_id" binding:"required"` // 支付凭证ID/UTR
-	TrxApp     string   `json:"trx_app"`                     // 支付平台应用
-	ProofUrls  []string `json:"proof_urls,omitempty"`        // 支付凭证截图URLs
+	Mid        string `json:"mid"`
+	CheckoutID string `json:"checkout_id" binding:"required"`
+	TrxID      string `json:"trx_id" binding:"required"` // 要确认的交易ID
+	TrxApp     string `json:"trx_app"`                   // 支付平台应用
 }
 
 type CancelCheckoutRequest struct {
@@ -70,14 +66,16 @@ type CancelCheckoutRequest struct {
 type SubmitCheckoutRequest struct {
 	Mid        string `json:"mid"`
 	CheckoutID string `json:"checkout_id" binding:"required"`
+	Country    string `json:"country"`
 	TrxMethod  string `json:"trx_method" binding:"required"`
-	AccountNo  string `json:"account_no" binding:"required"`
+	AccountNo  string `json:"account_no"`
 }
 
 type Checkout struct {
 	CheckoutID  string       `json:"checkout_id"`
 	Mid         string       `json:"mid"`
 	ReqID       string       `json:"req_id"`
+	TrxID       string       `json:"trx_id"`
 	Amount      string       `json:"amount"`
 	Ccy         string       `json:"ccy"`
 	Country     string       `json:"country"`

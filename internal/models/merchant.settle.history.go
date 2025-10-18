@@ -5,7 +5,7 @@ type MerchantSettleHistory struct {
 	ID         int64  `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	HistoryID  string `json:"history_id" gorm:"column:history_id;uniqueIndex"` // 历史记录ID
 	SettleID   string `json:"settle_id" gorm:"column:settle_id;index"`         // 结算ID
-	MID        string `json:"mid" gorm:"column:mid;index"`                     // 商户ID
+	Mid        string `json:"mid" gorm:"column:mid;type:varchar(64);index"`    // 商户ID
 	FromStatus int    `json:"from_status" gorm:"column:from_status"`           // 前状态
 	ToStatus   int    `json:"to_status" gorm:"column:to_status"`               // 后状态
 	ChangedBy  string `json:"changed_by" gorm:"column:changed_by"`             // 修改人

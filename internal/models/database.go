@@ -100,7 +100,7 @@ func AutoMigrate() error {
 		&MerchantConfig{},
 		&MerchantFeeConfig{},
 		&APIConfig{},
-		&Contract{},
+		&MerchantContract{},
 
 		// 路由和渠道
 		&MerchantRouter{},
@@ -108,9 +108,10 @@ func AutoMigrate() error {
 		&ChannelGroup{},
 
 		// 结算相关
-		&MerchantSettleLog{},
+		&MerchantSettle{},
 		&MerchantSettleTransaction{},
 		&MerchantSettleHistory{},
+		&MerchantSettleStrategy{},
 		&SettleRule{},
 
 		// 通知和消息

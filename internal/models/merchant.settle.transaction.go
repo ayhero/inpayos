@@ -10,7 +10,7 @@ type MerchantSettleTransaction struct {
 	ID                               int64            `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	TrxID                            string           `json:"trx_id" gorm:"column:trx_id;index;uniqueIndex:idx_trx_settle"`       // TrxID 交易ID
 	SettleID                         string           `json:"settle_id" gorm:"column:settle_id;index;uniqueIndex:idx_trx_settle"` // SettleID 结算ID
-	MID                              string           `json:"mid" gorm:"column:mid;index"`                                        // MerchantID 商户ID
+	Mid                              string           `json:"mid" gorm:"column:mid;type:varchar(64);index"`                       // MerchantID 商户ID
 	TrxType                          string           `json:"trx_type" gorm:"column:trx_type"`                                    // TrxType 交易类型
 	TrxCcy                           string           `json:"trx_ccy" gorm:"column:trx_ccy"`                                      // TrxCcy 交易币种
 	TrxAmount                        *decimal.Decimal `json:"trx_amount" gorm:"column:trx_amount"`                                // TrxAmount 交易金额

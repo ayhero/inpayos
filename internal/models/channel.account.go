@@ -4,7 +4,7 @@ import "inpayos/internal/protocol"
 
 type ChannelAccount struct {
 	ID          int64  `json:"id" gorm:"column:id;primaryKey;AUTO_INCREMENT"`
-	MID         string `json:"mid" gorm:"column:mid"`
+	MID         string `json:"mid" gorm:"column:mid;type:varchar(64);index"`
 	ChannelCode string `json:"channel_code" gorm:"column:channel_code"`
 	*ChannelAccountValues
 	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`

@@ -31,13 +31,12 @@ type CashierPayout struct {
 }
 
 type CashierPayoutValues struct {
-	FlowNo    string           `json:"flow_no" gorm:"column:flow_no"`
+	FlowNo    *string          `json:"flow_no" gorm:"column:flow_no"`
 	CashierID *string          `json:"cashier_id" gorm:"column:cashier_id;type:varchar(32);index"`
 	Status    *string          `json:"status" gorm:"column:status;type:varchar(16);index;default:'pending'"`
 	Fee       *decimal.Decimal `json:"fee" gorm:"column:fee;type:decimal(36,18);default:0"`
 	NotifyURL *string          `json:"notify_url" gorm:"column:notify_url;type:varchar(512)"`
 	ReturnURL *string          `json:"return_url" gorm:"column:return_url;type:varchar(512)"`
-	OriTrxID  *string          `json:"ori_trx_id" gorm:"column:ori_trx_id;type:varchar(64)"` // 原交易ID(退款使用)
 	Metadata  *string          `json:"metadata" gorm:"column:metadata;type:json"`
 	Remark    *string          `json:"remark" gorm:"column:remark;type:varchar(512)"`
 
@@ -92,14 +91,6 @@ func (pov *CashierPayoutValues) GetReturnURL() string {
 		return ""
 	}
 	return *pov.ReturnURL
-}
-
-// GetOriTrxID returns the OriTrxID value
-func (pov *CashierPayoutValues) GetOriTrxID() string {
-	if pov.OriTrxID == nil {
-		return ""
-	}
-	return *pov.OriTrxID
 }
 
 // GetMetadata returns the Metadata value
@@ -190,12 +181,6 @@ func (pov *CashierPayoutValues) SetReturnURL(value string) *CashierPayoutValues 
 	return pov
 }
 
-// SetOriTrxID sets the OriTrxID value
-func (pov *CashierPayoutValues) SetOriTrxID(value string) *CashierPayoutValues {
-	pov.OriTrxID = &value
-	return pov
-}
-
 // SetMetadata sets the Metadata value
 func (pov *CashierPayoutValues) SetMetadata(value string) *CashierPayoutValues {
 	pov.Metadata = &value
@@ -267,49 +252,46 @@ func (p *CashierPayout) SetValues(values *CashierPayoutValues) *CashierPayout {
 	}
 
 	if values.CashierID != nil {
-		p.CashierPayoutValues.SetCashierID(*values.CashierID)
+		p.SetCashierID(*values.CashierID)
 	}
 	if values.Status != nil {
-		p.CashierPayoutValues.SetStatus(*values.Status)
+		p.SetStatus(*values.Status)
 	}
 	if values.Fee != nil {
-		p.CashierPayoutValues.SetFee(*values.Fee)
+		p.SetFee(*values.Fee)
 	}
 	if values.NotifyURL != nil {
-		p.CashierPayoutValues.SetNotifyURL(*values.NotifyURL)
+		p.SetNotifyURL(*values.NotifyURL)
 	}
 	if values.ReturnURL != nil {
-		p.CashierPayoutValues.SetReturnURL(*values.ReturnURL)
-	}
-	if values.OriTrxID != nil {
-		p.CashierPayoutValues.SetOriTrxID(*values.OriTrxID)
+		p.SetReturnURL(*values.ReturnURL)
 	}
 	if values.Metadata != nil {
-		p.CashierPayoutValues.SetMetadata(*values.Metadata)
+		p.SetMetadata(*values.Metadata)
 	}
 	if values.Remark != nil {
-		p.CashierPayoutValues.SetRemark(*values.Remark)
+		p.SetRemark(*values.Remark)
 	}
 	if values.SettleID != nil {
-		p.CashierPayoutValues.SetSettleID(*values.SettleID)
+		p.SetSettleID(*values.SettleID)
 	}
 	if values.SettleStatus != nil {
-		p.CashierPayoutValues.SetSettleStatus(*values.SettleStatus)
+		p.SetSettleStatus(*values.SettleStatus)
 	}
 	if values.SettledAt != nil {
-		p.CashierPayoutValues.SetSettledAt(*values.SettledAt)
+		p.SetSettledAt(*values.SettledAt)
 	}
 	if values.ExpiredAt != nil {
-		p.CashierPayoutValues.SetExpiredAt(*values.ExpiredAt)
+		p.SetExpiredAt(*values.ExpiredAt)
 	}
 	if values.ConfirmedAt != nil {
-		p.CashierPayoutValues.SetConfirmedAt(*values.ConfirmedAt)
+		p.SetConfirmedAt(*values.ConfirmedAt)
 	}
 	if values.CanceledAt != nil {
-		p.CashierPayoutValues.SetCanceledAt(*values.CanceledAt)
+		p.SetCanceledAt(*values.CanceledAt)
 	}
 	if values.CancelFailedResult != nil {
-		p.CashierPayoutValues.SetCancelFailedResult(*values.CancelFailedResult)
+		p.SetCancelFailedResult(*values.CancelFailedResult)
 	}
 
 	return p
@@ -325,7 +307,7 @@ func (p *CashierPayout) ToTransaction() *Transaction {
 		ID:          int64(p.ID), // Convert uint64 to int64
 		Tid:         p.Tid,
 		TrxType:     protocol.TrxTypePayout,
-		CashierID:   p.CashierPayoutValues.GetCashierID(),
+		CashierID:   p.GetCashierID(),
 		TrxID:       p.TrxID,
 		ReqID:       p.ReqID,
 		OriTrxID:    p.OriTrxID,
@@ -342,18 +324,18 @@ func (p *CashierPayout) ToTransaction() *Transaction {
 		BankName:    p.BankName,
 		ReturnURL:   "", // CashierPayout doesn't have ReturnURL in main struct
 		TransactionValues: &TransactionValues{
-			Status:             p.CashierPayoutValues.Status,
-			NotifyURL:          p.CashierPayoutValues.NotifyURL,
-			Remark:             p.CashierPayoutValues.Remark,
-			FlowNo:             &p.CashierPayoutValues.FlowNo,
-			SettleID:           p.CashierPayoutValues.SettleID,
-			SettleStatus:       p.CashierPayoutValues.SettleStatus,
-			SettledAt:          p.CashierPayoutValues.SettledAt,
-			ExpiredAt:          p.CashierPayoutValues.ExpiredAt,
-			ConfirmedAt:        p.CashierPayoutValues.ConfirmedAt,
-			CanceledAt:         p.CashierPayoutValues.CanceledAt,
-			CancelFailedResult: p.CashierPayoutValues.CancelFailedResult,
-			FeeAmount:          p.CashierPayoutValues.Fee,
+			Status:             p.Status,
+			NotifyURL:          p.NotifyURL,
+			Remark:             p.Remark,
+			FlowNo:             p.FlowNo,
+			SettleID:           p.SettleID,
+			SettleStatus:       p.SettleStatus,
+			SettledAt:          p.SettledAt,
+			ExpiredAt:          p.ExpiredAt,
+			ConfirmedAt:        p.ConfirmedAt,
+			CanceledAt:         p.CanceledAt,
+			CancelFailedResult: p.CancelFailedResult,
+			FeeAmount:          p.Fee,
 		},
 		CreatedAt: p.CreatedAt,
 		UpdatedAt: p.UpdatedAt,

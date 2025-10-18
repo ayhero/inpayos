@@ -10,40 +10,50 @@ import (
 	"github.com/spf13/cast"
 )
 
-type Contract struct {
+type MerchantContract struct {
 	ID            uint64 `gorm:"primaryKey;autoIncrement;<-:create" json:"id"`
 	ContractID    string `gorm:"type:varchar(32);uniqueIndex;not null;<-:create" json:"contract_id"` // 合同ID(唯一)
 	OriContractID string `gorm:"type:varchar(32);not null;<-:create" json:"ori_contract_id"`         // 原合同ID(用于更新时的原始合同ID)
-	Mid           string `gorm:"type:varchar(32);not null;<-:create" json:"mid"`                     // 商户ID
-	*ContractValues
+	Mid           string `gorm:"type:varchar(64);not null;<-:create" json:"mid"`                     // 商户ID
+	*MerchantContractValues
 	CreatedAt int64 `json:"created_at" gorm:"column:created_at;autoCreateTime:milli"`
 	UpdatedAt int64 `json:"updated_at" gorm:"column:updated_at;autoUpdateTime:milli"` // 更新时间 (毫秒时间戳)
 }
 
-func (t Contract) TableName() string {
+func (t MerchantContract) TableName() string {
 	return "t_merchant_contracts"
 }
 
-type ContractValues struct {
-	StartAt      int64                 `json:"start_at" gorm:"index;comment:生效时间"`                                  // StartAt 生效时间
-	ExpiredAt    int64                 `json:"expired_at" gorm:"index;comment:过期时间"`                                // ExpiredAt 过期时间
-	Status       int64                 `json:"status" gorm:"index;comment:状态"`                                      // Status 状态
-	Payin        *PayinSetting         `json:"payin" gorm:"column:payin;type:json;serializer:json"`                 // PayinSetting 充值配置
-	Payout       *PayinSetting         `json:"payout" gorm:"column:payout;type:json;serializer:json"`               // PayoutSetting 提现配置
-	SettleConfig *ContractSettleConfig `json:"settle_config" gorm:"column:settle_config;type:json;serializer:json"` // SettleConfig 结算配置
+type MerchantContractValues struct {
+	StartAt   *int64                  `json:"start_at" gorm:"index;comment:生效时间"`                    // StartAt 生效时间
+	ExpiredAt *int64                  `json:"expired_at" gorm:"index;comment:过期时间"`                  // ExpiredAt 过期时间
+	Status    *string                 `json:"status" gorm:"index;comment:状态"`                        // Status 状态
+	Payin     *MerchantContractConfig `json:"payin" gorm:"column:payin;type:json;serializer:json"`   // PayinSetting 充值配置
+	Payout    *MerchantContractConfig `json:"payout" gorm:"column:payout;type:json;serializer:json"` // PayoutSetting 提现配置
 }
 
-type PayinSetting struct {
-	Status      int64                 `json:"status" gorm:"column:status"`                             // 状态
-	SettingList []*ContractTrxSetting `json:"setting_list" gorm:"column:setting_list;serializer:json"` // 充值设置列表
+type MerchantContractConfig struct {
+	TrxType string                `json:"trx_type" gorm:"column:trx_type"`               // 交易类型
+	Status  string                `json:"status" gorm:"column:status"`                   // 状态
+	Configs []*ContractTrxConfig  `json:"configs" gorm:"column:configs;serializer:json"` // 配置列表
+	Settle  *ContractSettleConfig `json:"settle" gorm:"column:settle;serializer:json"`   // 结算配置
 }
 
 type ContractTrxConfig struct {
-	Payin  []*ContractTrxSetting `json:"payin" gorm:"column:payin;serializer:json;type:json"`
-	Payout []*ContractTrxSetting `json:"payout" gorm:"column:payout;serializer:json;type:json"`
+	Pkg          string           `json:"pkg" gorm:"column:pkg"`
+	TrxType      string           `json:"trx_type" gorm:"column:trx_type"`
+	TrxMethod    string           `json:"trx_method" gorm:"column:trx_method"`
+	Ccy          string           `json:"ccy" gorm:"column:ccy"`
+	Country      string           `json:"country" gorm:"column:country"` // 国家代码
+	MinAmount    *decimal.Decimal `json:"min_amount" gorm:"column:min_amount"`
+	MaxAmount    *decimal.Decimal `json:"max_amount" gorm:"column:max_amount"`
+	MinUsdAmount *decimal.Decimal `json:"min_usd_amount" gorm:"column:min_usd_amount"`
+	MaxUsdAmount *decimal.Decimal `json:"max_usd_amount" gorm:"column:max_usd_amount"`
 }
 
-type ContractTrxSetting struct {
+// 合同结算配置
+type ContractSettleConfig struct {
+	Type         string           `json:"type" gorm:"column:type"` // 结算类型，如 T0、T1、T2、T3、W1、M1
 	Pkg          string           `json:"pkg" gorm:"column:pkg"`
 	TrxType      string           `json:"trx_type" gorm:"column:trx_type"`
 	TrxSubType   string           `json:"trx_sub_type" gorm:"column:trx_sub_type"`
@@ -54,59 +64,27 @@ type ContractTrxSetting struct {
 	MaxAmount    *decimal.Decimal `json:"max_amount" gorm:"column:max_amount"`
 	MinUsdAmount *decimal.Decimal `json:"min_usd_amount" gorm:"column:min_usd_amount"`
 	MaxUsdAmount *decimal.Decimal `json:"max_usd_amount" gorm:"column:max_usd_amount"`
+	Strategies   []string         `json:"strategies" gorm:"column:strategies;serializer:json;type:json"` // 结算策略
 }
 
-type ContractSettleConfig struct {
-	*ContractSettleSetting
-	Payin  *ContractSettleSetting `json:"payin" gorm:"column:payin;serializer:json;type:json"`
-	Payout *ContractSettleSetting `json:"payout" gorm:"column:payout;serializer:json;type:json"`
-}
-
-func (c *ContractSettleConfig) GetSetting(trxType string) *ContractSettleSetting {
-	defaultScfg := c.ContractSettleSetting
-	var scfg *ContractSettleSetting
+func (c *MerchantContract) GetSettleConfig(trxType string) *ContractSettleConfig {
 	switch trxType {
 	case protocol.TrxTypePayin:
 		if _v := c.Payin; _v != nil {
-			scfg = _v
+			return _v.Settle
 		}
 	case protocol.TrxTypePayout:
 		if _v := c.Payout; _v != nil {
-			scfg = _v
+			return _v.Settle
 		}
 	}
-	if scfg == nil {
-		scfg = defaultScfg
-	}
-	if defaultScfg != nil {
-		if scfg.Type == "" {
-			scfg.Type = defaultScfg.Type
-		}
-		if scfg.Ccy == "" {
-			scfg.Ccy = defaultScfg.Ccy
-		}
-		if len(scfg.Strategies) == 0 {
-			scfg.Strategies = defaultScfg.Strategies
-		}
-	}
-	if scfg == nil || scfg.Type == "" || scfg.Ccy == "" || len(scfg.Strategies) == 0 {
-		return nil
-	}
-	scfg.TrxType = trxType
-	return scfg
-}
-
-type ContractSettleSetting struct {
-	TrxType    string   `json:"trx_type" gorm:"column:trx_type"`                               // 交易类型
-	Type       string   `json:"type" gorm:"column:type"`                                       // 结算周期，如：T0, T1, T2, T3, W1, M1
-	Ccy        string   `json:"ccy" gorm:"column:ccy"`                                         // 结算币种，如：CNY, USD
-	Strategies []string `json:"strategies" gorm:"column:strategies;serializer:json;type:json"` // 结算策略
+	return nil
 }
 
 // GetSettlePeriodByTime 根据交易完成时间和结算周期类型计算结算周期及其开始和结束时间
 // 参数 completedAt: 交易完成时间（毫秒时间戳）
 // 参数 executeAt: 定时任务执行时间（毫秒时间戳），如果理论结算时间已过，则使用执行时间计算周期
-func (c *ContractSettleSetting) GetSettlePeriodByTime(completedAt, executeAt int64) (period, startAt, endAt int64) {
+func (c *ContractSettleConfig) GetSettlePeriodByTime(completedAt, executeAt int64) (period, startAt, endAt int64) {
 	completedTime := time.UnixMilli(completedAt)
 	executeTime := time.UnixMilli(executeAt)
 	periodStr := ""
@@ -268,8 +246,8 @@ func (c *ContractSettleSetting) GetSettlePeriodByTime(completedAt, executeAt int
 
 	return
 }
-func ListMerchantContractByMid(mid string) []*Contract {
-	var contracts []*Contract
+func ListMerchantContractByMid(mid string) []*MerchantContract {
+	var contracts []*MerchantContract
 	if err := ReadDB.Where("mid = ? and status=?", mid, protocol.StatusActive).Find(&contracts).Error; err != nil {
 		log.Get().Errorf("ListMerchantContractByMid failed, mid: %s, err: %v", mid, err)
 		return nil
@@ -278,12 +256,12 @@ func ListMerchantContractByMid(mid string) []*Contract {
 }
 
 // GetValidContractsAtTime 获取在指定时间有效的合同
-func GetValidContractsAtTime(mid string, trxTime int64) *Contract {
+func GetValidContractsAtTime(mid string, trxTime int64) *MerchantContract {
 	if mid == "" {
 		return nil
 	}
 
-	var contract *Contract
+	var contract *MerchantContract
 	err := ReadDB.Where("mid = ? AND status = ? AND start_at <= ? AND (expired_at = 0 OR expired_at >= ?)",
 		mid, protocol.StatusActive, trxTime, trxTime).Order("id desc").First(&contract).Error
 	if err != nil {

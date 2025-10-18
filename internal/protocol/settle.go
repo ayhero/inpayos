@@ -74,7 +74,7 @@ type SettlementResult struct {
 
 type SettleStrategy struct {
 	ID        int64       `json:"id" gorm:"primaryKey;autoIncrement;comment:自增ID"`
-	MID       int64       `json:"mid" gorm:"index;comment:商户ID"`        // MerchantID 商户ID
+	Mid       string      `json:"mid" gorm:"index;comment:商户ID"`        // MerchantID 商户ID
 	Period    int64       `json:"period" gorm:"index;comment:结算周期"`     // SettlePeriod 结算周期
 	SettleCcy string      `json:"settle_ccy" gorm:"index;comment:币种"`   // Currency 币种
 	TrxType   string      `json:"trx_type" gorm:"index;comment:交易类型"`   // TrxType 交易类型

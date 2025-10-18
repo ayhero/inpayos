@@ -8,10 +8,10 @@ import (
 
 // MerchantPayin 代收记录表
 type MerchantPayin struct {
-	ID                   uint64           `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	ID                   int64            `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	TrxID                string           `json:"trx_id" gorm:"column:trx_id;type:varchar(64);uniqueIndex"`
 	TrxType              string           `json:"trx_type" gorm:"column:trx_type;type:varchar(16);index;default:'payin'"`
-	Mid                  string           `json:"mid" gorm:"column:mid;type:varchar(32);index"`
+	Mid                  string           `json:"mid" gorm:"column:mid;type:varchar(64);index"`
 	UserID               string           `json:"user_id" gorm:"column:user_id;type:varchar(32);index"`
 	ReqID                string           `json:"req_id" gorm:"column:req_id;type:varchar(64);index"`
 	OriTrxID             string           `json:"ori_trx_id" gorm:"column:ori_trx_id;index;<-:create"`
@@ -842,9 +842,9 @@ func GetMerchantPayinByReqID(mid, reqID string) *MerchantPayin {
 }
 
 func GetMerchantPayinByTrxID(mid, trxID string) *Transaction {
-	var trx Transaction
+	var trx *MerchantPayin
 	if err := ReadDB.Model(&MerchantPayin{}).Where("trx_id = ? AND mid = ?", trxID, mid).First(&trx).Error; err == nil {
-		return &trx
+		return trx.ToTransaction()
 	}
 	return nil
 }

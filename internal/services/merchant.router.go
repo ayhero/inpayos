@@ -23,7 +23,7 @@ type RouterRequest struct {
 }
 
 func GetChannelByMerchant(req *RouterRequest) (r *protocol.RouterInfo) {
-	routers := models.ListMerchantRouterByMerchant(req.Mid, req.TrxType)
+	routers := models.ListActiveRouterByMerchant(req.Mid, req.TrxType)
 	if len(routers) == 0 {
 		return
 	}

@@ -14,7 +14,6 @@ type MerchantCheckout struct {
 	CheckoutID string `gorm:"column:checkout_id;type:varchar(64);uniqueIndex;not null" json:"checkout_id"`
 	Mid        string `gorm:"column:mid;type:varchar(64);not null;index" json:"mid"`
 	ReqID      string `gorm:"column:req_id;type:varchar(64);index" json:"req_id"`
-	TrxID      string `gorm:"column:trx_id;type:varchar(64);index" json:"trx_id"`
 	TrxType    string `gorm:"column:trx_type;type:varchar(32);index" json:"trx_type"` // 交易类型: payin-代收, payout-代付
 	*MerchantCheckoutValues
 	CreatedAt int64 `gorm:"column:created_at;type:bigint;autoCreateTime:milli" json:"created_at"`
@@ -25,10 +24,10 @@ type MerchantCheckoutValues struct {
 	Ccy          *string           `gorm:"column:ccy;type:varchar(10)" json:"ccy"`
 	Amount       *decimal.Decimal  `gorm:"column:amount;type:decimal(20,8)" json:"amount"`
 	Country      *string           `gorm:"column:country;type:varchar(3)" json:"country"`
+	TrxID        *string           `gorm:"column:trx_id;type:varchar(64);index" json:"trx_id"`
 	TrxApp       *string           `gorm:"column:trx_app;type:varchar(32)" json:"trx_app"`
 	TrxMethod    *string           `gorm:"column:trx_method;type:varchar(32)" json:"trx_method"`
 	ReturnURL    *string           `gorm:"column:return_url;type:varchar(1024)" json:"return_url"`
-	CancelURL    *string           `gorm:"column:cancel_url;type:varchar(1024)" json:"cancel_url"`
 	NotifyURL    *string           `gorm:"column:notify_url;type:varchar(1024)" json:"notify_url"`
 	Status       *string           `gorm:"column:status;type:varchar(32);default:'created'" json:"status"` // created, pending, completed, cancelled, expired
 	ChannelCode  *string           `gorm:"column:channel_code;type:varchar(32)" json:"channel_code"`
@@ -74,8 +73,16 @@ func (cv *MerchantCheckoutValues) GetCountry() string {
 	return *cv.Country
 }
 
-// GetPaymentMethod returns the PaymentMethod value
-func (cv *MerchantCheckoutValues) GetPaymentMethod() string {
+// GetTrxID returns the TrxID value
+func (cv *MerchantCheckoutValues) GetTrxID() string {
+	if cv.TrxID == nil {
+		return ""
+	}
+	return *cv.TrxID
+}
+
+// GetTrxMethod returns the PaymentMethod value
+func (cv *MerchantCheckoutValues) GetTrxMethod() string {
 	if cv.TrxMethod == nil {
 		return ""
 	}
@@ -88,14 +95,6 @@ func (cv *MerchantCheckoutValues) GetReturnURL() string {
 		return ""
 	}
 	return *cv.ReturnURL
-}
-
-// GetCancelURL returns the CancelURL value
-func (cv *MerchantCheckoutValues) GetCancelURL() string {
-	if cv.CancelURL == nil {
-		return ""
-	}
-	return *cv.CancelURL
 }
 
 // GetNotifyURL returns the NotifyURL value
@@ -202,6 +201,14 @@ func (cv *MerchantCheckoutValues) GetCanceledAt() int64 {
 	return *cv.CanceledAt
 }
 
+// GetTransactions returns the Transactions value
+func (cv *MerchantCheckoutValues) GetTransactions() []*Transaction {
+	if cv.Transactions == nil {
+		return []*Transaction{}
+	}
+	return cv.Transactions
+}
+
 // CheckoutValues Setter Methods (support method chaining)
 // SetCcy sets the Ccy value
 func (cv *MerchantCheckoutValues) SetCcy(value string) *MerchantCheckoutValues {
@@ -221,8 +228,14 @@ func (cv *MerchantCheckoutValues) SetCountry(value string) *MerchantCheckoutValu
 	return cv
 }
 
-// SetPaymentMethod sets the PaymentMethod value
-func (cv *MerchantCheckoutValues) SetPaymentMethod(value string) *MerchantCheckoutValues {
+// SetTrxID sets the TrxID value
+func (cv *MerchantCheckoutValues) SetTrxID(value string) *MerchantCheckoutValues {
+	cv.TrxID = &value
+	return cv
+}
+
+// SetTrxMethod sets the PaymentMethod value
+func (cv *MerchantCheckoutValues) SetTrxMethod(value string) *MerchantCheckoutValues {
 	cv.TrxMethod = &value
 	return cv
 }
@@ -230,12 +243,6 @@ func (cv *MerchantCheckoutValues) SetPaymentMethod(value string) *MerchantChecko
 // SetReturnURL sets the ReturnURL value
 func (cv *MerchantCheckoutValues) SetReturnURL(value string) *MerchantCheckoutValues {
 	cv.ReturnURL = &value
-	return cv
-}
-
-// SetCancelURL sets the CancelURL value
-func (cv *MerchantCheckoutValues) SetCancelURL(value string) *MerchantCheckoutValues {
-	cv.CancelURL = &value
 	return cv
 }
 
@@ -337,17 +344,17 @@ func (c *MerchantCheckout) SetValues(values *MerchantCheckoutValues) *MerchantCh
 	if values.Country != nil {
 		c.MerchantCheckoutValues.SetCountry(*values.Country)
 	}
+	if values.TrxID != nil {
+		c.MerchantCheckoutValues.SetTrxID(*values.TrxID)
+	}
 	if values.TrxApp != nil {
 		c.MerchantCheckoutValues.SetTrxApp(*values.TrxApp)
 	}
 	if values.TrxMethod != nil {
-		c.MerchantCheckoutValues.SetPaymentMethod(*values.TrxMethod)
+		c.MerchantCheckoutValues.SetTrxMethod(*values.TrxMethod)
 	}
 	if values.ReturnURL != nil {
 		c.MerchantCheckoutValues.SetReturnURL(*values.ReturnURL)
-	}
-	if values.CancelURL != nil {
-		c.MerchantCheckoutValues.SetCancelURL(*values.CancelURL)
 	}
 	if values.NotifyURL != nil {
 		c.MerchantCheckoutValues.SetNotifyURL(*values.NotifyURL)
@@ -384,6 +391,10 @@ func (c *MerchantCheckout) SetValues(values *MerchantCheckoutValues) *MerchantCh
 	if values.CompletedAt != nil {
 		c.MerchantCheckoutValues.SetCompletedAt(*values.CompletedAt)
 	}
+	// Set Transactions field
+	if values.Transactions != nil {
+		c.MerchantCheckoutValues.SetTransactions(values.Transactions)
+	}
 
 	return c
 }
@@ -418,7 +429,54 @@ func SaveMerchantCheckout(tx *gorm.DB, checkout *MerchantCheckout, values *Merch
 			checkout.SetValues(values)
 		}
 	}()
-	return tx.Model(checkout).UpdateColumns(checkout).Error
+	return tx.Model(checkout).UpdateColumns(values).Error
+}
+
+// Transactions字段操作方法
+
+// AddTransaction 添加交易记录到Checkout.Transactions
+func (c *MerchantCheckout) AddTransaction(trx *Transaction) {
+	if c.MerchantCheckoutValues == nil {
+		c.MerchantCheckoutValues = &MerchantCheckoutValues{}
+	}
+	if c.MerchantCheckoutValues.Transactions == nil {
+		c.MerchantCheckoutValues.Transactions = []*Transaction{}
+	}
+	c.MerchantCheckoutValues.Transactions = append(c.MerchantCheckoutValues.Transactions, trx)
+}
+
+// FindTransactionByTrxMethod 根据支付方式查找交易记录
+func (c *MerchantCheckout) FindTransactionByTrxMethod(trxMethod string) *Transaction {
+	for _, trx := range c.GetTransactions() {
+		if trx.TrxMethod == trxMethod {
+			return trx
+		}
+	}
+	return nil
+}
+
+// FindTransactionByTrxID 根据交易ID查找交易记录
+func (c *MerchantCheckout) FindTransactionByTrxID(trxID string) *Transaction {
+	for _, trx := range c.GetTransactions() {
+		if trx.TrxID == trxID {
+			return trx
+		}
+	}
+	return nil
+}
+
+// GetTransactions 获取所有交易记录
+func (c *MerchantCheckout) GetTransactions() []*Transaction {
+	if c.MerchantCheckoutValues == nil || c.MerchantCheckoutValues.Transactions == nil {
+		return []*Transaction{}
+	}
+	return c.Transactions
+}
+
+// SetTransactions sets the Transactions value
+func (cv *MerchantCheckoutValues) SetTransactions(txs []*Transaction) *MerchantCheckoutValues {
+	cv.Transactions = txs
+	return cv
 }
 
 // Protocol conversion method
@@ -431,10 +489,11 @@ func (c *MerchantCheckout) Protocol() *protocol.Checkout {
 		CheckoutID:  c.CheckoutID,
 		Mid:         c.Mid,
 		ReqID:       c.ReqID,
+		TrxID:       c.GetTrxID(),
 		Amount:      c.GetAmount().String(),
 		Ccy:         c.GetCcy(),
 		Country:     c.GetCountry(),
-		TrxMethod:   c.GetPaymentMethod(),
+		TrxMethod:   c.GetTrxMethod(),
 		Status:      c.GetStatus(),
 		NotifyURL:   c.GetNotifyURL(),
 		ReturnURL:   c.GetReturnURL(),

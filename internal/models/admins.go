@@ -34,7 +34,7 @@ func NewAdmin() *Admin {
 		UserID: utils.GenerateAdminID(),
 		AdminValues: &AdminValues{
 			Salt:   &salt,
-			Status: utils.StringPtr(protocol.AdminStatusActive),
+			Status: utils.StringPtr(protocol.StatusActive),
 		},
 		CreatedAt: utils.TimeNowMilli(),
 	}
@@ -64,7 +64,7 @@ func (av *AdminValues) GetRole() string {
 
 func (av *AdminValues) GetStatus() string {
 	if av.Status == nil {
-		return protocol.AdminStatusActive
+		return protocol.StatusActive
 	}
 	return *av.Status
 }
@@ -92,19 +92,19 @@ func (av *AdminValues) SetStatus(value string) *AdminValues {
 
 // 状态检查方法
 func (a *AdminValues) IsActive() bool {
-	return a.GetStatus() == protocol.AdminStatusActive
+	return a.GetStatus() == protocol.StatusActive
 }
 
 func (a *AdminValues) IsInactive() bool {
-	return a.GetStatus() == protocol.AdminStatusInactive
+	return a.GetStatus() == protocol.StatusInactive
 }
 
 func (a *AdminValues) IsSuspended() bool {
-	return a.GetStatus() == protocol.AdminStatusSuspended
+	return a.GetStatus() == protocol.StatusSuspended
 }
 
 func (a *AdminValues) IsLocked() bool {
-	return a.GetStatus() == protocol.AdminStatusLocked
+	return a.GetStatus() == protocol.StatusLocked
 }
 
 func (a *AdminValues) IsSuperAdmin() bool {
@@ -116,32 +116,32 @@ func (a *AdminValues) IsAdmin() bool {
 }
 
 func (a *AdminValues) Activate(adminID string) *AdminValues {
-	a.SetStatus(protocol.AdminStatusActive)
+	a.SetStatus(protocol.StatusActive)
 	return a
 }
 
 func (a *AdminValues) Deactivate(adminID string) *AdminValues {
-	a.SetStatus(protocol.AdminStatusInactive)
+	a.SetStatus(protocol.StatusInactive)
 	return a
 }
 
 func (a *AdminValues) Suspend(adminID, reason string) *AdminValues {
-	a.SetStatus(protocol.AdminStatusSuspended)
+	a.SetStatus(protocol.StatusSuspended)
 	return a
 }
 
 func (a *AdminValues) Unsuspend(adminID string) *AdminValues {
-	a.SetStatus(protocol.AdminStatusActive)
+	a.SetStatus(protocol.StatusActive)
 	return a
 }
 
 func (a *AdminValues) Lock(adminID string) *AdminValues {
-	a.SetStatus(protocol.AdminStatusLocked)
+	a.SetStatus(protocol.StatusLocked)
 	return a
 }
 
 func (a *AdminValues) Approve(adminID string) *AdminValues {
-	a.SetStatus(protocol.AdminStatusActive)
+	a.SetStatus(protocol.StatusActive)
 	return a
 }
 

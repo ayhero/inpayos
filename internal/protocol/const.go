@@ -27,14 +27,10 @@ const (
 	TxTypeWithdraw = "withdraw"
 )
 
-// 通用状态常量
-const (
-	StatusOn  = "on"
-	StatusOff = "off"
-)
-
 // 业务状态常量
 const (
+	StatusOn         = "on"
+	StatusOff        = "off"
 	StatusCreated    = "created"
 	StatusActive     = "active"
 	StatusInactive   = "inactive"
@@ -100,21 +96,6 @@ const (
 const (
 	WeightTypePriority = "POT"
 	WeightTypePercent  = "PCT"
-)
-
-// Admin 状态常量
-const (
-	AdminStatusActive    = StatusActive
-	AdminStatusInactive  = StatusInactive
-	AdminStatusSuspended = StatusSuspended
-	AdminStatusLocked    = StatusLocked
-)
-
-// Admin 活跃状态常量
-const (
-	AdminActiveStatusOnline  = StatusOnline
-	AdminActiveStatusOffline = StatusOffline
-	AdminActiveStatusBusy    = StatusBusy
 )
 
 var (
